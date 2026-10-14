@@ -1,13 +1,30 @@
 ---
 name: changelog-append
-description: Add a changelog entry for a change that was just made (only user triggered, no agent self-invocation).
+description: Add a changelog entry for a change that was just made, or open the entry of a new CERF version (only user triggered, no agent self-invocation).
 ---
 
 # changelog-append - record one change in the changelog
 
 The user invoked `/changelog-append`. Add one concise entry for the change just made, then regenerate the README.
 
+When the user asks to bump the CERF version, follow § Bump mode instead.
+
 **User-invoked only.** Only the user triggers this skill by typing `/changelog-append`. An agent never invokes it on its own initiative - finishing a change is not a license to write the changelog.
+
+## Bump mode
+
+1. **Read the version from `cerf/version.h`**: `CERF_VERSION_MAJOR`, `CERF_VERSION_MINOR`, `CERF_VERSION_PATCH`. The label is `v<major>.<minor>`, or `v<major>.<minor>.<patch>` when the patch is not 0. Do not edit `version.h`.
+2. **If the top entry of `docs/changelog.yml` already has that version, change nothing** and tell the user.
+3. **Otherwise insert a new top entry**, exactly in this shape:
+
+   ```yaml
+   - version: v8.0
+     date: TBA
+     changes: |
+       -
+   ```
+
+4. **Run `python compile_readme.py`** (from repo root). Confirm it prints `README.md compiled (vX.Y)`.
 
 ## Categories
 
@@ -33,7 +50,7 @@ Subcategories:
 `docs/changelog.yml` is the source; the README table and the website changelog page are generated from it.
 
 1. **Open `docs/changelog.yml`.** The **latest version is the topmost list entry** (currently `TBA` at the top).
-2. **Pick the group + subcategory** from the legend above. If that `group:` / `subcat:` key already exists in the top entry, append your line to its `|` block; otherwise add the key (a `|` literal block) in any order. Do not create a new version entry. Do not touch older entries.
+2. **Pick the group + subcategory** from the legend above. If that `group:` / `subcat:` key already exists in the top entry, append your line to its `|` block; otherwise add the key (a `|` literal block) in any order. If the top entry still has the `changes: |` / `-` placeholder from § Bump mode, delete it. Do not create a new version entry. Do not touch older entries.
 3. **Write one raw line.** Plain string - no escaping; colons and `<`, `&`, quotes are fine. `**text**` renders bold. Strip a prefix that just repeats the group (`Guest Additions:`, `Launcher:`), but keep a board name that says which device (`NEC MP700:`, `Zune 30:`).
 4. **Run `python compile_readme.py`** (from repo root). Confirm it prints `README.md compiled (vX.Y)`.
 
