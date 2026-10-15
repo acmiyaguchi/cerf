@@ -49,7 +49,7 @@ void PeripheralDispatcher::Register(Peripheral* p) {
         }
     }
 
-    const Entry entry{base, last, p->FastReader(), p->FastWriter(), p, p, nullptr};
+    const Entry entry{{base, last, p->FastReader(), p->FastWriter(), p}, p, nullptr};
     auto pos = std::lower_bound(entries_.begin(), entries_.end(), base,
         [](const Entry& e, uint32_t b) { return e.base < b; });
     entries_.insert(pos, entry);
@@ -145,11 +145,11 @@ void PeripheralDispatcher::PublishLocked() {
             const uint32_t index = static_cast<uint32_t>(r - inversions_.data());
             if ((active_inversions_ & (1u << index)) == 0u) continue;
             inverted_targets_.push_back(std::make_unique<InvertedTarget>(
-                InvertedTarget{e.read, e.write, e.ctx}));
+                InvertedTarget{e.read, e.write, e.context}));
             InvertedTarget* t = inverted_targets_.back().get();
             e.read     = &InvertedRead;
             e.write    = &InvertedWrite;
-            e.ctx      = t;
+            e.context  = t;
             e.inverted = t;
         }
         published = next.get();
@@ -158,6 +158,19 @@ void PeripheralDispatcher::PublishLocked() {
     }
     last_hit_.store(0, std::memory_order_relaxed);
     live_.store(published, std::memory_order_release);
+    generation_.fetch_add(1u, std::memory_order_release);
+}
+
+cerfengine::MmioBusBinding PeripheralDispatcher::EngineBinding() {
+    return cerfengine::MmioBusBinding{this, &generation_};
+}
+
+CERF_FORCEINLINE bool PeripheralDispatcher::FindRoute(uint32_t addr,
+                                                      cerfengine::MmioRoute& route) const {
+    const Entry* e = LookupSlow(addr);
+    if (!e) return false;
+    route = *e;
+    return true;
 }
 
 uint32_t PeripheralDispatcher::InvertedRead(void* ctx, uint32_t off, uint32_t width_bytes) {
@@ -192,7 +205,7 @@ void PeripheralDispatcher::ValidatePhysReachable(uint32_t phys_addr_mask) const 
     }
 }
 
-/* QEMU system/physmem.c:345 address_space_lookup_region(), mru_section. */
+/* QEMU address_space_lookup_region, mru_section (physmem.c). */
 const PeripheralDispatcher::Entry* PeripheralDispatcher::LookupEntry(
     uint32_t addr) const {
     if (const Entry* hit = MemoHit(addr)) return hit;
@@ -216,38 +229,88 @@ const PeripheralDispatcher::Entry* PeripheralDispatcher::LookupSlow(
     return nullptr;
 }
 
-uint32_t PeripheralDispatcher::ReadSlow(uint32_t addr, MmioWidth width) {
+template <bool kFillRoute, MmioWidth kWidth>
+CERF_FORCEINLINE uint32_t PeripheralDispatcher::ReadSlowAt(uint32_t addr,
+                                                           cerfengine::MmioRoute* route) {
     if (const Entry* e = LookupSlow(addr)) {
-        return ClipToWidth(
-            e->read(e->ctx, addr - e->base, static_cast<uint32_t>(width)),
-            width);
+        if constexpr (kFillRoute) *route = *e;
+        return e->Read(addr, kWidth);
     }
+    auto& memory = emu_.Get<EmulatedMemory>();
+    if constexpr (kWidth == MmioWidth::kByte) {
+        return memory.ReadByte(addr);
+    } else if constexpr (kWidth == MmioWidth::kHalf) {
+        return memory.ReadHalf(addr);
+    } else {
+        return memory.ReadWord(addr);
+    }
+}
+
+template <bool kFillRoute, MmioWidth kWidth>
+CERF_FORCEINLINE void PeripheralDispatcher::WriteSlowAt(uint32_t addr, uint32_t value,
+                                                        cerfengine::MmioRoute* route) {
+    if (const Entry* e = LookupSlow(addr)) {
+        if constexpr (kFillRoute) *route = *e;
+        e->Write(addr, value, kWidth);
+        return;
+    }
+    auto& memory = emu_.Get<EmulatedMemory>();
+    if constexpr (kWidth == MmioWidth::kByte) {
+        memory.WriteByte(addr, static_cast<uint8_t>(value));
+    } else if constexpr (kWidth == MmioWidth::kHalf) {
+        memory.WriteHalf(addr, static_cast<uint16_t>(value));
+    } else {
+        memory.WriteWord(addr, value);
+    }
+}
+
+template <bool kFillRoute>
+CERF_FORCEINLINE uint32_t PeripheralDispatcher::ReadSlowImpl(uint32_t addr, MmioWidth width,
+                                                             cerfengine::MmioRoute* route) {
     switch (width) {
-    case MmioWidth::kByte: return emu_.Get<EmulatedMemory>().ReadByte(addr);
-    case MmioWidth::kHalf: return emu_.Get<EmulatedMemory>().ReadHalf(addr);
-    case MmioWidth::kWord: return emu_.Get<EmulatedMemory>().ReadWord(addr);
+    case MmioWidth::kByte: return ReadSlowAt<kFillRoute, MmioWidth::kByte>(addr, route);
+    case MmioWidth::kHalf: return ReadSlowAt<kFillRoute, MmioWidth::kHalf>(addr, route);
+    case MmioWidth::kWord: return ReadSlowAt<kFillRoute, MmioWidth::kWord>(addr, route);
+    case MmioWidth::kDword: break;
     }
     HaltBadWidth(static_cast<uint32_t>(width));
+}
+
+template <bool kFillRoute>
+CERF_FORCEINLINE void PeripheralDispatcher::WriteSlowImpl(uint32_t addr, uint32_t value,
+                                                          MmioWidth width,
+                                                          cerfengine::MmioRoute* route) {
+    switch (width) {
+    case MmioWidth::kByte: WriteSlowAt<kFillRoute, MmioWidth::kByte>(addr, value, route); return;
+    case MmioWidth::kHalf: WriteSlowAt<kFillRoute, MmioWidth::kHalf>(addr, value, route); return;
+    case MmioWidth::kWord: WriteSlowAt<kFillRoute, MmioWidth::kWord>(addr, value, route); return;
+    case MmioWidth::kDword: break;
+    }
+    HaltBadWidth(static_cast<uint32_t>(width));
+}
+
+uint32_t PeripheralDispatcher::ReadSlow(uint32_t addr, MmioWidth width) {
+    return ReadSlowImpl<false>(addr, width, nullptr);
+}
+
+void PeripheralDispatcher::WriteSlow(uint32_t addr, uint32_t value, MmioWidth width) {
+    WriteSlowImpl<false>(addr, value, width, nullptr);
+}
+
+uint32_t CERFENGINE_FASTCALL cerfengine::host::MmioReadSlow(void* context, uint32_t pa,
+                                                            MmioWidth width, MmioRoute& route) {
+    return static_cast<PeripheralDispatcher*>(context)->ReadSlowImpl<true>(pa, width, &route);
+}
+
+void CERFENGINE_FASTCALL cerfengine::host::MmioWriteSlow(void* context, uint32_t pa,
+                                                         uint32_t value, MmioWidth width,
+                                                         MmioRoute& route) {
+    static_cast<PeripheralDispatcher*>(context)->WriteSlowImpl<true>(pa, value, width, &route);
 }
 
 void PeripheralDispatcher::HaltBadWidth(uint32_t width) {
     LOG(Caution, "PeripheralDispatcher: unmodeled MMIO width %u\n", width);
     CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
-}
-
-void PeripheralDispatcher::WriteSlow(uint32_t addr, uint32_t value,
-                                     MmioWidth width) {
-    if (const Entry* e = LookupSlow(addr)) {
-        e->write(e->ctx, addr - e->base, ClipToWidth(value, width),
-                 static_cast<uint32_t>(width));
-        return;
-    }
-    switch (width) {
-    case MmioWidth::kByte: emu_.Get<EmulatedMemory>().WriteByte(addr, static_cast<uint8_t>(value)); return;
-    case MmioWidth::kHalf: emu_.Get<EmulatedMemory>().WriteHalf(addr, static_cast<uint16_t>(value)); return;
-    case MmioWidth::kWord: emu_.Get<EmulatedMemory>().WriteWord(addr, value); return;
-    }
-    HaltBadWidth(static_cast<uint32_t>(width));
 }
 
 uint8_t PeripheralDispatcher::ReadByte(uint32_t addr) {
@@ -262,7 +325,7 @@ uint32_t PeripheralDispatcher::ReadWord(uint32_t addr) {
     return Read(addr, MmioWidth::kWord);
 }
 
-uint64_t PeripheralDispatcher::ReadDword(uint32_t addr) {
+CERF_FORCEINLINE uint64_t PeripheralDispatcher::ReadDwordRouted(uint32_t addr) {
     if (const Entry* e = LookupEntry(addr)) {
         const uint64_t value = e->p->ReadDword(addr);
         return e->inverted ? ~value : value;
@@ -282,12 +345,26 @@ void PeripheralDispatcher::WriteWord(uint32_t addr, uint32_t value) {
     Write(addr, value, MmioWidth::kWord);
 }
 
-void PeripheralDispatcher::WriteDword(uint32_t addr, uint64_t value) {
+CERF_FORCEINLINE void PeripheralDispatcher::WriteDwordRouted(uint32_t addr, uint64_t value) {
     if (const Entry* e = LookupEntry(addr)) {
         if (e->inverted) value = ~value;
         e->p->WriteDword(addr, value);
         return;
     }
     emu_.Get<EmulatedMemory>().WriteDword(addr, value);
+}
+
+bool CERFENGINE_FASTCALL cerfengine::host::MmioFindRoute(void* context, uint32_t pa,
+                                                         MmioRoute& route) {
+    return static_cast<const PeripheralDispatcher*>(context)->FindRoute(pa, route);
+}
+
+uint64_t CERFENGINE_FASTCALL cerfengine::host::MmioReadDword(void* context, uint32_t pa) {
+    return static_cast<PeripheralDispatcher*>(context)->ReadDwordRouted(pa);
+}
+
+void CERFENGINE_FASTCALL cerfengine::host::MmioWriteDword(void* context, uint32_t pa,
+                                                          uint64_t value) {
+    static_cast<PeripheralDispatcher*>(context)->WriteDwordRouted(pa, value);
 }
 

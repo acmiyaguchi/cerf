@@ -2,9 +2,8 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
-#include "../../jit/arm/arm_jit.h"
-#include "../../jit/arm/arm_cpu.h"
-#include "../../jit/arm/cpu_state.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../peripherals/peripheral_base.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
@@ -18,6 +17,10 @@
 bool Imx51Tzic::ShouldRegister() {
     auto* bd = emu_.TryGet<BoardContext>();
     return bd && bd->GetSocId() == SocId::Imx51;
+}
+
+void Imx51Tzic::OnReady() {
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
 }
 
 bool Imx51Tzic::SourceDeliverable(uint32_t src) const {
@@ -64,7 +67,7 @@ void Imx51Tzic::AssertIrq(int source_bit) {
     }
     std::lock_guard<std::mutex> lk(state_mutex_);
     raw_[source_bit / kBitsPerBank] |= 1u << (source_bit % kBitsPerBank);
-    if (HasPendingUnmasked()) emu_.Get<ArmJit>().SetInterruptPending();
+    if (HasPendingUnmasked()) jit_->SetInterruptPending();
 }
 
 void Imx51Tzic::DeAssertIrq(int source_bit) {
@@ -74,9 +77,8 @@ void Imx51Tzic::DeAssertIrq(int source_bit) {
     }
     std::lock_guard<std::mutex> lk(state_mutex_);
     raw_[source_bit / kBitsPerBank] &= ~(1u << (source_bit % kBitsPerBank));
-    auto& jit = emu_.Get<ArmJit>();
-    if (HasPendingUnmasked()) jit.SetInterruptPending();
-    else                      jit.ClearInterruptPending();
+    if (HasPendingUnmasked()) jit_->SetInterruptPending();
+    else                      jit_->ClearInterruptPending();
 }
 
 void Imx51Tzic::AssertSubIrq(int /*main_bit*/, int /*sub_bit*/) {
@@ -164,9 +166,8 @@ void Imx51Tzic::WriteReg(uint32_t off, uint32_t value) {
 
     {
         std::lock_guard<std::mutex> lk(state_mutex_);
-        auto& jit = emu_.Get<ArmJit>();
-        if (HasPendingUnmasked()) jit.SetInterruptPending();
-        else                      jit.ClearInterruptPending();
+        if (HasPendingUnmasked()) jit_->SetInterruptPending();
+        else                      jit_->ClearInterruptPending();
     }
 }
 
@@ -202,9 +203,8 @@ void Imx51Tzic::PostRestore() {
     /* Re-derive the JIT IRQ latch from restored state after every peripheral's
        RestoreState has run - the INTC owns the CPU IRQ line. */
     std::lock_guard<std::mutex> lk(state_mutex_);
-    auto& jit = emu_.Get<ArmJit>();
-    if (HasPendingUnmasked()) jit.SetInterruptPending();
-    else                      jit.ClearInterruptPending();
+    if (HasPendingUnmasked()) jit_->SetInterruptPending();
+    else                      jit_->ClearInterruptPending();
 }
 
 namespace {

@@ -6,7 +6,7 @@
 #include "../core/device_config.h"
 #include "../core/log.h"
 #include "../cpu/emulated_memory.h"
-#include "../jit/guest_engine.h"
+#include "../execution/engine_bridge.h"
 #include "../peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 REGISTER_SERVICE(CerfInjectionRegion);
@@ -40,8 +40,7 @@ uint32_t CerfInjectionRegion::BandVaBase() {
     emu_.Get<EmulatedMemory>().AddRegion(BandPaBase(),
                                          CerfVirt::kInjectionBandSize,
                                          PAGE_READWRITE);
-    emu_.Get<GuestEngine>().SetInjectionBand(va, BandPaBase(),
-                                             CerfVirt::kInjectionBandSize);
+    emu_.Get<EngineBridge>().MapInjectionBand(va, BandPaBase(), CerfVirt::kInjectionBandSize);
     va_base_ = va;
     LOG(GuestAdditions, "injection band: VA 0x%08X -> PA 0x%08X size 0x%X\n",
         va, BandPaBase(), CerfVirt::kInjectionBandSize);

@@ -5,7 +5,7 @@
 #include "../../core/log.h"
 #include "../../boards/board_context.h"
 #include "askey_pc3xx_family_id.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/engine_bridge.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../socs/pxa255/pxa255_gpio.h"
 #include "../../state/state_stream.h"
@@ -62,7 +62,7 @@ private:
         auto& gpio = emu_.Get<Pxa255Gpio>();
         gpio.SetInputLevel(2, true);
         gpio.SetInputLevel(3, true);
-        emu_.Get<GuestEngine>().SetResetPending(false);
+        emu_.Get<EngineBridge>().Guest().SetResetPending(false);
     }
 
     /* +4 tail so a word access at the last in-range offset (0xFFF) cannot

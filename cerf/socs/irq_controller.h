@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/service.h"
+#include <cerfengine/calling_convention.h>
 
 #include <cstdint>
 
@@ -22,5 +23,5 @@ public:
 
     virtual uint32_t ReadPendingVector();
 
-    static uint32_t __fastcall ReadPendingVectorHelper(IrqController* intc);
+    static uint32_t CERFENGINE_FASTCALL ReadPendingVectorHelper(void* intc);
 };

@@ -19,7 +19,7 @@ constexpr const char* kStubDll = "cerf_guest_stub.dll";
 }  /* namespace */
 
 std::string GuestAdditionsBinaries::ArchDir() {
-    if (emu_.Get<BoardContext>().GetCpuArch() == CpuArch::Mips) {
+    if (emu_.Get<BoardContext>().GetCpuArch() == CpuArch::kMips) {
         const ParsedRom& rom = emu_.Get<RomParserService>().Primary();
         const uint16_t cpu = rom.xips.empty() ? 0 : rom.xips[0].toc.romhdr.usCPUType;
         return cpu == PeImage::kMachineMipsFpu ? "mips4" : "mips1";

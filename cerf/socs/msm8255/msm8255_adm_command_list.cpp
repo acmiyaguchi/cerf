@@ -83,7 +83,7 @@ uint32_t Msm8255AdmCommandList::BusRead(uint32_t pa) {
             "modeled", pa);
     }
     uint32_t v = 0;
-    if (!emu_.Get<PhysicalBus>().Read(pa, BusWidth::Word, &v)) {
+    if (!emu_.Get<PhysicalBus>().Read(pa, MmioWidth::kWord, &v)) {
         emu_.Get<Fatal>().Die(
             "msm8255 dmov: command list read at 0x%08X reaches neither memory "
             "nor a peripheral", pa);
@@ -118,15 +118,15 @@ void Msm8255AdmCommandList::Move(uint32_t src, uint32_t dst, uint32_t len,
     auto& bus   = emu_.Get<PhysicalBus>();
     auto& disp  = emu_.Get<PeripheralDispatcher>();
     auto& lines = emu_.Get<Msm8255CrciBus>();
-    const BusWidth w = ((len | src | dst) & 3u) == 0u ? BusWidth::Word
-                                                      : BusWidth::Byte;
+    const MmioWidth w = ((len | src | dst) & 3u) == 0u ? MmioWidth::kWord
+                                                       : MmioWidth::kByte;
     const uint32_t step = static_cast<uint32_t>(w);
     for (uint32_t done = 0; done < len; done += step) {
         const uint32_t s = src + done;
         const uint32_t d = dst + done;
         for (const uint32_t p : {s, d}) {
             if (!disp.IsPeripheralAddress(p)) continue;
-            if (lines.FifoCovers(crci, p) && w == BusWidth::Word) continue;
+            if (lines.FifoCovers(crci, p) && w == MmioWidth::kWord) continue;
             emu_.Get<Fatal>().Die(
                 "msm8255 dmov: transfer 0x%08X -> 0x%08X reaches the peripheral "
                 "at 0x%08X, which is not the data register the crci %u client "

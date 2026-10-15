@@ -120,6 +120,21 @@ function Test-Vcpkg {
     }
 }
 
+function Test-CMake {
+    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+    if (-not (Test-Path $vswhere)) {
+        Report 'FAIL' 'cmake' 'vswhere.exe not found -- install Visual Studio with the C++ desktop workload'
+        return
+    }
+    $vsRoot = & $vswhere -latest -prerelease -property installationPath | Select-Object -First 1
+    $cmake  = Join-Path $vsRoot 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+    if (Test-Path $cmake) {
+        Report 'OK' 'cmake' $cmake
+    } else {
+        Report 'FAIL' 'cmake' "absent -- install the 'C++ CMake tools for Windows' Visual Studio component"
+    }
+}
+
 # docs/ce_apps_setup.md
 function Test-CeToolchain {
     $root = 'third_party/wince'
@@ -149,6 +164,7 @@ function Invoke-Checks {
     Test-Python
     Test-ClaudeHooks
     Test-Vcpkg
+    Test-CMake
     Test-CeToolchain
 }
 

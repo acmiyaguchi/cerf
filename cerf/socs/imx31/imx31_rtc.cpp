@@ -3,7 +3,7 @@
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
 #include "../../host/guest_deep_sleep.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"

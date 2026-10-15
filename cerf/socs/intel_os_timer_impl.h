@@ -9,8 +9,8 @@
 
 #include "../core/cerf_emulator.h"
 #include "../core/fatal.h"
-#include "../jit/guest_cycle_clock.h"
-#include "../jit/guest_engine.h"
+#include "../execution/guest_cycle_clock.h"
+#include "../execution/engine_bridge.h"
 #include "../peripherals/peripheral_dispatcher.h"
 #include "../state/state_stream.h"
 
@@ -25,7 +25,7 @@ public:
 
     void OnReady() override {
         clock_      = &emu_.Get<GuestCycleClock>();
-        engine_     = &emu_.Get<GuestEngine>();
+        engine_     = &emu_.Get<EngineBridge>().Guest();
         invariants_ = &emu_.Get<IntelOsTimerKernelInvariants>();
         rate_probe_ = &emu_.Get<RateProbe>();
         SetUnits();
@@ -372,7 +372,7 @@ private:
     }
 
     GuestCycleClock*              clock_      = nullptr;
-    GuestEngine*                  engine_     = nullptr;
+    cerfengine::GuestEngine*                  engine_     = nullptr;
     IntelOsTimerKernelInvariants* invariants_ = nullptr;
     RateProbe*                    rate_probe_ = nullptr;
     GuestCycleClock::Event*       event_[4]   = {};

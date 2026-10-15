@@ -56,10 +56,11 @@ code, translated to host x86 on the fly. This covers
 userspace EXEs / driver DLLs. `JitRunner` drives an abstract `GuestEngine`
 service. The concrete engine implements it for the CPU architecture of the
 board, and `BoardContext::GetCpuArch()` selects it. Per-SoC variation lives
-in per-core strategy services that `GetSocId()` selects. Per-SoC variation is
-never an `if (soc == X)` branch in the JIT body.
+in per-core strategy services that `GetSocId()` selects. These reach the
+engine through its host interfaces. Per-SoC variation is never an
+`if (soc == X)` branch in the engine.
 
-- `cerf/jit/`, [agent_docs/jit.md](jit.md)
+- `libCerfEngine/`, `cerf/execution/`, [agent_docs/jit.md](jit.md)
 - the guest cycle clock every timer derives from:
   [agent_docs/timers_clocks.md](timers_clocks.md)
 
@@ -81,7 +82,7 @@ The `ShouldRegister` of a concrete returns
 never knows its board. It knows only its chip.
 
 The VA→PA placement map (`PageTableBuilder`) does not live here. The core
-CPU strategies (`CoprocEmitter`) split on a different axis. VA→PA placement
+CPU strategies (`ArmCoprocProvider`) split on a different axis. VA→PA placement
 is a BSP/board choice, because the OEMAddressTable differs per board. Its
 concretes live under `cerf/boards/<family>/`, and `GetBoardFamilyId()`
 selects them.
@@ -596,10 +597,9 @@ is `Nkdbg`.
 
 ## Byte order
 
-`cerf/core/byte_order.h` holds the only code that reads and writes multi-byte
-values in a byte buffer. It contains little-endian and big-endian loads, stores
-and vector appends. It also contains byte swaps and the mask for an access
-width. Do not write a local shift-and-or or a local `Put32`.
+`cerf/core/byte_order.h` and the `cerfengine/byte_order.h` header of
+libCerfEngine hold the only code that reads and writes multi-byte values in a
+byte buffer. Do not write a local shift-and-or or a local `Put32`.
 
 ## Bundled device tree
 

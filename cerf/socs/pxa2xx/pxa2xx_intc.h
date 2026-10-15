@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 
+namespace cerfengine { class ArmJit; }
 class StateWriter;
 class StateReader;
 
@@ -119,6 +120,7 @@ private:
     void     NotifyLocked();
 
     mutable std::mutex state_mtx_;
+    cerfengine::ArmJit*            jit_ = nullptr;
 
     /* Intel PXA27x Developer's Manual 280000-001 Tables 25-3, 25-9, 25-11 and
        25-13 reset columns: cleared during reset. */

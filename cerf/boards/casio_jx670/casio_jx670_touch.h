@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../jit/guest_cycle_clock.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/guest_cycle_clock.h"
+#include <cerfengine/host_request_channel.h>
 #include "../../socs/cycle_anchored_counter.h"
 
 #include <atomic>
@@ -95,7 +95,7 @@ private:
 
     GuestCycleClock*           clock_        = nullptr;
     GuestCycleClock::Event*    sample_event_ = nullptr;
-    HostRequestChannel*        host_requests_ = nullptr;
+    cerfengine::HostRequestChannel*        host_requests_ = nullptr;
     NarrowCycleAnchoredCounter samples_;
     uint32_t                   next_sample_  = 0;
     bool                       sampling_     = false;

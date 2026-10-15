@@ -6,7 +6,7 @@
 #include "../../core/device_config.h"
 #include "../../core/fatal.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/engine_bridge.h"
 
 REGISTER_SERVICE(CerfVirtNicStage);
 
@@ -28,7 +28,7 @@ void CerfVirtNicStage::OnReady() {
         emu_.Get<Fatal>().Die("[CerfVirtNicStage] region at PA 0x%08X is not backed",
                               BasePa());
     }
-    emu_.Get<GuestEngine>().SetDmaRegion(BasePa(), CerfVirt::kNicStageSize);
+    emu_.Get<EngineBridge>().Guest().SetDmaRegion(BasePa(), CerfVirt::kNicStageSize);
 }
 
 uint8_t* CerfVirtNicStage::TxSlot(uint32_t index) {

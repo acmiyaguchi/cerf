@@ -1,13 +1,13 @@
 #pragma once
 
+#include <cerfengine/arm/arm_system_host.h>
 #include "../guest_cpu_reset.h"
 #include "../irq_controller.h"
 
 #include <cstdint>
 #include <mutex>
 
-struct BlockContext;
-struct DecodedInsn;
+namespace cerfengine { class ArmJit; }
 class Iop13xxTimers;
 class StateReader;
 class StateWriter;
@@ -27,10 +27,10 @@ public:
     void RestoreState(StateReader& r);
     void PostRestoreState();
 
-    uint8_t* EmitRegisterTransfer(uint8_t* cursor, DecodedInsn* d, BlockContext* ctx);
+    cerfengine::ArmCoprocDecision Decide(const cerfengine::ArmCoprocAccess& a);
 
-    static uint32_t __fastcall ReadHelper(Iop13xxCp6* self, uint32_t key);
-    static void __fastcall WriteHelper(Iop13xxCp6* self, uint32_t key, uint32_t value);
+    static uint32_t CERFENGINE_FASTCALL ReadHelper(void* self, uint32_t key);
+    static void     CERFENGINE_FASTCALL WriteHelper(void* self, uint32_t key, uint32_t value);
 
     void LatchWarmReset() override;
     void LatchColdReset() override;
@@ -48,6 +48,7 @@ private:
     bool HasPendingFiqLocked() const;
     void ResetStateLocked();
 
+    cerfengine::ArmJit*        jit_    = nullptr;
     Iop13xxTimers* timers_ = nullptr;
     mutable std::mutex state_mutex_;
     uint32_t intctl_[4]{};

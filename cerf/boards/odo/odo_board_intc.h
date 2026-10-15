@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 
+namespace cerfengine { class ArmJit; }
 class StateWriter;
 class StateReader;
 
@@ -45,6 +46,7 @@ private:
     void PublishIrqLineLocked();
 
     std::mutex state_mutex_;
+    cerfengine::ArmJit*    jit_ = nullptr;
     uint32_t   cpu_isr_ = 0;
     uint32_t   cpu_mr_  = 0;
     bool       timer_irq_level_ = false;

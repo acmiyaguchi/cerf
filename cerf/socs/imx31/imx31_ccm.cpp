@@ -2,7 +2,7 @@
 
 #include "../../core/fatal.h"
 #include "../../core/log.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "imx31_clock_input.h"
 

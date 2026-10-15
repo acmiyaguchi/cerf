@@ -5,7 +5,7 @@
 #include "../core/fatal.h"
 #include "../core/log.h"
 #include "../core/steady_time.h"
-#include "../jit/guest_engine.h"
+#include "../execution/engine_bridge.h"
 #include "../state/shutdown_action.h"
 #include "../state/shutdown_dialog.h"
 #include "guest_power_notifier.h"
@@ -118,11 +118,7 @@ void GuestDeepSleep::RegisterResumeVectorProvider(SleepResumeVectorProvider* p) 
 }
 
 void GuestDeepSleep::Enter() {
-    /* A pending reset is a wake/reboot in flight, and the wake itself is a reset;
-       entering sleep here lets the woken guest re-execute its sleep write before
-       the poll delivers the reset, posting a spurious second recovery prompt and
-       hanging. Sleep entry yields to a pending reset. */
-    if (emu_.Get<GuestEngine>().ResetPending()) {
+    if (emu_.Get<EngineBridge>().Guest().ResetPending()) {
         LOG(SocReset, "[DEEPSLEEP] Enter: reset pending, skip (wake/reboot wins)\n");
         return;
     }
@@ -134,7 +130,7 @@ void GuestDeepSleep::Enter() {
     wake_claimed_.store(false, std::memory_order_release);
     hw_resumed_.store(false, std::memory_order_release);
     emu_.Get<GuestPowerNotifier>().NotifyPowerDown();
-    emu_.Get<GuestEngine>().EnterDeepSleep();
+    emu_.Get<EngineBridge>().Guest().EnterDeepSleep();
     for (auto& fn : sleep_entry_listeners_) fn();
     int64_t due = kNoParkWake;
     for (auto& fn : park_wake_dues_) {
@@ -195,7 +191,7 @@ void GuestDeepSleep::DeliverWake(ResumeSource src) {
         clock_stop_->OnPowerUp();
         for (auto& fn : power_up_listeners_) fn();
         emu_.Get<GuestPowerNotifier>().NotifyResume(src);
-        emu_.Get<GuestEngine>().ExitDeepSleep();
+        emu_.Get<EngineBridge>().Guest().ExitDeepSleep();
         return;
     }
     if (power_on_wake_) {
@@ -205,14 +201,14 @@ void GuestDeepSleep::DeliverWake(ResumeSource src) {
     }
     waker_->LatchSleepWakeCause();
     if (resume_vector_provider_) resume_vector_provider_->ApplyPendingResume();
-    emu_.Get<GuestEngine>().SetResetPending(/*is_resume=*/true);
+    emu_.Get<EngineBridge>().Guest().SetResetPending(true);
     emu_.Get<GuestPowerNotifier>().NotifyResume(src);
 }
 
 void GuestDeepSleep::OnFullRestore() {
     ConsumeSleepSpan();
     wake_claimed_.store(false, std::memory_order_release);
-    if (emu_.Get<GuestEngine>().DeepSleep()) DeliverWake(ResumeSource::User);
+    if (emu_.Get<EngineBridge>().Guest().DeepSleep()) DeliverWake(ResumeSource::User);
 }
 
 void GuestDeepSleep::Recover() {

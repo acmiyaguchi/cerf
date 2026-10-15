@@ -9,20 +9,23 @@ board runs exactly one of them, chosen by `BoardContext::GetCpuArch()`.
 
 | Path | What is there |
 |---|---|
-| `cerf/jit/guest_engine.h` | the ISA-neutral engine interface `JitRunner` drives |
-| `cerf/jit/jit_runner.{h,cpp}` | the host thread that owns the dispatch loop |
-| `cerf/jit/jit_code_arena.{h,cpp}` | the executable-memory allocator |
-| `cerf/jit/isa_block_space.h`, `jit_block_index.{h,cpp}` | the translation index and jump cache |
-| `cerf/jit/x86_emit*.h` | host x86 encoding helpers, from Intel SDM Vol. 2 |
-| `cerf/jit/arm/`, `cerf/jit/mips/` | the two engines |
-| `cerf/jit/arm/place/`, `cerf/jit/mips/place/` | one file per emitted guest instruction |
-| `cerf/cpu/<core>/` | per-core strategies the engines resolve |
+| `libCerfEngine/include/cerfengine/engine.h`, `engine_setup.h`, `*_host.h` | the engine, the setup that the host fills, the host interfaces and hooks, and the host functions that the engine declares |
+| `libCerfEngine/include/cerfengine/guest_engine.h` | the ISA-neutral engine interface `JitRunner` drives |
+| `cerf/execution/*engine_bridge*` | the CERF owner of the engine |
+| `cerf/execution/jit_runner.{h,cpp}` | the host thread that owns the dispatch loop |
+| `libCerfEngine/src/jit_code_arena.{h,cpp}` | the executable-memory allocator |
+| `libCerfEngine/include/cerfengine/isa_block_space.h`, `jit_block_index.h` | the translation index and jump cache |
+| `libCerfEngine/src/x86_emit*.h` | host x86 encoding helpers, from Intel SDM Vol. 2 |
+| `libCerfEngine/src/arm/`, `libCerfEngine/src/mips/` | the two engines |
+| `libCerfEngine/src/arm/place/`, `libCerfEngine/src/mips/place/` | one file per emitted guest instruction |
+| `cerf/cpu/arm/`, `cerf/cpu/mips/`, `cerf/cpu/<core>/` | the page-walk, coprocessor, TLB and exception models that CERF gives the engine, for each ISA and for each core |
 
 ## The `GuestEngine` seam
 
 `JitRunner` drives an abstract `GuestEngine` service and never names a
-concrete engine. `ArmJit` and `MipsJit` each register as that base, and
-the `CpuArch` of the board selects which one wins the slot.
+concrete engine. `ArmJit` and `MipsJit` each register as that base
+inside the engine, and `Setup::isa` selects which one wins the slot.
+CERF sets `Setup::isa` from the `CpuArch` of the board.
 
 The seam is ISA-neutral throughout. Hibernation, reset, deep sleep and
 guest-additions injection all reach the engine through it. The state
@@ -30,19 +33,38 @@ and power layers therefore carry no ISA knowledge.
 
 ## Boundary
 
-Host C++ in the JIT covers this, and nothing else:
+libCerfEngine covers this, and nothing else:
 
-- translation, from decode to emit
-- the dispatch loop
-- the MMU and coprocessor (cp15 / CP0) state
-- the per-SoC configuration strategies
-- exception entry
-- the cross-thread interrupt channel
-- the SEH fault wrapper
+- Translation, from decode to emit
+- The dispatch loop
+- The architectural CPU state and exception entry
+- The TLB, its inline fast path, and the FCSE fold
+- The cross-thread interrupt channel
+- The halt and unwind wrapper around a run
 
-It does not cover CE userspace or kernel behavior. Those are guest
+The host supplies the rest. The engine declares, in namespace
+`cerfengine::host`, each host function that its own code calls while guest
+code runs. The program that links the engine defines them, so each call is
+direct. A hook is a function pointer with its context. The host gives one
+where it selects the function at run time, for example for each MIPS core.
+Calls off the hot path go through the host interfaces.
+
+The engine does not cover CE userspace or kernel behavior. Those are guest
 code that runs in the cache. If `coredll.dll` does something wrong,
 the fix is not in the JIT.
+
+## Errors
+
+`Engine::Start` returns a setup error to its caller. The x86 backend
+builds only for MSVC x86. On every other host, `Start` refuses.
+
+`Engine::Halt` stops a run on a guest condition that the engine does not
+model. It unwinds to the wrapper around block execution or block
+compilation in `Run()`, so it is valid only there. `Run()` then returns
+`kHalted`, and `LastHalt()` holds the reason.
+
+`Engine::Panic` reports a broken engine invariant to the host and does
+not return. A service-locator error inside the engine goes the same way.
 
 ## How a block is translated
 
@@ -91,8 +113,8 @@ phase then runs that function once per guest instruction. Each one
 writes host machine code at a cursor and returns the advanced cursor.
 
 Place fns live one per file. To add a guest instruction, add a decoder
-mapping and add a `place/<name>.cpp` - no build-script or project-file
-edit is necessary, because `cerf.vcxproj` globs `**\*.cpp`.
+mapping and add a `place/<name>.cpp`. No build-script edit is
+necessary, because the CMake build of the engine globs `src/*.cpp`.
 
 A place fn reaches per-instance state only through its block context.
 
@@ -116,11 +138,28 @@ helper.** Changing it requires an edit at every emit site.
 
 None of these is visible from any single file.
 
-- **A service that resolves an engine-specific service from `OnReady`
-  must gate `ShouldRegister` on `CpuArch` itself.** On a board of the
-  other ISA that slot has no winner. The service then fails to resolve,
-  and the board dies at boot. Nothing infers the gate, and neither the
-  compiler nor the linker sees the omission.
+- **A CERF service that resolves an ISA-specific engine service must
+  gate `ShouldRegister` on `CpuArch` itself.** On a board of the other
+  ISA the engine has no such service, and the lookup halts at boot.
+  Nothing infers the gate, and neither the compiler nor the linker sees
+  the omission.
+- **A consumer links libCerfEngine as a whole archive.** The engine
+  services register through static initializers. A plain static link
+  drops their objects, and the first lookup of an engine service fails.
+- **An engine service keeps its own copy of each host context that it
+  passes while guest code runs.** A lookup through the engine or the
+  bridge on each call adds loads.
+- **A `cerfengine::host` function forwards to a private member of the
+  CERF service that owns the body.** The member carries a forced-inline
+  attribute, so the call reaches the body with no second call.
+- **Every change to how a physical page maps to host memory invalidates
+  the engine page map.** The map caches a host pointer for each page that
+  host memory backs linearly. A new region needs no invalidation, because
+  the map caches no negative result. A changed address decode needs it.
+- **The MMIO bus host increments its route generation after every change
+  that can make a route stale.** The engine reuses the last route that it
+  found while the generation stays the same. The host publishes the new
+  routes before it increments the generation.
 - **A block's physical identity comes from the fetch, never a
   re-walk.** An independent later walk diverges from the fetch during
   transitional MMU states. Two such states are a TLB-cached mapping
@@ -135,9 +174,9 @@ None of these is visible from any single file.
   trampolines are permanent, because emitted blocks reach them through
   a baked absolute address. If a flush reclaims those bytes, every
   such block jumps into unrelated code.
-- **The JIT reaches a cp15 trampoline with `CALL`, so control RETURNS
-  into the calling block.** A handler that frees the arena under that
-  block returns into freed memory. An SCTLR write therefore pends its
+- **Emitted code reaches a coprocessor callback with `CALL`, so control
+  RETURNS into the calling block.** A callback that frees the arena under
+  that block returns into freed memory. An SCTLR write therefore pends its
   cache flush instead of performing it.
 - **FCSE fold is identity on ASID kernels.** The cp13 fold separates
   per-process low VAs only on FCSE kernels (CE5 / ARMv5). CE6 / CE7
@@ -232,6 +271,5 @@ The parts that differ from ARM:
   inline on x86-32. These are the doubleword loads and stores, the
   unaligned merges, the 128-bit products, doubleword division, and the
   variable doubleword shifts.
-- **Unimplemented paths loud-fatal, never silent-UND.** A decoder
-  reject or a not-yet-built place fn logs the opcode and PC, then
-  exits.
+- **Unimplemented paths halt, never silent-UND.** A decoder reject or
+  a not-yet-built place fn halts the run with the opcode and the PC.

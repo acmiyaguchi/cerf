@@ -2,9 +2,8 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
-#include "../../jit/arm/arm_jit.h"
-#include "../../jit/arm/arm_cpu.h"
-#include "../../jit/arm/cpu_state.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../peripherals/peripheral_base.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
@@ -18,6 +17,10 @@
 bool Omap3530Intc::ShouldRegister() {
     auto* bd = emu_.TryGet<BoardContext>();
     return bd && bd->GetSocId() == SocId::Omap3530;
+}
+
+void Omap3530Intc::OnReady() {
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
 }
 
 int Omap3530Intc::BankIndex(uint32_t off, uint32_t* bank_off_out) {
@@ -77,7 +80,7 @@ void Omap3530Intc::AssertIrq(int source_bit) {
         const uint32_t bank     = source_bit / kBitsPerBank;
         const uint32_t bit_mask = 1u << (source_bit % kBitsPerBank);
         banks_[bank].itr |= bit_mask;
-        if (HasPendingUnmasked()) emu_.Get<ArmJit>().SetInterruptPending();
+        if (HasPendingUnmasked()) jit_->SetInterruptPending();
     }
 }
 
@@ -92,9 +95,8 @@ void Omap3530Intc::DeAssertIrq(int source_bit) {
     const uint32_t bank     = source_bit / kBitsPerBank;
     const uint32_t bit_mask = 1u << (source_bit % kBitsPerBank);
     banks_[bank].itr &= ~bit_mask;
-    auto& jit = emu_.Get<ArmJit>();
-    if (HasPendingUnmasked()) jit.SetInterruptPending();
-    else                      jit.ClearInterruptPending();
+    if (HasPendingUnmasked()) jit_->SetInterruptPending();
+    else                      jit_->ClearInterruptPending();
 }
 
 void Omap3530Intc::AssertSubIrq(int /*main_source_bit*/, int /*sub_source_bit*/) {
@@ -213,9 +215,8 @@ void Omap3530Intc::WriteReg(uint32_t off, uint32_t value) {
 
     if (reeval_needed) {
         std::lock_guard<std::mutex> lk(state_mutex_);
-        auto& jit = emu_.Get<ArmJit>();
-        if (HasPendingUnmasked()) jit.SetInterruptPending();
-        else                      jit.ClearInterruptPending();
+        if (HasPendingUnmasked()) jit_->SetInterruptPending();
+        else                      jit_->ClearInterruptPending();
     }
 }
 
@@ -250,9 +251,8 @@ void Omap3530Intc::PostRestore() {
     /* Re-derive the JIT IRQ-pending latch from the restored banks_/ilr_ after every
        peripheral's RestoreState has run - the INTC owns the CPU IRQ line. */
     std::lock_guard<std::mutex> lk(state_mutex_);
-    auto& jit = emu_.Get<ArmJit>();
-    if (HasPendingUnmasked()) jit.SetInterruptPending();
-    else                      jit.ClearInterruptPending();
+    if (HasPendingUnmasked()) jit_->SetInterruptPending();
+    else                      jit_->ClearInterruptPending();
 }
 
 namespace {

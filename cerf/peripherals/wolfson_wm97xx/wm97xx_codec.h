@@ -9,7 +9,7 @@
 #include <mutex>
 #include <vector>
 
-class HostRequestChannel;
+namespace cerfengine { class HostRequestChannel; }
 
 class Wm97xxCodec : public Ac97Codec {
 public:
@@ -71,7 +71,7 @@ private:
     std::atomic<uint16_t>     raw_x_{0};
     std::atomic<uint16_t>     raw_y_{0};
     std::function<void(bool)> pen_line_;
-    HostRequestChannel*       host_requests_ = nullptr;
+    cerfengine::HostRequestChannel*       host_requests_ = nullptr;
     std::mutex                edge_mtx_;
     std::vector<bool>         edges_;
 };

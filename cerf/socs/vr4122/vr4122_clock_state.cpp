@@ -4,7 +4,7 @@
 #include "vr4122_id.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/mips/mips_core_clock.h"
+#include "../../cpu/mips/mips_core_clock.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
 #include "../vr41xx/vr41xx_clock_strap.h"

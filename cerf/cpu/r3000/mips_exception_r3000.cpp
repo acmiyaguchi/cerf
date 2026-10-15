@@ -1,4 +1,4 @@
-#include "../../jit/mips/mips_exception_model.h"
+#include "../mips/mips_exception_model.h"
 
 #include <cstdint>
 
@@ -6,9 +6,8 @@
 #include "../../socs/pr31x00/pr31500_id.h"
 #include "../../socs/pr31x00/pr31700_id.h"
 #include "../../core/cerf_emulator.h"
-#include "../../jit/mips/mips_cpu.h"
-#include "../../jit/mips/mips_cpu_state.h"
-#include "../../jit/mips/mips_mmu.h"
+#include <cerfengine/mips/mips_cpu_state.h>
+#include <cerfengine/mips/mips_mmu.h>
 
 namespace {
 
@@ -39,37 +38,38 @@ constexpr uint32_t kContextVpnShift = 10;   /* (va >> 12) << 2 */
    refill handler matches against. */
 constexpr uint32_t kEntryHiVpnMask = 0xFFFFF000u;
 
-class MipsExceptionR3000 : public MipsExceptionModel {
+class MipsExceptionR3000 final : public MipsExceptionModel {
 public:
     using MipsExceptionModel::MipsExceptionModel;
 
     bool ShouldRegister() override {
-        auto* bd = emu_.TryGet<BoardContext>();
-        if (!bd) return false;
-        const std::string_view soc = bd->GetSocId();
+        const std::string_view soc = emu_.Get<BoardContext>().GetSocId();
         return soc == SocId::Pr31500 || soc == SocId::Pr31700;
     }
 
-    /* IEc alone: "1 = interrupt enabled" (§6.2.3). The R3900 has no EXL or ERL -
-       Enter() clears IEc when it pushes the KU/IE stack, which is what keeps an
-       exception handler from taking a nested interrupt. */
-    bool InterruptsEnabled(const MipsCpuState& s) const override {
+    cerfengine::MipsExceptionHooks Hooks() override {
+        return cerfengine::MipsExceptionHooks{this, &EnterException, &SetMmuFaultRegs,
+                                              &InterruptsEnabled, &EretHook, &RfeHook};
+    }
+
+private:
+    /* IEc alone: "1 = interrupt enabled" (§6.2.3). */
+    static bool CERFENGINE_FASTCALL InterruptsEnabled(void*, const cerfengine::MipsCpuState& s) {
         return (s.cp0_status & (1u << kStatusIEc)) != 0u;
     }
 
-    void Enter(MipsCpuState* state, uint32_t cause, bool refill_eligible) override {
-        MipsCpuState& s = *state;
+    static void CERFENGINE_FASTCALL EnterException(void*, cerfengine::MipsCpuState* state,
+                                                   uint32_t cause, bool refill_eligible) {
+        cerfengine::MipsCpuState& s = *state;
 
         /* EPC = the faulting PC, or the branch (pc-4) when the faulting instruction
-           sits in a delay slot, which also sets Cause.BD (§6.2.2). branch_state !=
-           kNone IS the delay-slot test - the branch place fn sets it before the slot
-           and the resolve clears it only after. */
-        const bool in_bds = (s.branch_state != MipsBranch::kNone);
+           sits in a delay slot, which also sets Cause.BD (§6.2.2). */
+        const bool in_bds = (s.branch_state != cerfengine::MipsBranch::kNone);
         s.cp0_epc = in_bds ? (s.pc - 4u) : s.pc;
         if (in_bds) {
-            s.cp0_cause |= (1u << MipsCauseBit::kBD);
+            s.cp0_cause |= (1u << cerfengine::MipsCauseBit::kBD);
         } else {
-            s.cp0_cause &= ~(1u << MipsCauseBit::kBD);
+            s.cp0_cause &= ~(1u << cerfengine::MipsCauseBit::kBD);
         }
 
         s.cp0_cause = (s.cp0_cause & ~kCauseExcCodeMask) |
@@ -80,23 +80,23 @@ public:
         s.cp0_status = (s.cp0_status & ~kModeStackMask) |
                        ((s.cp0_status << 2) & kModePushMask);
 
-        /* SetMmuFaultRegs latched BadVAddr before every refill-eligible call. */
         /* kuseg is the mapped user segment; a refill from it vectors to UTLB Refill, one from
            a mapped kernel segment to the general vector (Table 6-2). */
-        const bool utlb = refill_eligible && s.cp0_badvaddr < MipsSeg::kKusegEnd;
-        const bool bev  = ((s.cp0_status >> MipsStatusBit::kBEV) & 1u) != 0u;
+        const bool utlb = refill_eligible && s.cp0_badvaddr < cerfengine::MipsSeg::kKusegEnd;
+        const bool bev  = ((s.cp0_status >> cerfengine::MipsStatusBit::kBEV) & 1u) != 0u;
         if (bev) {
             s.pc = utlb ? kVecUtlbRefillBev : kVecGeneralBev;
         } else {
             s.pc = utlb ? kVecUtlbRefill : kVecGeneral;
         }
 
-        s.branch_state = MipsBranch::kNone;
+        s.branch_state = cerfengine::MipsBranch::kNone;
         s.llbit = 0;
     }
 
-    void SetMmuFaultRegs(MipsCpuState* state, uint32_t va) override {
-        MipsCpuState& s = *state;
+    static void CERFENGINE_FASTCALL SetMmuFaultRegs(void*, cerfengine::MipsCpuState* state,
+                                                    uint32_t va) {
+        cerfengine::MipsCpuState& s = *state;
         s.cp0_badvaddr = va;
         s.cp0_context  = (s.cp0_context & kContextPteBase) |
                          ((va >> kContextVpnShift) & kContextBadVpn);

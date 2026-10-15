@@ -1,7 +1,9 @@
 #pragma once
 
+#include "../core/force_inline.h"
 #include "../core/service.h"
 #include "peripheral_base.h"
+#include <cerfengine/mmio_bus_host.h>
 
 #include <atomic>
 #include <cstdint>
@@ -10,7 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
-enum class MmioWidth : uint32_t { kByte = 1u, kHalf = 2u, kWord = 4u };
+using MmioWidth = cerfengine::MmioWidth;
 
 class PeripheralDispatcher : public Service {
 public:
@@ -35,11 +37,11 @@ public:
     uint8_t  ReadByte (uint32_t addr);
     uint16_t ReadHalf (uint32_t addr);
     uint32_t ReadWord (uint32_t addr);
-    uint64_t ReadDword(uint32_t addr);
     void     WriteByte (uint32_t addr, uint8_t  value);
     void     WriteHalf (uint32_t addr, uint16_t value);
     void     WriteWord (uint32_t addr, uint32_t value);
-    void     WriteDword(uint32_t addr, uint64_t value);
+
+    cerfengine::MmioBusBinding EngineBinding();
 
 private:
     struct InversionRange {
@@ -53,14 +55,9 @@ private:
         void*                   ctx;
     };
 
-    struct Entry {
-        uint32_t                base;
-        uint32_t                last;
-        Peripheral::FastReadFn  read;
-        Peripheral::FastWriteFn write;
-        void*                   ctx;
-        Peripheral*             p;
-        const InvertedTarget*   inverted;
+    struct Entry : cerfengine::MmioRoute {
+        Peripheral*           p;
+        const InvertedTarget* inverted;
     };
 
     using EntryTable = std::vector<Entry>;
@@ -76,35 +73,19 @@ private:
 
 public:
     uint32_t Read(uint32_t addr, MmioWidth width) {
-        if (const Entry* e = MemoHit(addr)) {
-            return ClipToWidth(
-                e->read(e->ctx, addr - e->base, static_cast<uint32_t>(width)),
-                width);
-        }
+        if (const Entry* e = MemoHit(addr)) return e->Read(addr, width);
         return ReadSlow(addr, width);
     }
 
     void Write(uint32_t addr, uint32_t value, MmioWidth width) {
         if (const Entry* e = MemoHit(addr)) {
-            e->write(e->ctx, addr - e->base, ClipToWidth(value, width),
-                     static_cast<uint32_t>(width));
+            e->Write(addr, value, width);
             return;
         }
         WriteSlow(addr, value, width);
     }
 
 private:
-    /* ARM DDI 0406C.c A8.8.68 LDRB (immediate, ARM) and A8.8.80 LDRH
-       (immediate, ARM): R[t] = ZeroExtend(MemU[address,N], 32). */
-    static uint32_t ClipToWidth(uint32_t value, MmioWidth width) {
-        switch (width) {
-        case MmioWidth::kByte: return value & 0xFFu;
-        case MmioWidth::kHalf: return value & 0xFFFFu;
-        case MmioWidth::kWord: return value;
-        }
-        HaltBadWidth(static_cast<uint32_t>(width));
-    }
-
     const Entry* MemoHit(uint32_t addr) const {
         const EntryTable* t = live_.load(std::memory_order_acquire);
         if (!t) return nullptr;
@@ -117,11 +98,39 @@ private:
 
     [[noreturn]] static void HaltBadWidth(uint32_t width);
 
+    friend bool CERFENGINE_FASTCALL cerfengine::host::MmioFindRoute(
+        void* context, uint32_t pa, cerfengine::MmioRoute& route);
+    friend uint64_t CERFENGINE_FASTCALL cerfengine::host::MmioReadDword(void* context,
+                                                                        uint32_t pa);
+    friend void CERFENGINE_FASTCALL cerfengine::host::MmioWriteDword(void* context, uint32_t pa,
+                                                                     uint64_t value);
+    friend uint32_t CERFENGINE_FASTCALL cerfengine::host::MmioReadSlow(
+        void* context, uint32_t pa, cerfengine::MmioWidth width, cerfengine::MmioRoute& route);
+    friend void CERFENGINE_FASTCALL cerfengine::host::MmioWriteSlow(
+        void* context, uint32_t pa, uint32_t value, cerfengine::MmioWidth width,
+        cerfengine::MmioRoute& route);
+
+    CERF_FORCEINLINE bool     FindRoute(uint32_t addr, cerfengine::MmioRoute& route) const;
+    CERF_FORCEINLINE uint64_t ReadDwordRouted(uint32_t addr);
+    CERF_FORCEINLINE void     WriteDwordRouted(uint32_t addr, uint64_t value);
+
+    template <bool kFillRoute, MmioWidth kWidth>
+    CERF_FORCEINLINE uint32_t ReadSlowAt(uint32_t addr, cerfengine::MmioRoute* route);
+    template <bool kFillRoute, MmioWidth kWidth>
+    CERF_FORCEINLINE void WriteSlowAt(uint32_t addr, uint32_t value,
+                                      cerfengine::MmioRoute* route);
+    template <bool kFillRoute>
+    CERF_FORCEINLINE uint32_t ReadSlowImpl(uint32_t addr, MmioWidth width,
+                                           cerfengine::MmioRoute* route);
+    template <bool kFillRoute>
+    CERF_FORCEINLINE void WriteSlowImpl(uint32_t addr, uint32_t value, MmioWidth width,
+                                        cerfengine::MmioRoute* route);
     uint32_t ReadSlow(uint32_t addr, MmioWidth width);
     void     WriteSlow(uint32_t addr, uint32_t value, MmioWidth width);
     const Entry* LookupSlow(uint32_t addr) const;
 
     std::atomic<const EntryTable*>          live_{nullptr};
+    std::atomic<uint32_t>                   generation_{0};
     std::vector<std::unique_ptr<EntryTable>> tables_;
 
     mutable std::mutex                            table_mutex_;

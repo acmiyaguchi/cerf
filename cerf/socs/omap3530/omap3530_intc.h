@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 
+namespace cerfengine { class ArmJit; }
 class StateWriter;
 class StateReader;
 
@@ -13,6 +14,7 @@ public:
     using IrqController::IrqController;
 
     bool ShouldRegister() override;
+    void OnReady() override;
 
     void AssertIrq   (int source_bit)                          override;
     void AssertSubIrq(int main_source_bit, int sub_source_bit) override;
@@ -87,6 +89,7 @@ private:
     static int BankIndex(uint32_t off, uint32_t* bank_off_out);
 
     mutable std::mutex state_mutex_;
+    cerfengine::ArmJit*  jit_ = nullptr;
     Bank     banks_[kBankCount]{};
     uint32_t ilr_[kSourceCount]{};
     uint32_t sysconfig_   = 0;

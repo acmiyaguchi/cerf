@@ -2,10 +2,10 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
+#include "../../cpu/mips/mips_core_clock.h"
 #include "../../cpu/r3000/tx39_config_register.h"
-#include "../../jit/guest_cycle_clock.h"
-#include "../../jit/mips/mips_core_clock.h"
-#include "../../jit/mips/mips_cpu.h"
+#include "../../execution/guest_cycle_clock.h"
+#include "../../execution/mips_engine_bridge.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -63,7 +63,7 @@ void Pr31x00Clock::OnReady() {
     config_->RegisterReducedFrequencyListener([this] {
         ApplyCoreRate(config_->ReducedFrequency());
     });
-    emu_.Get<MipsCpu>().RegisterRestoreListener([this] {
+    emu_.Get<MipsEngineBridge>().RegisterRestoreListener([this] {
         SetCoreRate(config_->ReducedFrequency());
     });
     auto& reset = emu_.Get<GuestCpuReset>();

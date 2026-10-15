@@ -9,7 +9,7 @@
 #include "../../host/host_gdiplus.h"
 #include "../../host/host_widget.h"
 #include "../../host/host_widget_registry.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"

@@ -5,8 +5,11 @@
 #include <vector>
 
 #include "../../core/service.h"
+#include <cerfengine/calling_convention.h>
 
-struct MipsCpuState;
+namespace cerfengine { struct MipsCpuState; }
+
+namespace cerfengine { class Engine; }
 
 class Tx39ConfigRegister : public Service {
 public:
@@ -18,11 +21,12 @@ public:
     uint32_t ReducedFrequency() const;
     void     RegisterReducedFrequencyListener(std::function<void()> fn);
 
-    static void __fastcall Mtc0Helper(uint32_t value, Tx39ConfigRegister* reg);
+    static void CERFENGINE_FASTCALL WriteConfig(void* reg, uint32_t value);
 
 private:
     void ApplyReset();
 
-    MipsCpuState*                      cpu_state_ = nullptr;
+    cerfengine::Engine*                engine_    = nullptr;
+    cerfengine::MipsCpuState*                      cpu_state_ = nullptr;
     std::vector<std::function<void()>> rf_listeners_;
 };

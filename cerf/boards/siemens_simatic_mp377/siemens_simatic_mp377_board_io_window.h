@@ -10,7 +10,7 @@
 #include "siemens_simatic_mp377_power_reset.h"
 
 #include "../../core/cerf_emulator.h"
-#include "../../jit/arm/arm_jit.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../board_context.h"
 

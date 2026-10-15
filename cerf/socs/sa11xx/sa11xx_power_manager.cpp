@@ -9,7 +9,7 @@
 #include "../../state/state_stream.h"
 #include "../../core/fatal.h"
 #include "../../core/log.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../guest_cpu_reset.h"
 #include "sa11xx_core_clock_table.h"
 #include "sa11xx_pre_kernel_ppcr.h"

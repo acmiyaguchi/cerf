@@ -5,7 +5,8 @@
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
-#include "../../jit/mips/mips_jit.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/mips/mips_jit.h>
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -105,6 +106,7 @@ public:
     }
 
     void OnReady() override {
+        jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::MipsJit>();
         emu_.Get<PeripheralDispatcher>().Register(this);
         emu_.Get<GuestCpuReset>().RegisterResetListener([this](ResetLineKind) {
             std::lock_guard<std::mutex> lk(mtx_);
@@ -325,13 +327,11 @@ private:
         const uint16_t int0_2 = static_cast<uint16_t>(m2 & ~(kS2RtcL2 | kS2Hsp));
         if (int0_1 || int0_2 || (bat && (nmireg_ & kNmiOrInt))) ip |= kIp2;
 
-        /* SetExternalInterruptLevel takes the live LEVEL, not a latch, so the full
-           recomputed value including 0 is pushed every time (agent_docs/jit.md
-           § In-core timer + interrupts). */
-        emu_.Get<MipsJit>().SetExternalInterruptLevel(ip);
+        jit_->SetExternalInterruptLevel(ip);
     }
 
     mutable std::mutex mtx_;
+    cerfengine::MipsJit*           jit_ = nullptr;
 
     /* Level-2 indication registers (R), driven by their source unit, + their masks. */
     uint16_t giuintl_ = 0, giuinth_ = 0, piuint_ = 0, aiuint_ = 0,

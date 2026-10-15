@@ -11,10 +11,10 @@ REGISTER_SERVICE(MipsProcessorConfig);
 
 namespace {
 
-constexpr std::pair<std::string_view, MipsIsaLevel> kIsaLevels[] = {
-    {"mips1", MipsIsaLevel::kMips1},
-    {"mips3", MipsIsaLevel::kMips3},
-    {"mips4", MipsIsaLevel::kMips4},
+constexpr std::pair<std::string_view, cerfengine::MipsIsaLevel> kIsaLevels[] = {
+    {"mips1", cerfengine::MipsIsaLevel::kMips1},
+    {"mips3", cerfengine::MipsIsaLevel::kMips3},
+    {"mips4", cerfengine::MipsIsaLevel::kMips4},
 };
 
 constexpr std::pair<std::string_view, uint32_t> kMinPageShifts[] = {
@@ -25,7 +25,7 @@ constexpr std::pair<std::string_view, uint32_t> kMinPageShifts[] = {
 }
 
 bool MipsProcessorConfig::ShouldRegister() {
-    return emu_.Get<BoardContext>().GetCpuArch() == CpuArch::Mips;
+    return emu_.Get<BoardContext>().GetCpuArch() == CpuArch::kMips;
 }
 
 void MipsProcessorConfig::OnReady() {
@@ -38,9 +38,9 @@ void MipsProcessorConfig::OnReady() {
     phys_addr_mask_ = c.Number("phys_addr_mask");
     device_ip_mask_ = c.Number("device_ip_mask");
 
-    if (tlb_size_ == 0u || tlb_size_ > kMipsTlbMax)
+    if (tlb_size_ == 0u || tlb_size_ > cerfengine::kMipsTlbMax)
         CfgFatal(c.Origin("tlb_size"), "cpu_config.tlb_size must be between 1 and " +
-                                           std::to_string(kMipsTlbMax));
+                                           std::to_string(cerfengine::kMipsTlbMax));
 
     fpu_                = c.Boolean("fpu");
     llsc_               = c.Boolean("llsc");

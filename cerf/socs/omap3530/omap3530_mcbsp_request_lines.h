@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/service.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "omap3530_mcbsp_frame.h"
 #include "omap3530_sdma.h"
 

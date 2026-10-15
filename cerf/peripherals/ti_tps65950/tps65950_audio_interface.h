@@ -2,7 +2,7 @@
 
 #include "../../core/service.h"
 #include "../../host/paced_wave_out.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../socs/omap3530/omap3530_mcbsp_link.h"
 #include "../../socs/rated_tick_count.h"
 

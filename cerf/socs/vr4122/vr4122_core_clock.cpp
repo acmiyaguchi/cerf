@@ -1,6 +1,6 @@
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
-#include "../../jit/mips/mips_core_clock.h"
+#include "../../cpu/mips/mips_core_clock.h"
 #include "vr4122_clock_state.h"
 #include "vr4122_id.h"
 

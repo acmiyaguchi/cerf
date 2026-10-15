@@ -5,7 +5,8 @@
 #include "../../core/fatal.h"
 #include "../../core/log.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/host_request_channel.h>
 #include "../../state/state_stream.h"
 #include "pr31500_id.h"
 #include "pr31700_id.h"
@@ -30,7 +31,7 @@ bool Pr31x00UartDma::ShouldRegister() {
 
 void Pr31x00UartDma::OnReady() {
     mem_           = &emu_.Get<EmulatedMemory>();
-    host_requests_ = &emu_.Get<HostRequestChannel>();
+    host_requests_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>();
     host_requests_->RegisterListener([this] {
         for (uint32_t i = 0; i < count_; ++i) LandPending(*ch_[i]);
     });

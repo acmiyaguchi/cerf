@@ -2,10 +2,11 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/mips/mips_interrupt_channel.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/mips/mips_interrupt_channel.h>
 
 void Vr41xxRtcxTicks::Bind() {
-    channel_ = &emu_.Get<MipsInterruptChannel>();
+    channel_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::MipsInterruptChannel>();
     OscillatorTicks::Attach(kHz, 1u);
 }
 

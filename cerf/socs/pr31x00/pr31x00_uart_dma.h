@@ -11,7 +11,7 @@
 #include <vector>
 
 class EmulatedMemory;
-class HostRequestChannel;
+namespace cerfengine { class HostRequestChannel; }
 class StateReader;
 class StateWriter;
 
@@ -95,5 +95,5 @@ private:
     uint32_t                                     count_ = 0;
 
     EmulatedMemory*     mem_           = nullptr;
-    HostRequestChannel* host_requests_ = nullptr;
+    cerfengine::HostRequestChannel* host_requests_ = nullptr;
 };

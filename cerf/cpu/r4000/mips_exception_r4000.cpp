@@ -1,4 +1,4 @@
-#include "../../jit/mips/mips_exception_model.h"
+#include "../mips/mips_exception_model.h"
 
 #include <cstdint>
 
@@ -9,91 +9,84 @@
 #include "../../socs/vr4122/vr4122_id.h"
 #include "../vr5500/vr5500_id.h"
 #include "../../core/cerf_emulator.h"
-#include "../../jit/mips/mips_cpu.h"
-#include "../../jit/mips/mips_cpu_state.h"
+#include <cerfengine/mips/mips_cpu_state.h>
 
 namespace {
 
-class MipsExceptionR4000 : public MipsExceptionModel {
+class MipsExceptionR4000 final : public MipsExceptionModel {
 public:
     using MipsExceptionModel::MipsExceptionModel;
 
     bool ShouldRegister() override {
-        auto* bd = emu_.TryGet<BoardContext>();
-        return bd && (bd->GetSocId() == SocId::Vr4102 || bd->GetSocId() == SocId::Vr4111 ||
-                      bd->GetSocId() == SocId::Vr4121 || bd->GetSocId() == SocId::Vr4122 ||
-                      bd->GetSocId() == SocId::Vr5500);
+        const std::string_view soc = emu_.Get<BoardContext>().GetSocId();
+        return soc == SocId::Vr4102 || soc == SocId::Vr4111 || soc == SocId::Vr4121 ||
+               soc == SocId::Vr4122 || soc == SocId::Vr5500;
     }
 
+    cerfengine::MipsExceptionHooks Hooks() override {
+        return cerfengine::MipsExceptionHooks{this, &EnterException, &SetMmuFaultRegs,
+                                              &InterruptsEnabled, &EretHook, &RfeHook};
+    }
+
+private:
     /* mips_cpu_hw_interrupts_enabled (internal.h): IE && !EXL && !ERL. */
-    bool InterruptsEnabled(const MipsCpuState& s) const override {
-        if ((s.cp0_status & (1u << MipsStatusBit::kIE)) == 0u) return false;
-        if (s.cp0_status & (1u << MipsStatusBit::kEXL))        return false;
-        if (s.cp0_status & (1u << MipsStatusBit::kERL))        return false;
+    static bool CERFENGINE_FASTCALL InterruptsEnabled(void*, const cerfengine::MipsCpuState& s) {
+        if ((s.cp0_status & (1u << cerfengine::MipsStatusBit::kIE)) == 0u) return false;
+        if (s.cp0_status & (1u << cerfengine::MipsStatusBit::kEXL))        return false;
+        if (s.cp0_status & (1u << cerfengine::MipsStatusBit::kERL))        return false;
         return true;
     }
 
-    void Enter(MipsCpuState* state, uint32_t cause, bool refill_eligible) override {
-        MipsCpuState& s = *state;
+    static void CERFENGINE_FASTCALL EnterException(void*, cerfengine::MipsCpuState* state,
+                                                   uint32_t cause, bool refill_eligible) {
+        cerfengine::MipsCpuState& s = *state;
 
-        /* Status.EXL is sampled once: it gates BOTH the refill-offset choice
-           (do_interrupt EXCP_TLBL/TLBS line 1182) and the set_EPC block (line 1302),
-           which both read the pre-exception value. */
-        const bool exl = ((s.cp0_status >> MipsStatusBit::kEXL) & 1u) != 0u;
+        /* QEMU mips_cpu_do_interrupt EXCP_TLBL and set_EPC (tlb_helper.c). */
+        const bool exl = ((s.cp0_status >> cerfengine::MipsStatusBit::kEXL) & 1u) != 0u;
 
-        uint32_t offset = MipsExcVector::kOffGeneral;            /* default 0x180 */
+        uint32_t offset = cerfengine::MipsExcVector::kOffGeneral;
         if (refill_eligible && !exl) {
-            offset = MipsExcVector::kOffRefill;                  /* TLB refill 0x000 */
+            offset = cerfengine::MipsExcVector::kOffRefill;
         }
 
         if (!exl) {
-            /* exception_resume_pc (exception.c:29): EPC = faulting PC, or branch PC
-               (pc-4) in a delay slot. branch_state != kNone IS the delay-slot test -
-               the branch place fn sets it before the slot, the resolve clears it only
-               after. */
-            const bool in_bds = (s.branch_state != MipsBranch::kNone);
-            /* "The ISA mode status before the exception occurred is saved to the
-               least significant bit of the EPC register" (U15509EJ2V0UM 3.4.2).
-               Delay-slot EPC = slot PC - the branch's byte length (QEMU
-               exception.c exception_resume_pc:41, MIPS_HFLAG_B16 ? 2 : 4). */
+            /* QEMU exception_resume_pc (exception.c). */
+            const bool in_bds = (s.branch_state != cerfengine::MipsBranch::kNone);
             s.cp0_epc = (in_bds ? (s.pc - s.branch_len) : s.pc) | s.isa_mode;
             if (in_bds) {
-                s.cp0_cause |= (1u << MipsCauseBit::kBD);
+                s.cp0_cause |= (1u << cerfengine::MipsCauseBit::kBD);
             } else {
-                s.cp0_cause &= ~(1u << MipsCauseBit::kBD);
+                s.cp0_cause &= ~(1u << cerfengine::MipsCauseBit::kBD);
             }
-            s.cp0_status |= (1u << MipsStatusBit::kEXL);
+            s.cp0_status |= (1u << cerfengine::MipsStatusBit::kEXL);
         }
         /* "When an exception occurs, the ISA mode bit is cleared to 0 so that the
            exception is serviced with 32-bit code" (U15509EJ2V0UM 3.4.2). */
         s.isa_mode = 0;
 
-        /* Vector base: BEV picks the boot ROM space, else the fixed EBase. */
-        const uint32_t base = ((s.cp0_status >> MipsStatusBit::kBEV) & 1u)
-                                  ? MipsExcVector::kBaseBev      /* 0xBFC00200 */
-                                  : MipsExcVector::kBaseNormal;  /* 0x80000000 */
+        const uint32_t base = ((s.cp0_status >> cerfengine::MipsStatusBit::kBEV) & 1u)
+                                  ? cerfengine::MipsExcVector::kBaseBev
+                                  : cerfengine::MipsExcVector::kBaseNormal;
         s.pc = base + offset;
 
-        /* Cause.ExcCode (bits 6:2) is set even on a nested (EXL-already-set) take. */
-        s.cp0_cause = (s.cp0_cause & ~(0x1Fu << MipsCauseBit::kExcCode)) |
-                      (cause << MipsCauseBit::kExcCode);
+        s.cp0_cause = (s.cp0_cause & ~(0x1Fu << cerfengine::MipsCauseBit::kExcCode)) |
+                      (cause << cerfengine::MipsCauseBit::kExcCode);
 
-        /* do_interrupt clears the branch-delay state unconditionally (line 1323). */
-        s.branch_state = MipsBranch::kNone;
+        /* QEMU mips_cpu_do_interrupt (tlb_helper.c). */
+        s.branch_state = cerfengine::MipsBranch::kNone;
     }
 
-    void SetMmuFaultRegs(MipsCpuState* state, uint32_t va) override {
-        /* raise_mmu_exception CP0 setup (tlb_helper.c:558-566), on min-page shift S:
-           EntryHi/Context VPN2 = VA[31:S+1]. Context BadVPN2 field = [4+(31-S)-1 : 4]
-           (VR4102 UM Fig 6-1, VR4111 UM Fig 7-1 p.190: S=10 -> [24:4], VA>>7;
-           R4000 S=12 -> [22:4], VA>>9). */
-        MipsCpuState& s = *state;
+    static void CERFENGINE_FASTCALL SetMmuFaultRegs(void*, cerfengine::MipsCpuState* state,
+                                                    uint32_t va) {
+        /* QEMU raise_mmu_exception (tlb_helper.c); VR4102 UM
+           Figure 6-1 (p.160) and VR4111 UM Figure 7-1 (p.190) Context BadVPN2. */
+        cerfengine::MipsCpuState& s = *state;
         const uint32_t shift = s.min_page_shift;
         const uint32_t ctx_field = ((1u << (31u - shift)) - 1u) << 4;
         s.cp0_badvaddr = va;
         s.cp0_context  = (s.cp0_context & ~(ctx_field | 0xFu)) |
                          ((va >> (shift - 3u)) & ctx_field);
-        s.cp0_entryhi  = (s.cp0_entryhi & 0xFFu) | (va & MipsVpn2Mask(shift));
+        s.cp0_entryhi  = (s.cp0_entryhi & 0xFFu) | (va & cerfengine::MipsVpn2Mask(shift));
     }
 };
 

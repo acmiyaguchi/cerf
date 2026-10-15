@@ -8,7 +8,8 @@
 #include "../../boards/board_context.h"
 #include "sa1110_id.h"
 #include "sa1100_id.h"
-#include "../../jit/arm/arm_jit.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 
@@ -18,6 +19,7 @@ bool Sa11xxIntc::ShouldRegister() {
 }
 
 void Sa11xxIntc::OnReady() {
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
     emu_.Get<PeripheralDispatcher>().Register(this);
     /* SA-1110 Dev Man §9.2.1.5: DIM "is cleared during all resets"; §9.2.1.3 /
        §9.2.1.4: the ICMR and ICLR values are unknown at reset. */
@@ -35,7 +37,7 @@ void Sa11xxIntc::NotifyLocked() {
                      "wired through ArmJit\n", IcFpLocked());
         CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
     }
-    auto& jit = emu_.Get<ArmJit>();
+    cerfengine::ArmJit& jit = *jit_;
     if (IcIpLocked() != 0) {
         jit.SetInterruptPending();
 #if CERF_DEV_MODE

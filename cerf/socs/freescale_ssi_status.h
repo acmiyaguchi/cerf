@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../jit/guest_cycle_clock.h"
+#include "../execution/guest_cycle_clock.h"
 
 #include <cstdint>
 #include <functional>

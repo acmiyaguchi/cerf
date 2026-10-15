@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../peripherals/peripheral_base.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "sa11xx_dma_clients.h"
 #include "sa11xx_dma_stream.h"
 

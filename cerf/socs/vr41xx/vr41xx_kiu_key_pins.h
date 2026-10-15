@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <mutex>
 
-class HostRequestChannel;
+namespace cerfengine { class HostRequestChannel; }
 
 class Vr41xxKiuKeyPins : public Service {
 public:
@@ -24,5 +24,5 @@ private:
     std::mutex          mtx_;
     uint16_t            held_[kRegs] = {0, 0, 0, 0, 0, 0};
     bool                dirty_ = false;
-    HostRequestChannel* host_requests_ = nullptr;
+    cerfengine::HostRequestChannel* host_requests_ = nullptr;
 };

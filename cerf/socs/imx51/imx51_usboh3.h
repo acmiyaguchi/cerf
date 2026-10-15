@@ -2,7 +2,7 @@
 
 #include "../../peripherals/peripheral_base.h"
 #include "../../peripherals/usb/usb_host_port.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../freescale_usb_frame_index.h"
 
 #include <array>

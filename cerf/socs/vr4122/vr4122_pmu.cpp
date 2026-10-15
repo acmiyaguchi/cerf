@@ -2,7 +2,8 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
-#include "../../jit/mips/mips_interrupt_channel.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/mips/mips_interrupt_channel.h>
 #include "vr4122_clock_state.h"
 
 #include <cstdint>
@@ -75,7 +76,7 @@ public:
        the Exsuspend mode" (VR4131 UM U15350EJ2V0UM 12.2.2 p228, 6.4.1(3) p130). */
     void OnReady() override {
         Vr41xxPmuBase::OnReady();
-        auto& channel = emu_.Get<MipsInterruptChannel>();
+        auto& channel = emu_.Get<EngineBridge>().Engine().Get<cerfengine::MipsInterruptChannel>();
         channel.RegisterSuspendListener([this, &channel] {
             if (!channel.Suspended() || (cntreg_.load(std::memory_order_acquire) & kCntPllOffEn) == 0u)
                 return;

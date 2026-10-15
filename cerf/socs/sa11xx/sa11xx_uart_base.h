@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_base.h"
 #include "sa11xx_uart_regs.h"
 

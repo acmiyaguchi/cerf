@@ -3,14 +3,8 @@
 #include <cstdint>
 
 #include "../core/service.h"
-#include "../jit/mips/mips_cpu_state.h"
-
-/* MIPS ISA level a SoC's core implements (Linux arch/mips cpu.h MIPS_CPU_ISA_*). */
-enum class MipsIsaLevel : uint32_t {
-    kMips1,
-    kMips3,
-    kMips4,
-};
+#include <cerfengine/engine_setup.h>
+#include <cerfengine/mips/mips_cpu_state.h>
 
 class MipsProcessorConfig : public Service {
 public:
@@ -23,7 +17,7 @@ public:
     uint32_t     TlbSize()      const { return tlb_size_; }
     uint32_t     MinPageShift() const { return min_page_shift_; }
     uint32_t     PhysAddrMask() const { return phys_addr_mask_; }
-    MipsIsaLevel IsaLevel()     const { return isa_level_; }
+    cerfengine::MipsIsaLevel IsaLevel() const { return isa_level_; }
     uint32_t     DeviceIpMask() const { return device_ip_mask_; }
 
     bool HasFpu()              const { return fpu_; }
@@ -35,8 +29,8 @@ public:
     bool HasTx39MultiplyAdd()  const { return tx39_multiply_add_; }
 
     bool HasCp0Reg(uint32_t rd) const {
-        if (rd == MipsCp0::kCount   || rd == MipsCp0::kCompare) return HasCounter();
-        if (rd == MipsCp0::kWatchLo || rd == MipsCp0::kWatchHi) return HasWatch();
+        if (rd == cerfengine::MipsCp0::kCount   || rd == cerfengine::MipsCp0::kCompare) return HasCounter();
+        if (rd == cerfengine::MipsCp0::kWatchLo || rd == cerfengine::MipsCp0::kWatchHi) return HasWatch();
         return true;
     }
 
@@ -46,7 +40,7 @@ private:
     uint32_t     min_page_shift_ = 0;
     uint32_t     phys_addr_mask_ = 0;
     uint32_t     device_ip_mask_ = 0;
-    MipsIsaLevel isa_level_      = MipsIsaLevel::kMips1;
+    cerfengine::MipsIsaLevel isa_level_ = cerfengine::MipsIsaLevel::kMips1;
 
     bool fpu_                = false;
     bool llsc_               = false;

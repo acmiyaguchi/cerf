@@ -7,7 +7,7 @@
 #include "../core/cerf_emulator.h"
 #include "../core/log.h"
 #include "../cpu/emulated_memory.h"
-#include "../jit/guest_cycle_clock.h"
+#include "../execution/guest_cycle_clock.h"
 #include "../peripherals/peripheral_dispatcher.h"
 #include "../state/state_stream.h"
 #include "freescale_module_clocks.h"

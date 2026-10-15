@@ -3,7 +3,7 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../socs/cycle_anchored_counter.h"
 #include "../../socs/iop13xx/iop13xx_i2c_device.h"
 #include "../../state/state_stream.h"

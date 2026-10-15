@@ -3,7 +3,7 @@
 #include "emulation_pause.h"
 
 #include "../core/cerf_emulator.h"
-#include "../jit/jit_runner.h"
+#include "../execution/jit_runner.h"
 #include "notification_stack.h"
 
 #include <windows.h>

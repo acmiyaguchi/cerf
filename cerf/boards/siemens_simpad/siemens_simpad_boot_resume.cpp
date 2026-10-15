@@ -3,8 +3,9 @@
 #include "../../core/cerf_emulator.h"
 #include "../../boards/board_context.h"
 #include "siemens_simpad_family_id.h"
+#include "../../execution/engine_bridge.h"
 #include "../../host/guest_deep_sleep.h"
-#include "../../jit/arm/arm_cpu.h"
+#include <cerfengine/arm/arm_cpu.h>
 #include "../../peripherals/peripheral_dispatcher.h"
 
 namespace {
@@ -29,7 +30,7 @@ public:
            SetPendingResumeVector arms the reset PC unconditionally. The kernel's
            resume entry runs MMU-off and re-enables the MMU itself. */
         const uint32_t pc = emu_.Get<PeripheralDispatcher>().ReadWord(0x90020008u);
-        if (pc) emu_.Get<ArmCpu>().SetPendingResumeVector(pc);
+        if (pc) emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmCpu>().SetPendingResumeVector(pc);
     }
 };
 

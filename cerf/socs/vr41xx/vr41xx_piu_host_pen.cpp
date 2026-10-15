@@ -1,5 +1,18 @@
 #include "vr41xx_piu_host_pen.h"
 
+#include "../../core/cerf_emulator.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/host_request_channel.h>
+
+void Vr41xxPiuHostPen::Attach(std::function<void()> apply) {
+    requests_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>();
+    requests_->RegisterListener(std::move(apply));
+}
+
+void Vr41xxPiuHostPen::Wake() {
+    requests_->Request();
+}
+
 void Vr41xxPiuHostPen::Pen(bool down, uint16_t x, uint16_t y) {
     pen_ = Vr41xxPiuPenPoint{down, static_cast<uint16_t>(x & 0x3FFu),
                              static_cast<uint16_t>(y & 0x3FFu)};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cerfengine/calling_convention.h>
 #include "../../peripherals/peripheral_base.h"
 
 #include <cstdint>
@@ -35,8 +36,8 @@ public:
     bool ClockEnabled(uint32_t cken_bit) const { return (cken_ & (1u << cken_bit)) != 0u; }
     void RegisterClockEnableListener(std::function<void()> fn);
 
-    static uint32_t __fastcall ReadClkcfgHelper(Pxa27xClockManager* self);
-    static void __fastcall WriteClkcfgHelper(Pxa27xClockManager* self, uint32_t value);
+    static uint32_t CERFENGINE_FASTCALL ReadClkcfgHelper(void* self);
+    static void     CERFENGINE_FASTCALL WriteClkcfgHelper(void* self, uint32_t value);
 
 private:
     static constexpr uint32_t kCccrMask   = 0xCE00079Fu;

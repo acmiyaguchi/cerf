@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../jit/guest_cycle_clock.h"
+#include "../execution/guest_cycle_clock.h"
 #include "freescale_sdma_bd_ring.h"
 #include "freescale_sdma_bus.h"
 #include "freescale_ssi_section.h"

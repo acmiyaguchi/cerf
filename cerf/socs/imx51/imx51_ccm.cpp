@@ -3,8 +3,8 @@
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
-#include "../../jit/guest_cycle_clock.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/guest_cycle_clock.h"
+#include "../../execution/engine_bridge.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -229,7 +229,7 @@ void Imx51Ccm::ApplyRates() {
     const Rate arm   = ArmClkRate();
     const bool stopped = arm.num == 0u;
     if (!stopped) clock.SetClockRate(arm);
-    emu_.Get<GuestEngine>().SetCoreClockStopped(stopped);
+    emu_.Get<EngineBridge>().Guest().SetCoreClockStopped(stopped);
     if (stopped != core_stopped_) {
         LOG(SocClkpwr, "Imx51Ccm: ARM clock root %s (CCSR %08X CACRR %08X)\n",
             stopped ? "0 Hz, core stopped" : "back, core running", Reg(kCcsr), Reg(kCacrr));

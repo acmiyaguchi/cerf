@@ -2,7 +2,7 @@
 
 #include "../core/cerf_emulator.h"
 #include "../core/device_config.h"
-#include "../jit/jit_runner.h"
+#include "../execution/jit_runner.h"
 #include "hibernation.h"
 
 REGISTER_SERVICE(StateBootGate);

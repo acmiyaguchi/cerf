@@ -1,7 +1,7 @@
 #include "../../kernel_debug_sink.h"
 #include "../../trace_manager.h"
 #include "../../../core/cerf_emulator.h"
-#include "../../../jit/mips/mips_cpu_state.h"
+#include <cerfengine/mips/mips_cpu_state.h>
 #include "bundle.h"
 
 namespace {

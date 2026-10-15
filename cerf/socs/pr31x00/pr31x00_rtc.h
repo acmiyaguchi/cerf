@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_base.h"
 #include "../cycle_anchored_counter.h"
 #include "../oscillator_ticks.h"

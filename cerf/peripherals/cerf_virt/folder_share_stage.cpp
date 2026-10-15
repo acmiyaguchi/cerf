@@ -6,7 +6,7 @@
 #include "../../core/device_config.h"
 #include "../../core/log.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/engine_bridge.h"
 
 REGISTER_SERVICE(FolderShareStage);
 
@@ -27,7 +27,7 @@ void FolderShareStage::OnReady() {
         LOG(Cerf, "[FolderShareStage] region at PA 0x%08X is not backed\n", BasePa());
         CerfFatalExit();
     }
-    emu_.Get<GuestEngine>().SetDmaRegion(BasePa(), CerfVirt::kFsStageSize);
+    emu_.Get<EngineBridge>().Guest().SetDmaRegion(BasePa(), CerfVirt::kFsStageSize);
 }
 
 CerfVirt::ServerPB* FolderShareStage::Pb() {

@@ -5,10 +5,11 @@
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/mips/mips_cpu.h"
-#include "../../jit/mips/mips_cpu_state.h"
-#include "../../jit/mips/mips_exception_delivery.h"
-#include "../../jit/mips/mips_interrupt_channel.h"
+#include "../../execution/mips_engine_bridge.h"
+#include <cerfengine/mips/mips_cpu.h>
+#include <cerfengine/mips/mips_cpu_state.h>
+#include <cerfengine/mips/mips_exception_delivery.h>
+#include <cerfengine/mips/mips_interrupt_channel.h>
 #include "../../socs/pr31x00/pr31500_id.h"
 #include "../../socs/pr31x00/pr31700_id.h"
 
@@ -32,16 +33,15 @@ constexpr uint32_t kResetValue = 0x00100030u;
 }  // namespace
 
 bool Tx39ConfigRegister::ShouldRegister() {
-    auto* bd = emu_.TryGet<BoardContext>();
-    if (!bd) return false;
-    const std::string_view soc = bd->GetSocId();
+    const std::string_view soc = emu_.Get<BoardContext>().GetSocId();
     return soc == SocId::Pr31500 || soc == SocId::Pr31700;
 }
 
 void Tx39ConfigRegister::OnReady() {
-    MipsCpu& cpu = emu_.Get<MipsCpu>();
-    cpu_state_ = cpu.State();
-    cpu.RegisterResetListener([this] { ApplyReset(); });
+    MipsEngineBridge& bridge = emu_.Get<MipsEngineBridge>();
+    engine_    = &bridge.Engine();
+    cpu_state_ = engine_->Get<cerfengine::MipsCpu>().State();
+    bridge.RegisterResetListener([this] { ApplyReset(); });
     ApplyReset();
 }
 
@@ -57,8 +57,9 @@ void Tx39ConfigRegister::RegisterReducedFrequencyListener(std::function<void()> 
 
 /* Lock: "Setting this bit to 1 prevents further writes to the Config register"; a store that
    sets Lock with other bits keeps the other settings (TMPR39xx-um Fig 6-10). */
-void __fastcall Tx39ConfigRegister::Mtc0Helper(uint32_t value, Tx39ConfigRegister* reg) {
-    MipsCpuState& s = *reg->cpu_state_;
+void CERFENGINE_FASTCALL Tx39ConfigRegister::WriteConfig(void* context, uint32_t value) {
+    Tx39ConfigRegister* reg = static_cast<Tx39ConfigRegister*>(context);
+    cerfengine::MipsCpuState& s = *reg->cpu_state_;
     if ((s.cp0_config & kLock) != 0u) return;
     /* TMPR39xx-um Figure 6-10 (p63): "Operation is undefined when both Doze bit and Halt bit
        are set to 1." */
@@ -75,6 +76,6 @@ void __fastcall Tx39ConfigRegister::Mtc0Helper(uint32_t value, Tx39ConfigRegiste
     /* TMPR39xx-um §5.1 (p.231): Halt mode will "stall the pipeline in holding current status";
        the processor "can be returned from Halt mode to Active mode, and the Halt bit cleared to 0,
        by asserting the INT[5:0], NMI or RESET signals". */
-    reg->emu_.Get<MipsInterruptChannel>().HaltCore();
-    reg->emu_.Get<MipsExceptionDelivery>().LeaveBlock();
+    reg->engine_->Get<cerfengine::MipsInterruptChannel>().HaltCore();
+    reg->engine_->Get<cerfengine::MipsExceptionDelivery>().LeaveBlock();
 }

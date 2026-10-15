@@ -5,10 +5,8 @@
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
 #include "../../core/rate_probe.h"
-#include "../../jit/arm/arm_cpu.h"
-#include "../../jit/arm/arm_jit.h"
-#include "../../jit/arm/arm_mmu.h"
-#include "../../jit/arm/cpu_state.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../state/state_stream.h"
 
 #include <mutex>
@@ -17,6 +15,7 @@
    reset rows 0, Table 25-13 DIM "Cleared during resets", Section 25.5.7 "At reset,
    these registers are marked invalid"; PXA255 Section 4.2.2 "set to 0x0". */
 void Pxa2xxIntc::OnReady() {
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
     emu_.Get<GuestCpuReset>().RegisterResetListener([this](ResetLineKind) {
         std::lock_guard<std::mutex> guard(state_mtx_);
         for (uint32_t b = 0; b < kBanks; ++b) {
@@ -62,7 +61,7 @@ void Pxa2xxIntc::NotifyLocked() {
                      "through ArmJit\n", IcFpAllLocked());
         CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
     }
-    auto& jit = emu_.Get<ArmJit>();
+    cerfengine::ArmJit& jit = *jit_;
     if (IcIpAllLocked() != 0) {
         jit.SetInterruptPending();
 #if CERF_DEV_MODE

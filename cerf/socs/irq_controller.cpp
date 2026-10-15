@@ -15,6 +15,6 @@ void IrqController::PulseIrq(int source_bit) {
         "interrupt controller has no modeled response to one", source_bit);
 }
 
-uint32_t __fastcall IrqController::ReadPendingVectorHelper(IrqController* intc) {
-    return intc->ReadPendingVector();
+uint32_t CERFENGINE_FASTCALL IrqController::ReadPendingVectorHelper(void* intc) {
+    return static_cast<IrqController*>(intc)->ReadPendingVector();
 }

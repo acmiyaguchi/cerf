@@ -5,7 +5,7 @@
 #include "../../core/log.h"
 #include "../../boards/board_context.h"
 #include "pxa255_id.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -154,12 +154,12 @@ void Pxa255ClockManager::ApplyRate() {
     for (auto& fn : memory_clock_listeners_) fn();
 }
 
-uint32_t __fastcall Pxa255ClockManager::ReadClkcfgHelper(Pxa255ClockManager* self) {
-    return self->cclkcfg_;
+uint32_t CERFENGINE_FASTCALL Pxa255ClockManager::ReadClkcfgHelper(void* self) {
+    return static_cast<Pxa255ClockManager*>(self)->cclkcfg_;
 }
 
-void __fastcall Pxa255ClockManager::WriteClkcfgHelper(Pxa255ClockManager* self, uint32_t value) {
-    self->WriteClkcfg(value);
+void CERFENGINE_FASTCALL Pxa255ClockManager::WriteClkcfgHelper(void* self, uint32_t value) {
+    static_cast<Pxa255ClockManager*>(self)->WriteClkcfg(value);
 }
 
 uint32_t Pxa255ClockManager::ReadWord(uint32_t addr) {

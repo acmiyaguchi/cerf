@@ -4,9 +4,10 @@
 #include "../../core/fatal.h"
 #include "../../core/log.h"
 #include "../../boards/board_context.h"
+#include "../../cpu/mips/mips_core_clock.h"
+#include "../../execution/engine_bridge.h"
 #include "../../host/guest_deep_sleep.h"
-#include "../../jit/mips/mips_core_clock.h"
-#include "../../jit/mips/mips_interrupt_channel.h"
+#include <cerfengine/mips/mips_interrupt_channel.h>
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -40,7 +41,7 @@ constexpr uint64_t kNever = UINT64_MAX;
 void Vr41xxRtc::OnReady() {
     clock_      = &emu_.Get<GuestCycleClock>();
     core_clock_ = &emu_.Get<MipsCoreClock>();
-    channel_    = &emu_.Get<MipsInterruptChannel>();
+    channel_    = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::MipsInterruptChannel>();
     event_      = clock_->Add([this] {
         std::lock_guard<std::mutex> lk(mtx_);
         UpdateLocked();

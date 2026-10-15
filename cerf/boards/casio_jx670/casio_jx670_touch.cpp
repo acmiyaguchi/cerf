@@ -2,6 +2,7 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
+#include "../../execution/engine_bridge.h"
 #include "../../state/state_stream.h"
 
 #include <algorithm>
@@ -54,7 +55,7 @@ void CasioJx670Touch::Init(CerfEmulator& emu, std::function<void()> on_status_ch
     clock_        = &emu.Get<GuestCycleClock>();
     sample_event_ = clock_->Add([this] { OnSampleEvent(); });
     clock_->RegisterRateListener([this] { OnRateChange(); });
-    host_requests_ = &emu.Get<HostRequestChannel>();
+    host_requests_ = &emu.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>();
     host_requests_->RegisterListener([this] { OnHostRequest(); });
 }
 

@@ -23,7 +23,7 @@
 #include "../socs/guest_cpu_reset.h"
 #include "../host/host_window.h"
 #include "../host/hw_screen.h"
-#include "../jit/guest_engine.h"
+#include "../execution/engine_bridge.h"
 #include "../peripherals/peripheral_base.h"
 #include "../peripherals/peripheral_dispatcher.h"
 
@@ -146,8 +146,8 @@ bool Hibernation::WriteImage(const std::wstring& path, std::string& error) {
 
 void Hibernation::SaveSection(StateWriter& w, StateSection section) {
     switch (section) {
-        case StateSection::Cpu:   emu_.Get<GuestEngine>().SaveCpuState(w); break;
-        case StateSection::Mmu:   emu_.Get<GuestEngine>().SaveMmuState(w); break;
+        case StateSection::Cpu:   emu_.Get<EngineBridge>().SaveCpuState(w); break;
+        case StateSection::Mmu:   emu_.Get<EngineBridge>().SaveMmuState(w); break;
         case StateSection::Ram:   emu_.Get<EmulatedMemory>().SaveState(w); break;
         case StateSection::Flash: emu_.Get<EmulatedMemory>().SaveFlashRegions(w); break;
         case StateSection::Periph: {
@@ -287,8 +287,8 @@ void Hibernation::ApplyImage(StateReader& r, bool ram_only) {
 
 void Hibernation::RestoreSection(StateReader& r, StateSection section) {
     switch (section) {
-        case StateSection::Cpu:    emu_.Get<GuestEngine>().RestoreCpuState(r); break;
-        case StateSection::Mmu:    emu_.Get<GuestEngine>().RestoreMmuState(r); break;
+        case StateSection::Cpu:    emu_.Get<EngineBridge>().RestoreCpuState(r); break;
+        case StateSection::Mmu:    emu_.Get<EngineBridge>().RestoreMmuState(r); break;
         case StateSection::Ram:    emu_.Get<EmulatedMemory>().RestoreState(r); break;
         case StateSection::Flash:  emu_.Get<EmulatedMemory>().RestoreFlashRegions(r); break;
         case StateSection::Periph: RestorePeripherals(r); break;
@@ -359,10 +359,10 @@ bool Hibernation::ApplyStateFile(StateReader& r, bool ram_only, std::string& rea
             throw;
         }
         DeleteFileW(rollback.c_str());
-        emu_.Get<GuestEngine>().FlushTranslationCache();
+        emu_.Get<EngineBridge>().Guest().FlushTranslationCache();
     } catch (const StateImageRejected& e) {
         reason = e.what();
-        emu_.Get<GuestEngine>().FlushTranslationCache();
+        emu_.Get<EngineBridge>().Guest().FlushTranslationCache();
     }
     snap.unlock();
 

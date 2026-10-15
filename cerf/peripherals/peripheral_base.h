@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/service.h"
+#include <cerfengine/mmio_bus_host.h>
 
 #include <cstdint>
 
@@ -38,8 +39,8 @@ public:
     virtual void     WriteWord (uint32_t addr, uint32_t value);
     virtual void     WriteDword(uint32_t addr, uint64_t value);
 
-    using FastReadFn  = uint32_t (*)(void* ctx, uint32_t off, uint32_t width_bytes);
-    using FastWriteFn = void     (*)(void* ctx, uint32_t off, uint32_t value, uint32_t width_bytes);
+    using FastReadFn  = cerfengine::MmioReadFn;
+    using FastWriteFn = cerfengine::MmioWriteFn;
 
     /* Override to install direct-state thunks bypassing the virtual
        Read / Write dispatch. Default routes through them. */

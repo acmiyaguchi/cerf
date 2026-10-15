@@ -5,7 +5,7 @@
 
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
-#include "../../jit/mips/mips_core_clock.h"
+#include "../../cpu/mips/mips_core_clock.h"
 #include "vr41xx_clock_strap.h"
 
 struct Vr41xxClkselRow {

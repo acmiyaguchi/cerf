@@ -6,9 +6,9 @@
 #include "../../core/fatal.h"
 #include "../../core/log.h"
 #include "../../host/guest_deep_sleep.h"
-#include "../../jit/arm/arm_mmu.h"
-#include "../../jit/guest_cycle_clock.h"
-#include "../../jit/guest_engine.h"
+#include <cerfengine/arm/arm_mmu.h>
+#include "../../execution/guest_cycle_clock.h"
+#include "../../execution/engine_bridge.h"
 #include "../../peripherals/peripheral_base.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
@@ -62,7 +62,8 @@ public:
             emu_.Get<Fatal>().Die("S3C2410ClockPower: the board reports a 0 Hz clock input");
         }
         ResetRegisters();
-        emu_.Get<ArmMmu>().RegisterControlRegisterListener([this] { ApplyRates(); });
+        mmu_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmMmu>();
+        mmu_->RegisterControlRegisterListener([this] { ApplyRates(); });
         emu_.Get<GuestCpuReset>().RegisterResetListener([this](ResetLineKind) {
             ResetRegisters();
         });
@@ -77,7 +78,7 @@ public:
        S3C2410A UM p.7-8 note 2: with HDIVN=1 and the fast bus mode the CPU
        operates by the HCLK. */
     uint64_t CoreClockHz() const override {
-        const uint32_t c1 = emu_.Get<ArmMmu>().State()->control_register.word;
+        const uint32_t c1 = mmu_->State()->control_register.word;
         return (c1 & kFastBusMask) == 0u ? hclk_hz_ : fclk_hz_;
     }
 
@@ -159,7 +160,7 @@ public:
                    the core's FCLK stops, every peripheral keeps its clock, and any
                    interrupt request to the CPU wakes it. */
                 if ((value & kClkConIdle) != 0u) {
-                    emu_.Get<GuestEngine>().EnterIdleWait();
+                    emu_.Get<EngineBridge>().Guest().EnterIdleWait();
                 }
                 return;
             }
@@ -235,6 +236,7 @@ private:
     }
 
     std::vector<std::function<void()>> listeners_;
+    cerfengine::ArmMmu*  mmu_            = nullptr;
     uint32_t regs_[kSlotCount] = {};
     uint64_t fin_hz_         = 0;
     uint64_t fclk_hz_        = 0;

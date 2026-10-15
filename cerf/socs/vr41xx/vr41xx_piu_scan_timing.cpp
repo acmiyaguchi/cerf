@@ -4,7 +4,7 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../state/state_stream.h"
 #include "vr41xx_rtcx_ticks.h"
 

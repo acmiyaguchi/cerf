@@ -2,7 +2,7 @@
 
 #include "../../core/deferred_service.h"
 #include "../../core/service.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../socs/rated_tick_count.h"
 #include "../../state/state_stream.h"
 

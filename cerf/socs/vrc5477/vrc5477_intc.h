@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 
+namespace cerfengine { class MipsJit; }
 class StateWriter;
 class StateReader;
 
@@ -12,6 +13,7 @@ class Vrc5477Intc : public Service {
 public:
     using Service::Service;
     bool ShouldRegister() override;
+    void OnReady() override;
 
     /* off is relative to the INTC block base (0x400). 32-bit registers. */
     uint32_t ReadReg(uint32_t off);
@@ -38,6 +40,7 @@ private:
     void NotifyLocked();
 
     mutable std::mutex state_mtx_;
+    cerfengine::MipsJit* jit_        = nullptr;
     uint32_t intctrl_[4] = {0, 0, 0, 0};
     uint32_t intppes0_   = 0;
     uint32_t intppes1_   = 0;

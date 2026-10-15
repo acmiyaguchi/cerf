@@ -7,7 +7,7 @@
 #include "../core/cerf_emulator.h"
 #include "../core/device_config.h"
 #include "../core/log.h"
-#include "../jit/jit_runner.h"
+#include "../execution/jit_runner.h"
 #include "../peripherals/cerf_virt/cerf_virt_framebuffer.h"
 #include "../state/shutdown_action.h"
 #include "../state/shutdown_dialog.h"

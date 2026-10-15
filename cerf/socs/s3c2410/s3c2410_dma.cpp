@@ -307,7 +307,7 @@ uint32_t S3C2410Dma::Beats(const Channel& c) {
 
 bool S3C2410Dma::RunAtomicLocked(Channel& c) {
     const uint32_t width_bytes = UnitBytes(c);
-    const BusWidth width       = static_cast<BusWidth>(width_bytes);
+    const MmioWidth width      = static_cast<MmioWidth>(width_bytes);
     const uint32_t beats       = Beats(c);
 
     auto& bus = emu_.Get<PhysicalBus>();

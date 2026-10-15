@@ -5,7 +5,7 @@
 #include "../../boards/board_context.h"
 #include "sa1110_id.h"
 #include "sa1100_id.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../tracing/kernel_debug_sink.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"

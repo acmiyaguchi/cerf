@@ -1,6 +1,7 @@
 #pragma once
 
 #include "service.h"
+#include <cerfengine/isa.h>
 
 #include <cstdint>
 #include <optional>
@@ -9,7 +10,7 @@
 #include <string_view>
 #include <vector>
 
-enum class CpuArch { Arm, Mips };
+using CpuArch = cerfengine::Isa;
 
 CpuArch ParseCpuArch(const std::string& value, const std::string& path,
                      const std::string& ctx);

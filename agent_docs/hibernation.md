@@ -12,7 +12,7 @@ different device.
 Host-side implementation: `cerf/state/` (`hibernation.{h,cpp}`,
 `state_stream.h`, `state_image_format.h`, `state_boot_gate.cpp`,
 `emulation_freeze.h`, `shutdown_dialog.cpp`). The JIT pause lives in
-`cerf/jit/jit_runner.{h,cpp}`.
+`cerf/execution/jit_runner.{h,cpp}`.
 
 ## What it is
 
@@ -96,8 +96,9 @@ skips that frame with `SkipFrame`.
 ## Sections - what each captures
 
 - **Cpu** - the CPU state of the engine, field by field.
-- **Mmu** - the persistent MMU state of the engine. The TLBs and SMC bitmaps are
-  derived state. Restore flushes them and never serializes them.
+- **Mmu** - the persistent MMU state of the engine, with the cp15 registers or
+  the TLB model that CERF keeps. The TLBs and SMC bitmaps are derived state.
+  Restore flushes them and never serializes them.
 - **Ram** - the volatile memory regions.
 - **Flash** - the read-only memory regions. Flash writes since boot are machine
   state. Restore applies this section on a warm boot too, because flash survives

@@ -4,13 +4,13 @@
 #include "../core/cerf_emulator.h"
 #include "../core/fatal.h"
 #include "../core/log.h"
-#include "../jit/mips/mips_mmu.h"
+#include <cerfengine/mips/mips_mmu.h>
 
 #include <typeinfo>
 
 uint32_t MipsKsegPageTableBuilder::VaToPa(uint32_t va) const {
-    if (MipsSeg::IsUnmapped(va)) {
-        return MipsSeg::UnmappedPa(va);
+    if (cerfengine::MipsSeg::IsUnmapped(va)) {
+        return cerfengine::MipsSeg::UnmappedPa(va);
     }
     emu_.Get<Fatal>().Die("%s::VaToPa: VA 0x%08X is outside the kseg0/kseg1 "
                           "unmapped windows", typeid(*this).name(), va);
@@ -26,12 +26,12 @@ const ParsedRom& MipsKsegPageTableBuilder::PrimaryRom() const {
 
 DramRegion MipsKsegPageTableBuilder::Kseg0RomSpan(uint32_t va_first,
                                                   uint32_t va_end) const {
-    if (va_first < MipsSeg::kKusegEnd || va_end <= va_first ||
-        va_end > MipsSeg::kKseg1Base) {
+    if (va_first < cerfengine::MipsSeg::kKusegEnd || va_end <= va_first ||
+        va_end > cerfengine::MipsSeg::kKseg1Base) {
         emu_.Get<Fatal>().Die("%s: ROM outside kseg0: va 0x%08X..0x%08X",
                               typeid(*this).name(), va_first, va_end);
     }
-    return { va_first, MipsSeg::UnmappedPa(va_first), va_end - va_first };
+    return { va_first, cerfengine::MipsSeg::UnmappedPa(va_first), va_end - va_first };
 }
 
 void MipsKsegPageTableBuilder::RequireRamEndWithin(const ParsedROMHDR& hdr,

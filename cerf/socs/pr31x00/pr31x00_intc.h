@@ -7,7 +7,7 @@
 #include <mutex>
 #include <vector>
 
-class MipsJit;
+namespace cerfengine { class MipsJit; }
 
 class Pr31x00IntcTimedSource {
 public:
@@ -86,7 +86,7 @@ private:
     struct TimedSource { uint32_t set; uint32_t bit; Pr31x00IntcTimedSource* src; bool open; };
     std::vector<TimedSource> timed_sources_;
 
-    MipsJit* jit_ = nullptr;
+    cerfengine::MipsJit* jit_ = nullptr;
 
     bool     IrqLowFor(const uint32_t* status) const;
     bool     IrqHighFor(const uint32_t* status) const;

@@ -4,7 +4,7 @@
 #include "omap3530_mcbsp_transmitter.h"
 
 #include "../../core/fatal.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../guest_cpu_reset.h"
 
 #include <algorithm>

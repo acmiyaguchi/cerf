@@ -5,7 +5,7 @@
 #include "../core/log.h"
 #include "../core/tick_scale.h"
 #include "../host/guest_deep_sleep.h"
-#include "../jit/guest_engine.h"
+#include "../execution/engine_bridge.h"
 #include "../state/state_stream.h"
 
 namespace {
@@ -202,7 +202,7 @@ void IntelRtcCounter::Advance() {
     park_seen_  = now.park;
     park_ticks_ += slept;
     if (changed) on_status_();
-    if (park_ticks_ == 0u || emu_.Get<GuestEngine>().DeepSleep()) return;
+    if (park_ticks_ == 0u || emu_.Get<EngineBridge>().Guest().DeepSleep()) return;
     const GuestCycleClock::Rate osc = osc_.OscRate();
     LOG(SocTimer, "[RTCSLEEP] %s park %llu ms: rcnr %u -> %u rtar %u rtsr=0x%X\n",
         traits_.name,

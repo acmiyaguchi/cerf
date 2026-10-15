@@ -8,7 +8,7 @@
 #include "../../core/device_config.h"
 #include "../../core/log.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/engine_bridge.h"
 #include "../../state/state_stream.h"
 
 #include <cstring>
@@ -30,7 +30,7 @@ void CerfVirtCursor::OnReady() {
         LOG(Cerf, "[CerfVirtCursor] stage region at PA 0x%08X is not backed\n", pa);
         CerfFatalExit();
     }
-    emu_.Get<GuestEngine>().SetDmaRegion(pa, CerfVirt::kCurStageSize);
+    emu_.Get<EngineBridge>().Guest().SetDmaRegion(pa, CerfVirt::kCurStageSize);
 }
 
 uint32_t CerfVirtCursor::MmioBase() const {

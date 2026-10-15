@@ -4,7 +4,7 @@
 #include "../../core/cerf_emulator.h"
 #include "../../cpu/emulated_memory.h"
 #include "../../host/audio_activity_widget.h"
-#include "../../jit/mips/mips_mmu.h"
+#include <cerfengine/mips/mips_mmu.h>
 #include "casio_jx670_family_id.h"
 
 #include <vector>
@@ -46,7 +46,7 @@ void CasioJx670Capture::WriteBlock(uint32_t va, uint32_t length) {
         block[i * kFrameBytes]      = pcm[i * 2u];
         block[i * kFrameBytes + 1u] = pcm[i * 2u + 1u];
     }
-    mem_->CopyIn(MipsSeg::UnmappedPa(va), block.data(), length);
+    mem_->CopyIn(cerfengine::MipsSeg::UnmappedPa(va), block.data(), length);
     if (heard) activity_->MarkRx();
 }
 

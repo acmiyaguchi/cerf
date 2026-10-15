@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <mutex>
 
+namespace cerfengine { class ArmJit; }
+
 class Sa11xxIntc : public Peripheral {
 public:
     using Peripheral::Peripheral;
@@ -47,6 +49,7 @@ private:
        SYSINTR_NOP forever. */
     mutable std::mutex state_mtx_;
 
+    cerfengine::ArmJit*  jit_  = nullptr;
     uint32_t icpr_ = 0;
     uint32_t icmr_ = 0;
     uint32_t iclr_ = 0;

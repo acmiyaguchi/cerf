@@ -6,6 +6,8 @@
 #include <cstdint>
 #include <mutex>
 
+namespace cerfengine { class ArmJit; }
+
 class Imx31Avic : public Peripheral {
 public:
     using Peripheral::Peripheral;
@@ -28,6 +30,7 @@ public:
 
 private:
     mutable std::mutex state_mtx_;
+    cerfengine::ArmJit*            jit_ = nullptr;
 
     uint64_t src_hw_    = 0;
     uint32_t intcntl_   = 0;

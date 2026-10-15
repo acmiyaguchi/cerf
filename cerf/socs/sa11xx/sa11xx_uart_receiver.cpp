@@ -8,7 +8,8 @@
 #include "../../boards/board_context.h"
 #include "sa1110_id.h"
 #include "sa1100_id.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/host_request_channel.h>
 #include "../../state/state_stream.h"
 #include "sa11xx_dma.h"
 #include "sa11xx_uart_base.h"
@@ -43,7 +44,7 @@ bool Sa11xxUartReceiver::ShouldRegister() {
 
 void Sa11xxUartReceiver::OnReady() {
     clock_    = &emu_.Get<GuestCycleClock>();
-    requests_ = &emu_.Get<HostRequestChannel>();
+    requests_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>();
     dma_      = &emu_.Get<Sa11xxDma>();
     line_     = &emu_.Get<Sa11xxUartRxLine>();
     requests_->RegisterListener([this] { OnHostRequest(); });

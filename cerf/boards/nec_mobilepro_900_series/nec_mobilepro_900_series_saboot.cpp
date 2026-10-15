@@ -7,9 +7,11 @@
 #include "nec_mobilepro_900_series_boot_args.h"
 #include "nec_mobilepro_900_series_family_id.h"
 #include "nec_mobilepro_900_series_pco_companion.h"
+#include "../../cpu/arm/arm_cp15_registers.h"
 #include "../../cpu/arm_processor_config.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/arm/arm_cpu.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_cpu.h>
 #include "../../peripherals/epson_sed1356/sed1356.h"
 #include "../../socs/guest_cpu_reset.h"
 #include "../../socs/pxa255/pxa255_clock_manager.h"
@@ -141,7 +143,9 @@ private:
        sub_90061B94 (0x90061B94-0x90061BD4), then sub_900614B8. */
     void Boot(bool board_inputs_driven) {
         board_inputs_driven_ = board_inputs_driven;
-        if (layout_->sets_cpar) emu_.Get<ArmCpu>().SetResetCoprocessorAccess(kCpar);
+        if (layout_->sets_cpar) {
+            emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmCpu>().SetResetCoprocessorAccess(kCpar);
+        }
         const uint32_t cause = Pm(kRcsr) & 0xFFu;
         if ((cause & kCauseSmr) != 0u && (Pm(kPedr) & kPedrGpio10) != 0u) {
             emu_.Get<Fatal>().Die("NEC 900 SABOOT stand-in: a GPIO 10 sleep wake, which SABOOT "
@@ -352,10 +356,10 @@ private:
         const uint32_t aux     = Ram(kSaveBlockPa + 0x08u);
         const uint32_t ttb     = Ram(kSaveBlockPa + 0x0Cu);
         const uint32_t dacr    = Ram(kSaveBlockPa + 0x10u);
-        auto& cpu = emu_.Get<ArmCpu>();
-        cpu.SetPendingResumeMmu(control, ttb, dacr);
-        cpu.SetPendingResumeAuxControl(aux);
-        cpu.SetPendingResumeVector(pc);
+        auto& cp15 = emu_.Get<ArmCp15Registers>();
+        cp15.SetPendingResumeMmu(control, ttb, dacr);
+        cp15.SetPendingResumeAuxControl(aux);
+        emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmCpu>().SetPendingResumeVector(pc);
         LOG(SocReset, "[DEEPSLEEP] nec900 resume: pc 0x%08X control 0x%08X aux 0x%08X "
                       "ttb 0x%08X dacr 0x%08X\n", pc, control, aux, ttb, dacr);
         return true;

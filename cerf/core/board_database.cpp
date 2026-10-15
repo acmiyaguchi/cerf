@@ -64,8 +64,8 @@ struct BoardValues {
 
 CpuArch ParseCpuArch(const std::string& value, const std::string& path,
                      const std::string& ctx) {
-    if (value == "ARM")  return CpuArch::Arm;
-    if (value == "MIPS") return CpuArch::Mips;
+    if (value == "ARM")  return CpuArch::kArm;
+    if (value == "MIPS") return CpuArch::kMips;
     CfgFatal(path, ctx + ".arch '" + value + "' is unknown");
 }
 

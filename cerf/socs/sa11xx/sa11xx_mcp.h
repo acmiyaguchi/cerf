@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../peripherals/peripheral_base.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../state/state_stream.h"
 
 #include <cstdint>

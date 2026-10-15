@@ -5,8 +5,7 @@
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/guest_cycle_clock.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -64,8 +63,7 @@ public:
             scan_.Retime(clock_->Cycles());
             ArmLocked();
         });
-        host_requests_ = &emu_.Get<HostRequestChannel>();
-        host_requests_->RegisterListener([this] {
+        host_pen_.Attach([this] {
             std::lock_guard<std::mutex> lk(mtx_);
             ApplyHostPenLocked();
         });
@@ -150,7 +148,7 @@ public:
             std::lock_guard<std::mutex> lk(mtx_);
             host_pen_.Pen(down, pos_x, pos_y);
         }
-        host_requests_->Request();
+        host_pen_.Wake();
     }
 
     void SyntheticTap(uint16_t pos_x, uint16_t pos_y) override {
@@ -158,7 +156,7 @@ public:
             std::lock_guard<std::mutex> lk(mtx_);
             host_pen_.Tap(pos_x, pos_y);
         }
-        host_requests_->Request();
+        host_pen_.Wake();
     }
 
     void SaveState(StateWriter& w) override {
@@ -490,11 +488,10 @@ private:
 
     GuestCycleClock*        clock_       = nullptr;
     GuestCycleClock::Event* event_       = nullptr;
-    HostRequestChannel*     host_requests_ = nullptr;
     Vr41xxCmu*              cmu_         = nullptr;
     Vr41xxRtcxTicks         rtcx_{emu_, Vr41xxRtcxDomain::Peripheral};
     uint64_t                next_sample_ = 0;
-    Vr41xxPiuHostPen        host_pen_;
+    Vr41xxPiuHostPen        host_pen_{emu_};
 };
 
 }  /* namespace cerf_vr41xx_piu_detail */

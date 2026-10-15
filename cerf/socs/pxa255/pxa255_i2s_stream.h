@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/service.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../dma_burst_fifo.h"
 #include "../pxa2xx/pxa2xx_dma_port.h"
 #include "../pxa2xx/pxa2xx_frame_slot_law.h"

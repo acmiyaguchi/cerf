@@ -6,7 +6,7 @@
 #include <functional>
 
 class CerfEmulator;
-class MipsInterruptChannel;
+namespace cerfengine { class MipsInterruptChannel; }
 
 enum class Vr41xxRtcxDomain { RtcIcuPmu, Peripheral };
 
@@ -29,5 +29,5 @@ private:
     void Bind();
 
     const Vr41xxRtcxDomain domain_;
-    MipsInterruptChannel*  channel_ = nullptr;
+    cerfengine::MipsInterruptChannel*  channel_ = nullptr;
 };

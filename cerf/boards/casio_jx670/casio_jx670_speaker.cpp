@@ -4,7 +4,7 @@
 #include "../../core/cerf_emulator.h"
 #include "../../cpu/emulated_memory.h"
 #include "../../host/audio_activity_widget.h"
-#include "../../jit/mips/mips_mmu.h"
+#include <cerfengine/mips/mips_mmu.h>
 #include "casio_jx670_family_id.h"
 
 #include <vector>
@@ -37,7 +37,7 @@ void CasioJx670Speaker::QueueBlock(uint32_t va, uint32_t length) {
     std::vector<uint8_t> block(length);
     /* VR4102 UM ch.5 p131 "(3) kseg1": references are not mapped through TLB and the
        physical address is the virtual address minus 0xA0000000. */
-    mem_->CopyOut(MipsSeg::UnmappedPa(va), block.data(), length);
+    mem_->CopyOut(cerfengine::MipsSeg::UnmappedPa(va), block.data(), length);
     activity_->MarkTx();
     paced_.QueueOutputInHostBlocks(block.data(), length);
 }

@@ -2,10 +2,8 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
-#include "../../jit/arm/arm_jit.h"
-#include "../../jit/arm/arm_cpu.h"
-#include "../../jit/arm/arm_mmu.h"
-#include "../../jit/arm/cpu_state.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../peripherals/peripheral_base.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../boards/board_context.h"
@@ -88,6 +86,7 @@ private:
     }();
 
     std::mutex state_mutex_;
+    cerfengine::ArmJit*    jit_ = nullptr;
     uint32_t storage_[kSlotCount] = {
         kResetValues[0], kResetValues[1], kResetValues[2], kResetValues[3],
         kResetValues[4], kResetValues[5], kResetValues[6], kResetValues[7],
@@ -95,10 +94,11 @@ private:
 };
 
 void S3C2410Intc::OnReady() {
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
     emu_.Get<GuestCpuReset>().RegisterResetListener([this](ResetLineKind) {
         std::lock_guard<std::mutex> lk(state_mutex_);
         for (size_t i = 0; i < kSlotCount; ++i) storage_[i] = kResetValues[i];
-        emu_.Get<ArmJit>().ClearInterruptPending();
+        jit_->ClearInterruptPending();
     });
 }
 
@@ -164,7 +164,7 @@ void S3C2410Intc::AssertIrq(int source_bit) {
 
         storage_[kSlotSRCPND] |= bit_mask;
         RecomputeIntpndIntoffset();
-        if (HasPendingUnmasked()) emu_.Get<ArmJit>().SetInterruptPending();
+        if (HasPendingUnmasked()) jit_->SetInterruptPending();
     }
 }
 
@@ -208,7 +208,7 @@ void S3C2410Intc::AssertSubIrq(int main_source_bit, int sub_source_bit) {
         storage_[kSlotSUBSRCPND] |= sub_mask;
 
         ApplySubSourceRollupLocked();
-        if (HasPendingUnmasked()) emu_.Get<ArmJit>().SetInterruptPending();
+        if (HasPendingUnmasked()) jit_->SetInterruptPending();
     }
 }
 
@@ -286,9 +286,8 @@ void S3C2410Intc::WriteReg(uint32_t offset, uint32_t value) {
                 /* unreachable - slot bounds-checked above */
                 break;
         }
-        auto& jit = emu_.Get<ArmJit>();
-        if (HasPendingUnmasked()) jit.SetInterruptPending();
-        else                      jit.ClearInterruptPending();
+        if (HasPendingUnmasked()) jit_->SetInterruptPending();
+        else                      jit_->ClearInterruptPending();
     }
 
     emu_.Get<S3C2410SubSourceLevels>().ReassertStillHeld(cleared_sub);
@@ -315,9 +314,8 @@ void S3C2410Intc::PostRestore() {
        every peripheral's RestoreState has run - the INTC owns the CPU IRQ line. */
     std::lock_guard<std::mutex> lk(state_mutex_);
     ApplySubSourceRollupLocked();
-    auto& jit = emu_.Get<ArmJit>();
-    if (HasPendingUnmasked()) jit.SetInterruptPending();
-    else                      jit.ClearInterruptPending();
+    if (HasPendingUnmasked()) jit_->SetInterruptPending();
+    else                      jit_->ClearInterruptPending();
 }
 
 class S3C2410IntcMmio : public Peripheral {

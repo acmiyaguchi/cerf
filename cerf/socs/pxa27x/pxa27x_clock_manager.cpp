@@ -6,7 +6,7 @@
 #include "../../boards/board_context.h"
 #include "pxa270_id.h"
 #include "pxa27x_power_manager.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -174,11 +174,12 @@ void Pxa27xClockManager::PublishLcdClock() {
     for (auto& fn : lcd_clock_listeners_) fn();
 }
 
-uint32_t __fastcall Pxa27xClockManager::ReadClkcfgHelper(Pxa27xClockManager* self) {
-    return self->clkcfg_;
+uint32_t CERFENGINE_FASTCALL Pxa27xClockManager::ReadClkcfgHelper(void* self) {
+    return static_cast<Pxa27xClockManager*>(self)->clkcfg_;
 }
 
-void __fastcall Pxa27xClockManager::WriteClkcfgHelper(Pxa27xClockManager* self, uint32_t value) {
+void CERFENGINE_FASTCALL Pxa27xClockManager::WriteClkcfgHelper(void* context, uint32_t value) {
+    Pxa27xClockManager* self = static_cast<Pxa27xClockManager*>(context);
     if ((value & kClkcfgF) != 0u &&
         self->emu_.Get<Pxa27xPowerManager>().FrequencyVoltageChange()) {
         self->emu_.Get<Fatal>().Die("Pxa27xClockManager: CLKCFG write 0x%08X starts a frequency "

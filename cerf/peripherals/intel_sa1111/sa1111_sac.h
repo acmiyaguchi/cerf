@@ -2,7 +2,7 @@
 
 #include "sa1111_unit.h"
 #include "sa1111_sac_request_lines.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 
 #include <cstdint>
 

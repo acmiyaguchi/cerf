@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "omap3530_prcm_stub_block.h"
 
 #include <cstdint>

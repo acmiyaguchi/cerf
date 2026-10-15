@@ -4,6 +4,7 @@
 
 #include "pxa2xx_dma_port.h"
 
+#include "../../core/byte_order.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
 #include "../../cpu/emulated_memory.h"
@@ -11,7 +12,6 @@
 #include "../../state/state_stream.h"
 
 #include <algorithm>
-#include <cstring>
 
 /* Intel PXA255 Developer's Manual Table 5-12 (page 5-25) WIDTH: "01 - 1 byte", "10 - HalfWord (2
    bytes)", "11 - Word (4 Bytes)"; SIZE: "01 - 8 Bytes", "10 - 16 Bytes", "11 - 32 Bytes". */
@@ -27,14 +27,6 @@ uint32_t Pxa2xxDmaMoves::SizeBytes(uint32_t dcmd) {
     return 4u << ((dcmd >> 16) & 3u);
 }
 
-static BusWidth UnitBusWidth(uint32_t width) {
-    switch (width) {
-    case 1u: return BusWidth::Byte;
-    case 2u: return BusWidth::Half;
-    default: return BusWidth::Word;
-    }
-}
-
 void Pxa2xxDmaMoves::OnPortChange() {
     if (access_thread_.load(std::memory_order_relaxed) == std::this_thread::get_id()) {
         DeferPortChange();
@@ -46,8 +38,9 @@ void Pxa2xxDmaMoves::OnPortChange() {
 bool Pxa2xxDmaMoves::BusAccess(uint32_t pa, uint32_t width, bool write, uint32_t& value) {
     if (MoveBusErrorLocked(pa, write)) return false;
     access_thread_.store(std::this_thread::get_id(), std::memory_order_relaxed);
-    auto&      bus = emu_.Get<PhysicalBus>();
-    const bool ok  = write ? bus.Write(pa, UnitBusWidth(width), value) : bus.Read(pa, UnitBusWidth(width), &value);
+    auto&           bus  = emu_.Get<PhysicalBus>();
+    const MmioWidth unit = static_cast<MmioWidth>(width);
+    const bool      ok   = write ? bus.Write(pa, unit, value) : bus.Read(pa, unit, &value);
     access_thread_.store(std::thread::id{}, std::memory_order_relaxed);
     return ok;
 }
@@ -73,7 +66,7 @@ bool Pxa2xxDmaMoves::ReadDescriptorWordsLocked(uint32_t pa, uint32_t (&w)[4]) {
     if (DescriptorInMemoryOnly()) {
         const uint8_t* src = emu_.Get<EmulatedMemory>().TryTranslateRange(pa, sizeof(w));
         if (src == nullptr) return false;
-        std::memcpy(w, src, sizeof(w));
+        for (uint32_t i = 0; i < 4u; ++i) w[i] = cerf::le::U32(src, 4u * i);
         return true;
     }
     for (uint32_t i = 0; i < 4u; ++i) {
@@ -224,7 +217,7 @@ void Pxa2xxDmaMoves::ReadChunkLocked(uint32_t ch) {
             BusErrorLocked(ch);
             return;
         }
-        std::memcpy(&staged_[ch][off], &value, width);
+        cerf::le::PutN(&staged_[ch][off], value, width);
     }
     phase_[ch] = Phase::Write;
 }
@@ -237,8 +230,7 @@ void Pxa2xxDmaMoves::WriteChunkLocked(uint32_t ch) {
     const uint32_t dst   = MoveAddressLocked(ch, dtadr_[ch]);
     const bool     inc   = (dcmd_[ch] & INCTRGADDR) != 0u;
     for (uint32_t off = 0; off < chunk_[ch]; off += width) {
-        uint32_t value = 0;
-        std::memcpy(&value, &staged_[ch][off], width);
+        const uint32_t value = static_cast<uint32_t>(cerf::le::UN(&staged_[ch][off], width));
         if (!WriteUnit(inc ? dst + off : dst, width, value)) {
             BusErrorLocked(ch);
             return;

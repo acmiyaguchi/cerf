@@ -8,7 +8,7 @@
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/arm/arm_core_clock.h"
+#include "../../cpu/arm/arm_core_clock.h"
 
 #include <cstdint>
 

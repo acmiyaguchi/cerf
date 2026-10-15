@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 
+namespace cerfengine { class ArmJit; }
 class StateWriter;
 class StateReader;
 
@@ -16,6 +17,7 @@ public:
     using IrqController::IrqController;
 
     bool ShouldRegister() override;
+    void OnReady() override;
 
     void AssertIrq   (int source_bit)            override;
     void AssertSubIrq(int main_bit, int sub_bit) override;
@@ -68,6 +70,7 @@ private:
     static constexpr uint32_t kIntctrlNsenMask = 1u << 31;  /* NSEN write-enable */
 
     mutable std::mutex state_mutex_;
+    cerfengine::ArmJit*  jit_ = nullptr;
     uint32_t raw_[kBankCount]{};       /* raw input level (AssertIrq) */
     uint32_t enable_[kBankCount]{};    /* ENSET/ENCLEAR; 1 = enabled */
     uint32_t secure_[kBankCount]{};    /* INTSEC; 1 = secure */

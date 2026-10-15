@@ -3,8 +3,8 @@
 #include "../core/cerf_emulator.h"
 #include "../core/log.h"
 #include "../boot/rom_parser_service.h"
-#include "../jit/guest_engine.h"
-#include "../jit/mips/mips_cpu_state.h"
+#include "../execution/engine_bridge.h"
+#include <cerfengine/mips/mips_cpu_state.h>
 
 REGISTER_SERVICE(TraceManager);
 
@@ -28,7 +28,7 @@ uint32_t Crc32Update(uint32_t crc, const uint8_t* data, size_t n) {
 }  /* namespace */
 
 std::optional<uint8_t> TraceContext::ReadVa8(uint32_t va) const {
-    auto host = emu.Get<GuestEngine>().PeekGuestVa(va);
+    auto host = emu.Get<EngineBridge>().Guest().PeekGuestVa(va);
     if (!host) return std::nullopt;
     return **host;
 }
@@ -117,7 +117,7 @@ void TraceManager::DispatchPc(uint32_t pc,
     DispatchContext(pc, ctx);
 }
 
-void TraceManager::DispatchPcMips(uint32_t pc, const MipsCpuState* st) {
+void TraceManager::DispatchPcMips(uint32_t pc, const cerfengine::MipsCpuState* st) {
     TraceContext ctx{nullptr, 0u, pc, emu_, st};
     DispatchContext(pc, ctx);
 }
@@ -138,7 +138,7 @@ void TraceManager::DispatchRunLoopIter(const uint32_t* regs, uint32_t cpsr) {
     DispatchIterContext(ctx);
 }
 
-void TraceManager::DispatchRunLoopIterMips(const MipsCpuState* st) {
+void TraceManager::DispatchRunLoopIterMips(const cerfengine::MipsCpuState* st) {
     if (iter_handlers_.empty()) return;
     TraceContext ctx{nullptr, 0u, st->pc, emu_, st};
     DispatchIterContext(ctx);

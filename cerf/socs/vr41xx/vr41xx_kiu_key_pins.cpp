@@ -2,7 +2,8 @@
 
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/host_request_channel.h>
 #include "../vr4102/vr4102_id.h"
 #include "../vr4111/vr4111_id.h"
 #include "../vr4121/vr4121_id.h"
@@ -14,7 +15,9 @@ bool Vr41xxKiuKeyPins::ShouldRegister() {
     return soc == SocId::Vr4102 || soc == SocId::Vr4111 || soc == SocId::Vr4121;
 }
 
-void Vr41xxKiuKeyPins::OnReady() { host_requests_ = &emu_.Get<HostRequestChannel>(); }
+void Vr41xxKiuKeyPins::OnReady() {
+    host_requests_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>();
+}
 
 void Vr41xxKiuKeyPins::Set(uint8_t matrix_index, bool pressed) {
     {

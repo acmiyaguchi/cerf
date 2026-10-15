@@ -39,7 +39,7 @@ std::string_view BoardContext::GetSocId() const {
 }
 
 CpuArch BoardContext::GetCpuArch() const {
-    return soc_family_ ? soc_family_->arch : CpuArch::Arm;
+    return soc_family_ ? soc_family_->arch : CpuArch::kArm;
 }
 
 RomPlacingMode BoardContext::GetRomPlacingMode() const {

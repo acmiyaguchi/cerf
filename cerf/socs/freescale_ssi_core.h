@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../jit/guest_cycle_clock.h"
+#include "../execution/guest_cycle_clock.h"
 #include "freescale_ssi_receiver.h"
 #include "freescale_ssi_section.h"
 #include "freescale_ssi_slot_grid.h"

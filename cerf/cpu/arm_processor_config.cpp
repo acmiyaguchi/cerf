@@ -23,7 +23,7 @@ constexpr std::pair<std::string_view, ArmSupersectionFormat> kSupersectionFormat
 }
 
 bool ArmProcessorConfig::ShouldRegister() {
-    return emu_.Get<BoardContext>().GetCpuArch() == CpuArch::Arm;
+    return emu_.Get<BoardContext>().GetCpuArch() == CpuArch::kArm;
 }
 
 void ArmProcessorConfig::OnReady() {

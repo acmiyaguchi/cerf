@@ -53,7 +53,7 @@ When a trigger fires:
 
 ## Hard prohibitions - the UNGROUNDED edit, not the edit
 
-The fragile files - `cerf/jit/**`, `cerf/cpu/*/coproc_emitter*`, `cerf/cpu/*/processor_config*`, `cerf/jit/arm_mmu*`, `cerf/jit/place/**`, `cerf/socs/*/<peripheral>*.cpp`, `cerf/boards/**` - are where a wrong edit is silent and costs weeks. They are also **where the work is.** Most sessions on this project ARE edits to these files. An edit to them is never the forbidden thing. An order to edit them while the user is frustrated does not change that.
+The fragile files - `libCerfEngine/**`, `cerf/cpu/*/*coproc_provider*`, `cerf/cpu/*/processor_config*`, `cerf/cpu/arm/arm_page_walker*`, `cerf/socs/*/<peripheral>*.cpp`, `cerf/boards/**` - are where a wrong edit is silent and costs weeks. They are also **where the work is.** Most sessions on this project ARE edits to these files. An edit to them is never the forbidden thing. An order to edit them while the user is frustrated does not change that.
 
 The forbidden thing is the **ungrounded edit**: a change to one of these files without a verified model for the *specific* change. Its canonical shape is the panic-pivot - "the task got hard, let me just change something that looks related and see." An edit you cannot state as a falsifiable claim grounded in a reference passage, a hook-fire, a decompile, or research you actually did. THAT edit is forbidden - always, mood-independent.
 

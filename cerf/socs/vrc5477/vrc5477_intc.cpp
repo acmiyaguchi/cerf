@@ -4,7 +4,8 @@
 #include "../../core/rate_probe.h"
 #include "../../boards/board_context.h"
 #include "../../cpu/vr5500/vr5500_id.h"
-#include "../../jit/mips/mips_jit.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/mips/mips_jit.h>
 #include "../../state/state_stream.h"
 
 #include <cstdint>
@@ -27,6 +28,10 @@ bool Vrc5477Intc::ShouldRegister() {
     return bd && bd->GetSocId() == SocId::Vr5500;
 }
 
+void Vrc5477Intc::OnReady() {
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::MipsJit>();
+}
+
 uint32_t Vrc5477Intc::StatusForLineLocked(uint32_t n) const {
     uint32_t s = 0;
     for (uint32_t irq = 0; irq < 32; ++irq) {
@@ -43,7 +48,7 @@ void Vrc5477Intc::NotifyLocked() {
     for (uint32_t n = 0; n < 4; ++n) {
         if (StatusForLineLocked(n) != 0) ip |= kIpForOutput0 << n;
     }
-    emu_.Get<MipsJit>().SetExternalInterruptLevel(ip);
+    jit_->SetExternalInterruptLevel(ip);
 }
 
 void Vrc5477Intc::AssertSource(uint32_t irq) {

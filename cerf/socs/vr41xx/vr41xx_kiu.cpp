@@ -2,7 +2,8 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/host_request_channel.h>
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -31,7 +32,7 @@ void Vr41xxKiu::OnReady() {
         ArmEventLocked();
     });
     key_pins_ = &emu_.Get<Vr41xxKiuKeyPins>();
-    emu_.Get<HostRequestChannel>().RegisterListener([this] {
+    emu_.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>().RegisterListener([this] {
         std::lock_guard<std::mutex> lk(mtx_);
         ApplyHostKeysLocked();
     });

@@ -4,9 +4,8 @@
 #include "msm8255_id.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/arm/arm_cpu.h"
-#include "../../jit/arm/arm_jit.h"
-#include "../../jit/arm/cpu_state.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../peripherals/peripheral_base.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
@@ -63,6 +62,7 @@ public:
     }
 
     void OnReady() override {
+        jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
         emu_.Get<GuestCpuReset>().RegisterResetListener([this](ResetLineKind) {
             std::lock_guard<std::mutex> lk(state_mutex_);
             for (uint32_t b = 0; b < kBankCount; ++b) {
@@ -111,6 +111,7 @@ private:
     }
 
     mutable std::mutex state_mutex_;
+    cerfengine::ArmJit*  jit_ = nullptr;
     uint32_t raw_[kBankCount]{};
     uint32_t latch_[kBankCount]{};
     uint32_t enable_[kBankCount]{};
@@ -154,9 +155,8 @@ void Msm8255Vic::Republish() {
                 "delivery is not implemented", b, fiq);
         }
     }
-    auto& jit = emu_.Get<ArmJit>();
-    if (HasPendingIrq()) jit.SetInterruptPending();
-    else                 jit.ClearInterruptPending();
+    if (HasPendingIrq()) jit_->SetInterruptPending();
+    else                 jit_->ClearInterruptPending();
 }
 
 Msm8255Vic::SourceLine Msm8255Vic::CheckedLine(int source_bit, const char* op) const {

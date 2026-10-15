@@ -3,7 +3,7 @@
 #include "../../core/cerf_emulator.h"
 #include "../../boards/board_context.h"
 #include "../../boards/hp_jornada_700/hp_jornada_700_family_id.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 
 namespace {
 

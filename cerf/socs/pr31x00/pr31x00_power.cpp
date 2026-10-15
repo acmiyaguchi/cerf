@@ -6,8 +6,8 @@
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
 #include "../../host/guest_deep_sleep.h"
-#include "../../jit/guest_cycle_clock.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/guest_cycle_clock.h"
+#include "../../execution/engine_bridge.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -170,7 +170,7 @@ public:
             emu_.Get<Fatal>().Die("Pr31x00Power: STOPCPU with interrupt sources enabled and "
                                   "GLOBALEN clear; whether they clear it is not modelled");
         }
-        if (stop_cpu) emu_.Get<GuestEngine>().EnterIdleWait();
+        if (stop_cpu) emu_.Get<EngineBridge>().Guest().EnterIdleWait();
     }
 
     uint8_t  ReadByte (uint32_t addr) override { HaltUnsupportedAccess("PR31x00 Power ReadByte", addr, 0); }

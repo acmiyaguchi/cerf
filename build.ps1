@@ -208,6 +208,54 @@ if (Test-Path $launcherBuild) {
 
 Update-CerfLockStamp $buildLock
 
+function Get-SubmodulePin([string]$repo, [string]$path) {
+    $entry = & git -C $repo ls-files -s -- $path 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $entry) { return $null }
+    $fields = $entry -split '\s+'
+    if ($fields[0] -ne '160000') { return $null }
+    return $fields[1]
+}
+
+$engineDir  = Join-Path $PSScriptRoot "libCerfEngine"
+$locatorDir = Join-Path $PSScriptRoot "libservicelocator"
+$rootPin    = Get-SubmodulePin $PSScriptRoot "libservicelocator"
+$enginePin  = Get-SubmodulePin $engineDir "libservicelocator"
+if ($enginePin -and $enginePin -ne $rootPin) {
+    if ($Mode -eq "production") {
+        Write-Host "[BUILD] FAILED! libCerfEngine pins libservicelocator $enginePin, the root pins $rootPin."
+        Write-Host "[BUILD] Point both at the same commit before you build."
+        Stop-Build 1
+    }
+    Write-Host "[BUILD] WARNING: libCerfEngine pins libservicelocator $enginePin, the root pins $rootPin. The engine builds against the root checkout."
+}
+
+$cmake = Join-Path $vsRoot 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+if (-not (Test-Path $cmake)) {
+    Write-Host "[BUILD] FAILED! CMake not found at $cmake. Install the 'C++ CMake tools for Windows' component of Visual Studio."
+    Stop-Build 1
+}
+$vsVersion  = [version](& $vswhere -latest -prerelease -property installationVersion | Select-Object -First 1)
+$vsYear     = & $vswhere -latest -prerelease -property catalog_productLineVersion | Select-Object -First 1
+$engineOut  = Join-Path $PSScriptRoot "build\cerfengine"
+if ($Rebuild -and (Test-Path $engineOut)) { Remove-Item $engineOut -Recurse -Force }
+
+Write-Host "[ENGINE] libCerfEngine ($Config)"
+& $cmake -S $engineDir -B $engineOut -G "Visual Studio $($vsVersion.Major) $vsYear" -A Win32 `
+    -T "version=$toolsVersion" "-DCMAKE_GENERATOR_INSTANCE=$vsRoot" `
+    '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `
+    "-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded" `
+    "-DCERFENGINE_SERVICELOCATOR_DIR=$locatorDir" "-DCERFENGINE_BUILD_TESTS=OFF"
+$engineExit = $LASTEXITCODE
+if ($engineExit -eq 0) {
+    & $cmake --build $engineOut --config $Config --parallel -- /v:minimal /nologo /nodeReuse:false
+    $engineExit = $LASTEXITCODE
+}
+Update-CerfLockStamp $buildLock
+if ($engineExit -ne 0) {
+    Write-Host "[BUILD] libCerfEngine FAILED (exit=$engineExit)"
+    Stop-Build 1
+}
+
 $cerfTarget = if ($Rebuild) { "/t:Rebuild" } else { "/t:Build" }
 if ($Rebuild) { Write-Host "[BUILD] Clean rebuild requested (/t:Rebuild)" }
 & $msbuild cerf.sln /p:Configuration=$Config /p:Platform=Win32 $cerfTarget /m /v:minimal /p:CerfExtraDefines=$cerfDefines /p:CerfMode=$Mode /p:VCToolsVersion=$toolsVersion

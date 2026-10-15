@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/service.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "pxa2xx_ac97_link.h"
 
 #include <cstdint>

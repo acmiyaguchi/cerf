@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/service.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "sa11xx_dma_port.h"
 #include "sa11xx_dma_receive_fifo.h"
 #include "sa11xx_uart_regs.h"
@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <memory>
 
-class HostRequestChannel;
+namespace cerfengine { class HostRequestChannel; }
 class Sa11xxDma;
 class Sa11xxUartBase;
 class Sa11xxUartRxLine;
@@ -110,7 +110,7 @@ private:
     void OnHostRequest();
 
     GuestCycleClock*    clock_    = nullptr;
-    HostRequestChannel* requests_ = nullptr;
+    cerfengine::HostRequestChannel* requests_ = nullptr;
     Sa11xxDma*          dma_      = nullptr;
     Sa11xxUartRxLine*   line_     = nullptr;
     std::array<std::unique_ptr<Channel>, kPorts> ch_{};

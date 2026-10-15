@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_base.h"
 #include "vr41xx_rtc_latch.h"
 #include "vr41xx_rtcl_rephase.h"
@@ -10,7 +10,7 @@
 #include <mutex>
 
 class MipsCoreClock;
-class MipsInterruptChannel;
+namespace cerfengine { class MipsInterruptChannel; }
 
 /* NEC VR41xx RTC, VR4102 UM ch.16 == VR4111 UM ch.17 == VR4121 UM ch.17 (VR4102 Table 16-1,
    VR4111 Table 17-1 p372, VR4121 Table 17-1); RTC1 block 0x0B0000C0, RTC2 block 0x0B0001C0. */
@@ -83,7 +83,7 @@ private:
     GuestCycleClock*        clock_      = nullptr;
     GuestCycleClock::Event* event_      = nullptr;
     MipsCoreClock*          core_clock_ = nullptr;
-    MipsInterruptChannel*   channel_    = nullptr;
+    cerfengine::MipsInterruptChannel*   channel_    = nullptr;
     Vr41xxRtcxTicks         rtcx_{emu_, Vr41xxRtcxDomain::RtcIcuPmu};
 
     uint64_t etime_base_   = 0;

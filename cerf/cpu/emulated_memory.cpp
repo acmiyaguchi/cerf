@@ -1,5 +1,6 @@
 #include "emulated_memory.h"
 
+#include "../core/byte_order.h"
 #include "../core/cerf_emulator.h"
 #include "../core/fatal.h"
 #include "../core/log.h"
@@ -149,6 +150,31 @@ void EmulatedMemory::SetAddressDecode(uint32_t region_base, const AddressDecode*
     r->decode.store(decode, std::memory_order_release);
     LOG(Mem, "SetAddressDecode region 0x%08X pass 0x%08X gather 0x%08X\n", region_base,
         decode ? decode->pass_mask : 0xFFFFFFFFu, decode ? decode->gather_mask : 0u);
+    for (auto& fn : decode_listeners_) fn();
+}
+
+void EmulatedMemory::RegisterDecodeListener(std::function<void()> fn) {
+    decode_listeners_.push_back(std::move(fn));
+}
+
+CERF_FORCEINLINE uint8_t* EmulatedMemory::PhysicalTranslate(uint32_t pa, bool write,
+                                                            cerfengine::PhysicalPage& page) {
+    Region* r = FindRegion(pa);
+    if (!r) return nullptr;
+    const bool flash = IsFlash(*r);
+    if (write && flash) return nullptr;
+
+    uint8_t* const host    = EnsureBacked(r);
+    const uint32_t page_pa = pa & ~(PAGE_SIZE - 1u);
+    if (page_pa >= r->base) {
+        const uint32_t offset = page_pa - r->base;
+        const uint32_t backed = BackedOffset(*r, offset);
+        if (RangeLinear(*r, offset, PAGE_SIZE, backed)) {
+            page.read  = host + backed;
+            page.write = flash ? nullptr : host + backed;
+        }
+    }
+    return host + BackedOffset(*r, pa - r->base);
 }
 
 uint8_t* EmulatedMemory::Translate(uint32_t vaddr) {
@@ -207,15 +233,12 @@ uint8_t* EmulatedMemory::TryTranslateRange(uint64_t paddr, uint64_t size, bool w
         return nullptr;
     const uint64_t offset = paddr - r->base;
     const uint64_t backed_offset = BackedOffset(*r, static_cast<uint32_t>(offset));
-    if (size > r->span - offset || size > r->size - backed_offset)
-        return nullptr;
-    const uint64_t block = DecodeBlock(*r);
-    if (offset / block != (offset + size - 1u) / block)
+    if (!RangeLinear(*r, offset, size, backed_offset))
         return nullptr;
     return EnsureBacked(r) + static_cast<size_t>(backed_offset);
 }
 
-bool EmulatedMemory::IsSlotRangeUniform(uint32_t span_bytes, uint32_t pa) {
+CERF_FORCEINLINE bool EmulatedMemory::PhysicalSpanUniform(uint32_t pa, uint32_t span_bytes) {
     if (span_bytes <= 0x1000u) return true;
     const uint32_t base = pa & ~(span_bytes - 1u);
     Region* r = FindRegion(base);
@@ -229,26 +252,31 @@ bool EmulatedMemory::IsSlotRangeUniform(uint32_t span_bytes, uint32_t pa) {
                static_cast<uint64_t>(r->base) + r->size;
 }
 
+uint8_t* CERFENGINE_FASTCALL cerfengine::host::PhysicalTranslate(void* context, uint32_t pa,
+                                                                 bool write,
+                                                                 PhysicalPage& page) {
+    return static_cast<EmulatedMemory*>(context)->PhysicalTranslate(pa, write, page);
+}
+
+bool CERFENGINE_FASTCALL cerfengine::host::PhysicalSpanUniform(void* context, uint32_t pa,
+                                                               uint32_t span) {
+    return static_cast<EmulatedMemory*>(context)->PhysicalSpanUniform(pa, span);
+}
+
 uint8_t EmulatedMemory::ReadByte(uint32_t vaddr) {
     return *Translate(vaddr);
 }
 
 uint16_t EmulatedMemory::ReadHalf(uint32_t vaddr) {
-    uint16_t v;
-    std::memcpy(&v, Translate(vaddr), sizeof(v));
-    return v;
+    return cerf::le::U16(Translate(vaddr));
 }
 
 uint32_t EmulatedMemory::ReadWord(uint32_t vaddr) {
-    uint32_t v;
-    std::memcpy(&v, Translate(vaddr), sizeof(v));
-    return v;
+    return cerf::le::U32(Translate(vaddr));
 }
 
 uint64_t EmulatedMemory::ReadDword(uint32_t vaddr) {
-    uint64_t v;
-    std::memcpy(&v, Translate(vaddr), sizeof(v));
-    return v;
+    return cerf::le::U64(Translate(vaddr));
 }
 
 void EmulatedMemory::WriteByte(uint32_t vaddr, uint8_t value) {
@@ -256,15 +284,15 @@ void EmulatedMemory::WriteByte(uint32_t vaddr, uint8_t value) {
 }
 
 void EmulatedMemory::WriteHalf(uint32_t vaddr, uint16_t value) {
-    std::memcpy(Translate(vaddr), &value, sizeof(value));
+    cerf::le::Put16(Translate(vaddr), value);
 }
 
 void EmulatedMemory::WriteWord(uint32_t vaddr, uint32_t value) {
-    std::memcpy(Translate(vaddr), &value, sizeof(value));
+    cerf::le::Put32(Translate(vaddr), value);
 }
 
 void EmulatedMemory::WriteDword(uint32_t vaddr, uint64_t value) {
-    std::memcpy(Translate(vaddr), &value, sizeof(value));
+    cerf::le::Put64(Translate(vaddr), value);
 }
 
 EmulatedMemory::Region* EmulatedMemory::BulkRegionFor(uint32_t vaddr,

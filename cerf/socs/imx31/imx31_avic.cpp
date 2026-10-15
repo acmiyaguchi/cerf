@@ -4,7 +4,8 @@
 #include "../../core/log.h"
 #include "../../boards/board_context.h"
 #include "imx31_id.h"
-#include "../../jit/arm/arm_jit.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../peripherals/peripheral_dispatcher.h"
 
 namespace {
@@ -30,6 +31,7 @@ bool Imx31Avic::ShouldRegister() {
 }
 
 void Imx31Avic::OnReady() {
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
     emu_.Get<PeripheralDispatcher>().Register(this);
 }
 
@@ -58,10 +60,9 @@ void Imx31Avic::NotifyLocked() {
                      "does not service\n", (unsigned long long)Fipnd());
         CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
     }
-    auto& jit = emu_.Get<ArmJit>();
     const bool active = IrqActiveLocked();
-    if (active) jit.SetInterruptPending();
-    else        jit.ClearInterruptPending();
+    if (active) jit_->SetInterruptPending();
+    else        jit_->ClearInterruptPending();
 }
 
 void Imx31Avic::AssertSource(uint32_t source_num) {

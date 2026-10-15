@@ -9,7 +9,7 @@
 #include <vector>
 
 class CerfEmulator;
-struct MipsCpuState;
+namespace cerfengine { struct MipsCpuState; }
 
 /* TraceContext - read-only snapshot the JIT hands to a trace handler. Only the
    active ISA's view is non-null: ARM populates `regs`(`regs[15]`==pc)+`cpsr`
@@ -20,7 +20,7 @@ struct TraceContext {
     uint32_t        cpsr;
     uint32_t        pc;
     CerfEmulator&   emu;
-    const MipsCpuState* mips = nullptr;
+    const cerfengine::MipsCpuState* mips = nullptr;
 
     std::optional<uint8_t>  ReadVa8 (uint32_t va) const;
     std::optional<uint16_t> ReadVa16(uint32_t va) const;
@@ -51,14 +51,14 @@ public:
 
     /* Dispatch sites called from the JIT translator (one per live ISA). */
     void DispatchPc(uint32_t pc, const uint32_t* regs, uint32_t cpsr);
-    void DispatchPcMips(uint32_t pc, const MipsCpuState* st);
+    void DispatchPcMips(uint32_t pc, const cerfengine::MipsCpuState* st);
 
     uint32_t BundleCrc32() const { return bundle_crc32_; }
 
 #if CERF_DEV_MODE
     void OnRunLoopIter(TraceHandler handler);
     void DispatchRunLoopIter(const uint32_t* regs, uint32_t cpsr);
-    void DispatchRunLoopIterMips(const MipsCpuState* st);
+    void DispatchRunLoopIterMips(const cerfengine::MipsCpuState* st);
 #endif
 
 private:

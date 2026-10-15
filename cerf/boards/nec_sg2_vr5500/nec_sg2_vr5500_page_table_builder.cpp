@@ -1,7 +1,7 @@
 #include "../mips_kseg_page_table_builder.h"
 
 #include "../../core/cerf_emulator.h"
-#include "../../jit/mips/mips_mmu.h"
+#include <cerfengine/mips/mips_mmu.h>
 #include "../board_context.h"
 #include "nec_sg2_vr5500_family_id.h"
 
@@ -11,8 +11,8 @@
 namespace {
 
 constexpr uint32_t kDramPaBase = 0x00000000u;
-constexpr uint32_t kDramSize   = 0x08000000u;   /* 128 MB */
-constexpr uint32_t kDramVaBase = MipsSeg::kKusegEnd | kDramPaBase;
+constexpr uint32_t kDramSize   = 0x08000000u;
+constexpr uint32_t kDramVaBase = cerfengine::MipsSeg::kKusegEnd | kDramPaBase;
 
 class NecSg2Vr5500PageTableBuilder : public MipsKsegPageTableBuilder {
 public:

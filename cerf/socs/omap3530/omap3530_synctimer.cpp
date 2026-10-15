@@ -4,7 +4,7 @@
 #include "omap3530_id.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../cycle_anchored_counter.h"
 #include "../guest_cpu_reset.h"

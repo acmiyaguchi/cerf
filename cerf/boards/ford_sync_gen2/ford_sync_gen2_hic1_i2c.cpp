@@ -6,8 +6,9 @@
 #include "../board_context.h"
 #include "ford_sync_gen2_family_id.h"
 #include "../../socs/imx51/imx51_gpio4.h"
-#include "../../jit/arm/arm_cpu.h"
-#include "../../jit/arm/arm_mmu_probe.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_cpu.h>
+#include <cerfengine/arm/arm_translator.h>
 #include "../../peripherals/cirrus_cs42448/cs42448_codec.h"
 #include "../../peripherals/ti_tsc2003/ti_tsc2003_touch.h"
 
@@ -57,9 +58,10 @@ private:
     void ReleaseSda()         { DriveSda(true); }
 
     [[noreturn]] void FatalUnmodelledSlave() const {
-        const ArmCpuState* st = emu_.Get<ArmCpu>().State();
-        const uint32_t sp = st->gprs[ArmGpr::kR13];
-        ArmMmuProbe& probe = emu_.Get<ArmMmuProbe>();
+        cerfengine::Engine& engine = emu_.Get<EngineBridge>().Engine();
+        const cerfengine::ArmCpuState* st = engine.Get<cerfengine::ArmCpu>().State();
+        const uint32_t sp = st->gprs[cerfengine::ArmGpr::kR13];
+        cerfengine::ArmTranslator& probe = engine.Get<cerfengine::ArmTranslator>();
         auto rd = [&](uint32_t va) -> uint32_t {
             uint8_t* p = probe.PeekVaToHost(va);
             return p ? cerf::le::U32(p) : 0u;
@@ -79,8 +81,8 @@ private:
         LOG(Caution,
             "[HIC1] unmodelled I2C slave=0x%02X rw=%u pc=0x%08X lr=0x%08X "
             "sp=0x%08X chain: %s\n",
-            addr_, static_cast<unsigned>(rw_), st->gprs[ArmGpr::kR15],
-            st->gprs[ArmGpr::kR14], sp, chain);
+            addr_, static_cast<unsigned>(rw_), st->gprs[cerfengine::ArmGpr::kR15],
+            st->gprs[cerfengine::ArmGpr::kR14], sp, chain);
         CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
     }
 

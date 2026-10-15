@@ -2,9 +2,8 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
-#include "../../jit/arm/arm_jit.h"
-#include "../../jit/arm/arm_cpu.h"
-#include "../../jit/arm/cpu_state.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../peripherals/peripheral_base.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../boards/board_context.h"
@@ -30,6 +29,7 @@ bool OdoBoardIntc::ShouldRegister() {
 }
 
 void OdoBoardIntc::OnReady() {
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
     emu_.Get<GuestCpuReset>().RegisterResetListener([this](ResetLineKind) {
         std::lock_guard<std::mutex> lk(state_mutex_);
         cpu_mr_ = 0u;
@@ -42,9 +42,8 @@ bool OdoBoardIntc::HasPendingUnmaskedLocked() const {
 }
 
 void OdoBoardIntc::PublishIrqLineLocked() {
-    auto& jit = emu_.Get<ArmJit>();
-    if (HasPendingUnmaskedLocked()) jit.SetInterruptPending();
-    else                            jit.ClearInterruptPending();
+    if (HasPendingUnmaskedLocked()) jit_->SetInterruptPending();
+    else                            jit_->ClearInterruptPending();
 }
 
 void OdoBoardIntc::NotifyJitInterruptState() {

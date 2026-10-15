@@ -1,14 +1,14 @@
 #pragma once
 
 #include "../../host/touch_input.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../socs/rated_tick_count.h"
 
 #include <cstdint>
 #include <mutex>
 #include <vector>
 
-class HostRequestChannel;
+namespace cerfengine { class HostRequestChannel; }
 
 class GuestClockTouchInput : public TouchInput {
 public:
@@ -65,7 +65,7 @@ private:
 
     GuestCycleClock*        clock_         = nullptr;
     GuestCycleClock::Event* sample_event_  = nullptr;
-    HostRequestChannel*     host_requests_ = nullptr;
+    cerfengine::HostRequestChannel*     host_requests_ = nullptr;
     RatedTickCount          samples_;
     GuestCycleClock::Rate   rate_{};
     uint64_t                next_sample_ = 0;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../../jit/guest_cycle_clock.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/guest_cycle_clock.h"
+#include <cerfengine/host_request_channel.h>
 #include "../../peripherals/peripheral_base.h"
 #include "../../state/state_stream.h"
 #include "../cycle_anchored_counter.h"
@@ -63,7 +63,7 @@ private:
 
     GuestCycleClock*           clock_       = nullptr;
     GuestCycleClock::Event*    sync_event_  = nullptr;
-    HostRequestChannel*        host_requests_ = nullptr;
+    cerfengine::HostRequestChannel*        host_requests_ = nullptr;
     NarrowCycleAnchoredCounter ckil_;
     bool                       depress_out_ = false;
     bool                       release_out_ = true;

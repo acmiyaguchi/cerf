@@ -7,7 +7,7 @@
 #include "../../core/fatal.h"
 #include "../../core/log.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/mips/mips_mmu.h"
+#include <cerfengine/mips/mips_mmu.h>
 #include "../../lcd/lcd_pixel_expand.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../socs/guest_cpu_reset.h"
@@ -119,7 +119,7 @@ void CasioPocketpostpetAsic::RunBlit7Locked() {
             blit7_height_);
         CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
     }
-    const uint32_t src_pa = MipsSeg::UnmappedPa(static_cast<uint32_t>(blit7_src_lo_) |
+    const uint32_t src_pa = cerfengine::MipsSeg::UnmappedPa(static_cast<uint32_t>(blit7_src_lo_) |
                                                 (static_cast<uint32_t>(blit7_src_hi_) << 16));
     const uint32_t dst = static_cast<uint32_t>(blit7_dst_lo_) |
                          (static_cast<uint32_t>(blit7_dst_hi_) << 16);

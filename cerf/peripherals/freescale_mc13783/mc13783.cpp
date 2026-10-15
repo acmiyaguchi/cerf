@@ -7,7 +7,7 @@
 #include "../../core/cerf_emulator.h"
 #include "../../core/log.h"
 #include "../../host/guest_deep_sleep.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../socs/guest_cpu_reset.h"
 #include "../../state/state_stream.h"
 

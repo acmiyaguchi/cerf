@@ -5,7 +5,7 @@
 #include "../../core/fatal.h"
 #include "../../core/log.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/mips/mips_mmu.h"
+#include <cerfengine/mips/mips_mmu.h>
 #include "../../state/state_stream.h"
 
 #include <cstring>
@@ -142,7 +142,7 @@ void CasioJx670Display::RunBlit() {
     if (bytes == 0u) return;
     /* VR4102 UM ch.5 p131 "(3) kseg1": references are not mapped through TLB and the
        physical address is the virtual address minus 0xA0000000. */
-    const uint32_t src_pa = MipsSeg::UnmappedPa(blit_src_);
+    const uint32_t src_pa = cerfengine::MipsSeg::UnmappedPa(blit_src_);
     if (static_cast<uint64_t>(blit_dst_) + bytes > kFbSize) {
         LOG(Caution, "EM-500 display blit dst=0x%X len=%u exceeds framebuffer\n",
             blit_dst_, bytes);

@@ -130,7 +130,7 @@ fact gets a source.
   row with its `support_level` and its `internal__spec_divergences`. This
   includes members that nobody dumped.
 - **B4 - SoC / CPU family.** From the identity + driver/OEM names, determine the
-  SoC, its CPU architecture (`CpuArch::Arm` / `CpuArch::Mips` - which JIT engine
+  SoC, its CPU architecture (`CpuArch::kArm` / `CpuArch::kMips` - which JIT engine
   the board runs), and the specific core with its ISA level (ARM720T, ARM920T,
   SA-11xx, ARM1136, Cortex-A8; R3000A/R3900/R4100/R5000-class MIPS, …). Confirm
   via the internet (datasheet / Linux `arch/arm/mach-*` or `arch/mips/`, QEMU,
@@ -139,7 +139,8 @@ fact gets a source.
   `bundled/db.json`; list
   `cerf/socs/` + `cerf/cpu/`. Is this SoC present? Does `cpu_configs` in
   `bundled/db.json` have a row for it, and is the core's strategy set under
-  `cerf/cpu/<core>/` - `CoprocEmitter` on ARM, `MipsCp0Emitter` on MIPS? If
+  `cerf/cpu/<core>/` - `ArmCoprocProvider` on ARM; `MipsCp0Model`,
+  `MipsTlbModel` and `MipsExceptionModel` on MIPS? If
   absent, is there a close relative sharing silicon/core? Reuse is the
   difference between a short and a long bring-up - name it.
 
@@ -191,7 +192,7 @@ keep it a coarse index. Seed it with:
 - `TASK & WHY` - bring up board `<X>`; why it matters; empty FORBIDDEN
   CONCLUSIONS / BANNED APPROACHES.
 - **A standing `VERIFY GATE` line** (survives compaction): *"Every finished
-  implementation chunk - a peripheral, a `cpu_configs` row/`CoprocEmitter`,
+  implementation chunk - a peripheral, a `cpu_configs` row/`ArmCoprocProvider`/`MipsCp0Model`,
   the `PageTableBuilder`, the `BoardContext`, the LCD/INTC/timer/
   DMA/touch models - is run through `/verify` BEFORE the next chunk, verdict
   recorded in that session's `/tracking update` (CODE STATE, verbatim with
@@ -224,8 +225,9 @@ Pick the entry point from the table, then run § The bring-up loop:
 
 - **New SoC/core (rows 6-7 ❌)** → start at the CPU/JIT strategy set for the
   board's `CpuArch`: write the `cpu_configs` row of the SoC in
-  `bundled/db.json`, the core clock (`ArmCoreClock` or `MipsCoreClock`) and the
-  `CoprocEmitter` or `MipsCp0Emitter`, from the CPU architecture reference
+  `bundled/db.json`, the core clock (`ArmCoreClock` or `MipsCoreClock`), and the
+  `ArmCoprocProvider` or the `MipsCp0Model`, `MipsTlbModel` and
+  `MipsExceptionModel` concretes, from the CPU architecture reference
   manual + the core TRM (downloaded to `references/<soc>/` first), then the
   `PageTableBuilder` / memory map, then the peripheral loop.
 - **SoC supported (rows 6-7 ✅)** → start at the `bundled/db.json` rows of the

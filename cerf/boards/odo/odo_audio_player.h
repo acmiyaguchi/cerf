@@ -2,7 +2,7 @@
 
 #include "../../core/service.h"
 #include "../../host/paced_wave_out.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../socs/raster_scan_clock.h"
 
 #include <cstdint>

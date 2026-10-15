@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/service.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "sa11xx_dma_port.h"
 #include "sa11xx_mcp_receive_path.h"
 #include "sa11xx_mcp_sample_counter.h"

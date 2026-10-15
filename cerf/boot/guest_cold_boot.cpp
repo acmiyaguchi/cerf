@@ -4,7 +4,7 @@
 #include "../core/log.h"
 #include "../cpu/emulated_memory.h"
 #include "../host/guest_power_notifier.h"
-#include "../jit/guest_engine.h"
+#include "../execution/engine_bridge.h"
 #include "../socs/guest_cpu_reset.h"
 
 REGISTER_SERVICE(GuestColdBoot);
@@ -44,9 +44,6 @@ void GuestColdBoot::ExecuteIfPending() {
               "%zu boot-time writes\n", replays_.size());
     emu_.Get<EmulatedMemory>().WipeVolatileRegions();
     for (auto& fn : replays_) fn();
-    /* Every cached translation read pre-wipe bytes. Whole-cache flush is
-       safe at the reset-delivery point: the helper unwinds to the
-       dispatcher without re-entering arena code. */
-    emu_.Get<GuestEngine>().FlushTranslationCache();
+    emu_.Get<EngineBridge>().Guest().FlushTranslationCache();
     emu_.Get<GuestPowerNotifier>().NotifyHardReset();
 }

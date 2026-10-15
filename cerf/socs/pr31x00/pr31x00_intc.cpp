@@ -5,7 +5,8 @@
 #include "pr31700_id.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
-#include "../../jit/mips/mips_jit.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/mips/mips_jit.h>
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"
@@ -88,7 +89,7 @@ bool Pr31x00Intc::ShouldRegister() {
 }
 
 void Pr31x00Intc::OnReady() {
-    jit_ = &emu_.Get<MipsJit>();
+    jit_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::MipsJit>();
     emu_.Get<PeripheralDispatcher>().Register(this);
 
     /* Enable Interrupt 1-5 (§8.3.13-§8.3.16): "This register is not cleared upon reset;

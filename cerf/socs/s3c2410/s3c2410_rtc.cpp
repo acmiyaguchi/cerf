@@ -4,10 +4,10 @@
 #include "../../core/fatal.h"
 #include "../../core/log.h"
 #include "../../core/tick_scale.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../host/guest_deep_sleep.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/engine_bridge.h"
 #include "../../boards/board_context.h"
 #include "s3c2410_id.h"
 #include "../../state/state_stream.h"
@@ -136,7 +136,7 @@ private:
             const uint64_t secs = CreditTicks(slept);
             park_hit_ = park_hit_ || (alarm_armed_ && alarm_.Crossed(was, secs));
         }
-        if (!emu_.Get<GuestEngine>().DeepSleep()) ReportPark();
+        if (!emu_.Get<EngineBridge>().Guest().DeepSleep()) ReportPark();
         if (slept == 0u) return;
         if (alarm_armed_ && alarm_target_ <= total_seen_) ArmNextAlarm();
         else                                              SyncAlarmEvent();

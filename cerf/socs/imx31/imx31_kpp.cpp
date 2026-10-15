@@ -3,6 +3,7 @@
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
+#include "../../execution/engine_bridge.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../guest_cpu_reset.h"
 #include "imx31_avic.h"
@@ -48,7 +49,7 @@ void Imx31Kpp::OnReady() {
     clock_      = &emu_.Get<GuestCycleClock>();
     sync_event_ = clock_->Add([this] { OnSync(); });
     clock_->RegisterRateListener([this] { Retime(); });
-    host_requests_ = &emu_.Get<HostRequestChannel>();
+    host_requests_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>();
     host_requests_->RegisterListener([this] { OnHostKeys(); });
     {
         std::lock_guard<std::mutex> lk(mtx_);

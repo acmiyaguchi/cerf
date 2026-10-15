@@ -4,7 +4,7 @@
 
 #include <atomic>
 
-class GuestEngine;
+namespace cerfengine { class GuestEngine; }
 
 class Fatal : public Service {
 public:
@@ -12,10 +12,10 @@ public:
 
     [[noreturn]] void Die(const char* fmt, ...);
 
-    void SetLiveEngine(GuestEngine* engine) {
+    void SetLiveEngine(cerfengine::GuestEngine* engine) {
         live_engine_.store(engine, std::memory_order_release);
     }
 
 private:
-    std::atomic<GuestEngine*> live_engine_{nullptr};
+    std::atomic<cerfengine::GuestEngine*> live_engine_{nullptr};
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "pxa2xx_dma_channel.h"
 #include "pxa2xx_dma_request_map.h"
 

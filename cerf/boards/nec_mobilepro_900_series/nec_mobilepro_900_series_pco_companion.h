@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../core/service.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/serial/serial_endpoint.h"
 #include "../../socs/pxa2xx/pxa2xx_gpio.h"
 
@@ -13,7 +13,7 @@
 #include <functional>
 #include <mutex>
 
-class HostRequestChannel;
+namespace cerfengine { class HostRequestChannel; }
 class NecMobilepro900SeriesLed;
 class NecMobilepro900SeriesPicLoader;
 
@@ -96,5 +96,5 @@ private:
     bool                    key_presented_ = false;
     GuestCycleClock*        clock_         = nullptr;
     GuestCycleClock::Event* key_event_     = nullptr;
-    HostRequestChannel*     host_requests_ = nullptr;
+    cerfengine::HostRequestChannel*     host_requests_ = nullptr;
 };

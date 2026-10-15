@@ -1,4 +1,4 @@
-#include "../../jit/arm/arm_core_clock.h"
+#include "../arm/arm_core_clock.h"
 
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"

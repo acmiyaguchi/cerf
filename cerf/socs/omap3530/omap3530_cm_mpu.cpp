@@ -1,7 +1,7 @@
 #include "omap3530_cm_mpu.h"
 
 #include "../../core/fatal.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../guest_cpu_reset.h"
 #include "omap3530_board_clock_setup.h"
 #include "omap3530_dpll.h"

@@ -3,7 +3,7 @@
 #include "../boot/guest_cold_boot.h"
 #include "../core/cerf_emulator.h"
 #include "../core/log.h"
-#include "../jit/guest_engine.h"
+#include "../execution/engine_bridge.h"
 
 REGISTER_SERVICE(GuestCpuReset);
 
@@ -20,7 +20,7 @@ void GuestCpuReset::SetCauseLatch(ResetCauseLatch* latch) {
 void GuestCpuReset::WarmReset() {
     if (latch_) latch_->LatchWarmReset();
     pending_kind_.store(ResetLineKind::Other, std::memory_order_release);
-    emu_.Get<GuestEngine>().SetResetPending(false);
+    emu_.Get<EngineBridge>().Guest().SetResetPending(false);
 }
 
 /* "When the RTCRST# signal is asserted, the PMU resets all peripheral units including the
@@ -29,13 +29,13 @@ void GuestCpuReset::WarmReset() {
 void GuestCpuReset::ColdReset() {
     if (latch_) latch_->LatchColdReset();
     pending_kind_.store(ResetLineKind::Rtc, std::memory_order_release);
-    emu_.Get<GuestEngine>().SetResetPending(false);
+    emu_.Get<EngineBridge>().Guest().SetResetPending(false);
 }
 
 void GuestCpuReset::WatchdogReset() {
     if (latch_) latch_->LatchWatchdogReset();
     pending_kind_.store(ResetLineKind::Watchdog, std::memory_order_release);
-    emu_.Get<GuestEngine>().SetResetPending(false);
+    emu_.Get<EngineBridge>().Guest().SetResetPending(false);
 }
 
 void GuestCpuReset::RegisterResetListener(std::function<void(ResetLineKind)> fn) {

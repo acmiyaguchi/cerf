@@ -2,7 +2,7 @@
 
 #include "cerf_emulator.h"
 #include "log.h"
-#include "../jit/guest_engine.h"
+#include <cerfengine/guest_engine.h>
 
 #include <cstdarg>
 #include <cstdio>
@@ -16,7 +16,7 @@ void Fatal::Die(const char* fmt, ...) {
     vsnprintf(reason, sizeof(reason), fmt, ap);
     va_end(ap);
 
-    if (GuestEngine* engine = live_engine_.load(std::memory_order_acquire))
+    if (cerfengine::GuestEngine* engine = live_engine_.load(std::memory_order_acquire))
         engine->PrintFatalDump();
     else
         LOG(Caution, "no guest context: the engine is not live\n");

@@ -8,7 +8,7 @@
 #include "sa1110_id.h"
 #include "sa1100_id.h"
 #include "../../host/guest_deep_sleep.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/engine_bridge.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "sa11xx_test_unit.h"
@@ -91,7 +91,7 @@ private:
         const uint32_t rcsr = rcsr_.fetch_or(0x2u, std::memory_order_acq_rel) | 0x2u;
         LOG(SocReset, "RSRR SWR=1: triggering guest reset (rcsr_=0x%08X)\n",
             rcsr);
-        emu_.Get<GuestEngine>().SetResetPending(false);
+        emu_.Get<EngineBridge>().Guest().SetResetPending(false);
     }
 };
 

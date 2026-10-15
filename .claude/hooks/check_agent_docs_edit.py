@@ -27,9 +27,8 @@ def main() -> int:
         return 0
 
     msg = (
-        f"You edited {rel}. If the user did not authorize this edit, revert "
-        f"it. If the edit is the task, or the task depends on it, run /leak "
-        f"and /simple-english over it."
+        f"You edited {rel}. If the task needs this edit, keep it and run "
+        f"/leak and /simple-english. Otherwise revert it."
     )
 
     json.dump({

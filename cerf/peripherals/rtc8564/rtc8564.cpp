@@ -7,7 +7,7 @@
 #include "../../core/fatal.h"
 #include "../../core/log.h"
 #include "../../core/tick_scale.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../state/state_stream.h"
 
 #include <cstdint>

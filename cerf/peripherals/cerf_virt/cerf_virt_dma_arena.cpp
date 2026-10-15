@@ -7,7 +7,7 @@
 #include "../../core/device_config.h"
 #include "../../core/log.h"
 #include "../../cpu/emulated_memory.h"
-#include "../../jit/guest_engine.h"
+#include "../../execution/engine_bridge.h"
 #include "../../socs/guest_cpu_reset.h"
 
 REGISTER_SERVICE(CerfVirtDmaArena);
@@ -37,7 +37,7 @@ void CerfVirtDmaArena::OnReady() {
         CerfFatalExit();
     }
     ZeroOwners();
-    emu_.Get<GuestEngine>().SetDmaRegion(BasePa(), SizeBytes());
+    emu_.Get<EngineBridge>().Guest().SetDmaRegion(BasePa(), SizeBytes());
     emu_.Get<GuestCpuReset>().RegisterResetListener(
         [this](ResetLineKind) {
             if (!emu_.Get<GuestCpuReset>().DeliveredResetWasResume()) ZeroOwners();

@@ -342,10 +342,9 @@ Undefined-mode handler at vector 0x4, and the guest decides what to do
 guest-side fault / hang / wrong behavior, not a `[FATAL]` line - to
 catch it early, hook `OnPc` at the entry of
 `ArmCpu::RaiseUndefinedExceptionHelper` and log the offending PC + insn
-bytes. The **MIPS engine** instead loud-fatals through its
-`UnimplementedHelper` (logs op + PC, then `CerfFatalExit`), so
-an undecodable / unimplemented MIPS opcode surfaces as a `[FATAL]`
-directly. Either way the instruction bytes at `pc` are not the bytes the
+bytes. The **MIPS engine** instead halts the run through its
+`UnimplementedHelper` with the opcode and the PC. As a result, an
+undecodable or unimplemented MIPS opcode surfaces as a `[FATAL]` directly. Either way the instruction bytes at `pc` are not the bytes the
 kernel or driver expects. **Almost always not a JIT bug** - the bytes at
 that PA in DRAM are wrong because something corrupted them.
 
@@ -522,7 +521,7 @@ the `LR` does not identify the caller's process.
 To filter a user-VA hook to a specific process, use
 `OnPcFiltered(va, predicate, handler)`. The predicate runs at fire
 time and returns `true` to admit the call. A typical predicate body
-reads `emu.Get<ArmMmu>().State()->process_id & 0x7Fu` and compares it
+reads `emu.Get<EngineBridge>().Engine().Get<cerfengine::ArmMmu>().State()->process_id & 0x7Fu` and compares it
 against the target process's slot. The way to acquire the target's
 slot number is CE-version-specific - observe the slot via a kernel-VA
 hook on process creation in your trace file and store name → slot.

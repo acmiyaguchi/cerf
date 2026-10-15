@@ -8,12 +8,8 @@
 #include "../../core/fatal.h"
 #include "../../cpu/emulated_memory.h"
 #include "../guest_cpu_reset.h"
-#include "../../jit/arm/arm_jit.h"
-#include "../../jit/arm/block_context.h"
-#include "../../jit/arm/cpu_state.h"
-#include "../../jit/arm/decoded_insn.h"
-#include "../../jit/arm/place_fns.h"
-#include "../../jit/x86_emit.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_jit.h>
 #include "../../state/state_stream.h"
 
 #include <algorithm>
@@ -27,6 +23,7 @@ bool Iop13xxCp6::ShouldRegister() {
 }
 
 void Iop13xxCp6::OnReady() {
+    jit_    = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmJit>();
     timers_ = &emu_.Get<Iop13xxTimers>();
     {
         std::lock_guard<std::mutex> guard(state_mutex_);
@@ -73,11 +70,10 @@ void Iop13xxCp6::NotifyLocked() {
     if (HasPendingFiqLocked()) {
         emu_.Get<Fatal>().Die("IOP13xx CP6: FIQ source pending");
     }
-    auto& jit = emu_.Get<ArmJit>();
     if (HasPendingIrqLocked())
-        jit.SetInterruptPending();
+        jit_->SetInterruptPending();
     else
-        jit.ClearInterruptPending();
+        jit_->ClearInterruptPending();
 }
 
 void Iop13xxCp6::AssertIrq(int source_bit) {
@@ -184,13 +180,15 @@ void Iop13xxCp6::WriteRegisterLocked(uint32_t key, uint32_t value) {
     NotifyLocked();
 }
 
-uint32_t __fastcall Iop13xxCp6::ReadHelper(Iop13xxCp6* self, uint32_t key) {
+uint32_t CERFENGINE_FASTCALL Iop13xxCp6::ReadHelper(void* context, uint32_t key) {
+    Iop13xxCp6* self = static_cast<Iop13xxCp6*>(context);
     if (Iop13xxTimers::IsTimerKey(key)) return self->timers_->Read(key);
     std::lock_guard<std::mutex> guard(self->state_mutex_);
     return self->ReadRegisterLocked(key);
 }
 
-void __fastcall Iop13xxCp6::WriteHelper(Iop13xxCp6* self, uint32_t key, uint32_t value) {
+void CERFENGINE_FASTCALL Iop13xxCp6::WriteHelper(void* context, uint32_t key, uint32_t value) {
+    Iop13xxCp6* self = static_cast<Iop13xxCp6*>(context);
     if (Iop13xxTimers::IsTimerKey(key)) {
         self->timers_->Write(key, value);
         return;
@@ -199,24 +197,16 @@ void __fastcall Iop13xxCp6::WriteHelper(Iop13xxCp6* self, uint32_t key, uint32_t
     self->WriteRegisterLocked(key, value);
 }
 
-uint8_t* Iop13xxCp6::EmitRegisterTransfer(uint8_t* cursor, DecodedInsn* d, BlockContext* ctx) {
-    using namespace x86;
-    if (d->cp_opc != 0 || d->cp != 0 || d->rd == 15) {
-        return EmitCoprocUnimplementedFatal(cursor, d, ctx);
+cerfengine::ArmCoprocDecision Iop13xxCp6::Decide(const cerfengine::ArmCoprocAccess& a) {
+    using A = cerfengine::ArmCoprocAction;
+    if (a.opc1 != 0u || a.opc2 != 0u || a.rt == 15u) return {.action = A::kUnimplemented};
+    const uint32_t key = Iop13xxCp6Key(a.crn, a.crm, a.opc2, a.opc1);
+    if (a.read) {
+        return {.action = A::kReadCallbackKeyed, .context = this, .key = key,
+                .read_keyed = &Iop13xxCp6::ReadHelper};
     }
-
-    const uint32_t key = Iop13xxCp6Key(d->crn, d->crm, d->cp, d->cp_opc);
-    const int32_t rd_disp = static_cast<int32_t>(offsetof(ArmCpuState, gprs) + d->rd * 4u);
-    EmitMovRegImm32(cursor, kEcx, static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this)));
-    EmitMovRegImm32(cursor, kEdx, key);
-    if (d->l) {
-        EmitCall(cursor, reinterpret_cast<void*>(&Iop13xxCp6::ReadHelper));
-        EmitMovBaseDisp32Reg(cursor, kStateReg, rd_disp, kEax);
-    } else {
-        EmitPushBaseDisp32(cursor, kStateReg, rd_disp);
-        EmitCall(cursor, reinterpret_cast<void*>(&Iop13xxCp6::WriteHelper));
-    }
-    return cursor;
+    return {.action = A::kWriteCallbackKeyed, .context = this, .key = key,
+            .write_keyed = &Iop13xxCp6::WriteHelper};
 }
 
 void Iop13xxCp6::SaveState(StateWriter& w) {

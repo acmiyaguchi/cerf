@@ -1,6 +1,6 @@
 ## File & Symbol Style
 
-- **Headers declare, .cpp files implement.** Declaration and implementation live together: `foo.h` + `foo.cpp` in the same directory. Never forward-declare in one module's header and define in an unrelated module's .cpp.
+- **Headers declare, .cpp files implement.** Declaration and implementation live together: `foo.h` + `foo.cpp` in the same directory. Never forward-declare in one module's header and define in an unrelated module's .cpp. In a core library, each public header lives in `include/<library>/`, and the `.cpp` of that header lives in `src/` at the same relative path. A host-platform layer is the code that calls the host operating system. It has one header and one `.cpp` for each host platform, named `<header>_<platform>.cpp`. A core library can declare a host function that its consumer defines. The consumer defines it in the `.cpp` of the service that owns the body.
 - **500-line cap per source file (any language), enforced by the pre-commit hook. A file past the cap is NEVER permission to violate any other rule on this page.** The cap is a forcing function, not an escape hatch. If compliance with the cap appears to require a breach of another rule (most commonly "One service = one `.h` + one `.cpp` pair" in § Services, or "No misc/grab-bag files" below), the design is wrong, not the rules. When a file approaches the limit, the only sanctioned response is to split by responsibility - never by alphabet, method-prefix, "part 1 / part 2", or `_helpers` / `_extras` / `_impl` / `_internal` sidecars. Never fit a file under the cap by joining lines, packing several declarations onto one line, or deleting blank lines. A file that fits only through such compression is over the cap, and the split is due before the file goes to review. **For services specifically, "split by responsibility" means a split of the service itself into multiple smaller services**, each with its own state, its own one-sentence responsibility, and its own `foo_service.{h,cpp}` pair that follows every rule in § Services. A single service spread across two `.cpp` files is forbidden, regardless of how close to the cap the original file is. The same holds for a spread across a header and a sibling `.cpp` that belongs to a different module. If you cannot describe the new responsibility boundary in one sentence per resulting service, you have not found the split.
 - **No misc/grab-bag files.** Never create `misc.cpp`, `helpers.cpp`, `extras.cpp`, `util2.cpp`. Every file's name describes a single responsibility.
 - **Naming** - classes `PascalCase`, methods `PascalCase`, members `snake_case_`, free helpers `PascalCase`. Filenames `snake_case.{h,cpp}`.
@@ -113,12 +113,6 @@ bool FooService::DoThing(int arg) { /* ... */ }
 
 When a subsystem's behavior must differ between SoCs / boards / off-chip parts, the single uniform pattern is: **each candidate implementation is a Service whose `ShouldRegister()` queries `BoardContext` and returns `true` only when its own chip / board matches.** No `if (os_major == X)` branches anywhere - strategies ARE the version distinction.
 
-The query axis matches the per-impl tree (see `subsystems.md` § "Per-chip / per-board / per-part strategies"):
-
-- SoC-family code under `cerf/socs/<chip>/` - `ShouldRegister` evaluates `emu_.Get<BoardContext>().GetSocId() == SocId::X`.
-- Board-family code under `cerf/boards/<family>/` - `ShouldRegister` evaluates `emu_.Get<BoardContext>().GetBoardFamilyId() == BoardFamilyId::X`. Code for one member evaluates `GetBoardId() == BoardId::X`.
-- Off-chip-part code under `cerf/peripherals/<vendor>_<part>/` - `ShouldRegister` evaluates a family list: `auto f = emu_.Get<BoardContext>().GetBoardFamilyId(); return f == BoardFamilyId::X || f == BoardFamilyId::Y;`.
-
 This takes two shapes, and the shape depends on whether the service has external callers:
 
 #### Shape A - standalone, no external callers → no base class, `REGISTER_SERVICE`
@@ -131,8 +125,7 @@ public:
     using Service::Service;
 
     bool ShouldRegister() override {
-        auto* bd = emu_.TryGet<BoardContext>();
-        return bd && bd->GetSocId() == SocId::S3c2410;
+        return emu_.Get<BoardContext>().GetSocId() == SocId::S3c2410;
     }
 
     void OnReady() override {
@@ -148,7 +141,7 @@ A sibling file `pxa27x_foo_peripheral.cpp` whose `ShouldRegister` evaluates `Soc
 
 If other services need to call into this one, consumers must depend on an interface, not on any specific impl. Declare a pure-virtual base that derives from `Service`, put each concrete impl in its own file, and register each with `REGISTER_SERVICE_AS(Impl, Base)`. Consumer code calls `emu.Get<Base>()`. The winning impl (chosen by `ShouldRegister()`) is the one it returns.
 
-Verified example - `cerf/boards/page_table_builder.h` + `cerf/boards/samsung_smdk2410/samsung_smdk2410_page_table_builder.cpp`:
+Example:
 
 ```cpp
 /* page_table_builder.h - abstract base. */
@@ -166,8 +159,7 @@ public:
     using PageTableBuilder::PageTableBuilder;
 
     bool ShouldRegister() override {
-        auto* bd = emu_.TryGet<BoardContext>();
-        return bd && bd->GetBoardFamilyId() == BoardFamilyId::SamsungSmdk2410;
+        return emu_.Get<BoardContext>().GetBoardFamilyId() == BoardFamilyId::SamsungSmdk2410;
     }
 
     uint32_t InitStackTopPa() const override { /* SMDK2410 DRAM top */ }
@@ -176,14 +168,14 @@ public:
 REGISTER_SERVICE_AS(SamsungSmdk2410PageTableBuilder, PageTableBuilder);
 ```
 
-A sibling `hp_jornada_700_page_table_builder.cpp` registers itself for `BoardFamilyId::HpJornada700`. Consumers always write `emu.Get<PageTableBuilder>()`. They do not know which concrete answered.
+Consumers always write `emu.Get<PageTableBuilder>()`. They do not know which concrete answered.
 
 #### Rules that apply to both shapes
 
 - **Exactly one impl wins for a required base.** Two `ShouldRegister` that return `true` for the same base is a bug. Two that return `false` for a required base is also a bug. `BoardContext` is the gate - the configured `board_id` (`cerf.json board.id` / `--board-id`) selects exactly one `BoardContext`, whose `GetBoardFamilyId()` / `GetBoardId()` / `GetSocId()` then bucket every other strategy. Optional bases (a peripheral that not every board has) can have zero winners - consumers use `emu.TryGet<Base>()` and tolerate absence.
-- **`ShouldRegister` can resolve any service via `emu_.Get<>()`** - same lazy/recursive shape as `OnReady`. The framework defers slot resolution until first `Get<>` and walks each candidate's `ShouldRegister` on demand, so a strategy whose decision depends on another service (for example "register this MMU policy iff `Get<BoardContext>().GetSocId() == SocId::S3c2410`") composes cleanly. Cycles (`A.ShouldRegister` → `Get<B>` → `B.ShouldRegister` → `Get<A>`) halt loudly. NEVER reach into a specific concrete subclass by name (for example `Smdk2410DevEmuDetector::Fingerprint`) - that is a Dependency Inversion violation. Depend on the abstract `Base` only.
+- **`ShouldRegister` can resolve any service via `emu_.Get<>()`** - same lazy/recursive shape as `OnReady`. The framework defers slot resolution until first `Get<>` and walks each candidate's `ShouldRegister` on demand, so a strategy whose decision depends on another service (for example "register this MMU policy iff `Get<BoardContext>().GetSocId() == SocId::S3c2410`") composes cleanly. Cycles (`A.ShouldRegister` → `Get<B>` → `B.ShouldRegister` → `Get<A>`) halt loudly. NEVER reach into a specific concrete subclass by name. That is a Dependency Inversion violation. Depend on the abstract `Base` only.
 - **Never put `if (board == X)` or `if (soc == X)` inside the impl body.** The impl already represents one specific board / SoC. That branch belongs in `ShouldRegister` and nowhere else. If two boards share most of an impl and diverge in one method, the divergence goes into a separate Service that the shared impl resolves via `emu_.Get<>()` - not an inline branch.
-- **A shared-capable ISA capability goes in the shared path behind a `ProcessorConfig::HasX()` flag, never localized in one SoC's strategy.** When an instruction-set capability (VFP, NEON, DSP, …) currently appears on only one implemented SoC, its decode/dispatch still belongs in the shared decoder / emit path, gated by the engine's processor-config capability flag (`ArmProcessorConfig` / `MipsProcessorConfig` `HasX()`). It must never be hardcoded into that SoC's coprocessor emitter (`CoprocEmitter` / `MipsCp0Emitter`) or strategy. "Only one current SoC has it" is an artifact of the implemented-SoC set, not a property of the capability, and a localization of it forces an expensive later re-extraction into the shared path.
+- **A shared-capable ISA capability goes in the shared path behind a `ProcessorConfig::HasX()` flag, never localized in one SoC's strategy.** When an instruction-set capability (VFP, NEON, DSP, …) currently appears on only one implemented SoC, its decode/dispatch still belongs in the shared decoder / emit path. A capability flag that the engine setup carries gates it (`ArmFeatures` / `MipsFeatures`). It must never be hardcoded into that SoC's coprocessor model (`ArmCoprocProvider` / `MipsCp0Model`) or strategy. "Only one current SoC has it" is an artifact of the implemented-SoC set, not a property of the capability, and a localization of it forces an expensive later re-extraction into the shared path.
 - **One concrete per file, filename matches the class name exactly.** `S3C2410FooPeripheral` → `s3c2410_foo_peripheral.{h,cpp}`, `PXA27xFooPeripheral` → `pxa27x_foo_peripheral.{h,cpp}`. Never gang two concretes into one file. Same strict naming rule as § Writing a service: snake_case of the full class name, no abbreviation, no rename, no dropped suffix. The 500-line cap and the "split into multiple services" rule apply identically here - if a concrete impl outgrows its file, split it into smaller services, not into sidecar `.cpp` files.
 - **Intra-board per-ROM / per-version variation is a ROM-gated strategy service.** When one board's behavior must differ across its ROM generations (CE versions, firmware revisions) - for example CERF models bootloaders, and two bootloader versions write identical data at shifted offsets - model it as per-version strategy services (a base service + per-generation impls). Each impl's `ShouldRegister` reads the distinguishing fact *from the ROM*. Never an inline per-ROM `if`, never a sidecar (`cerf.json`/`meta`) or whole-image-CRC gate. The only legitimate CE/OS-version source is the kernel's subsystem version read from the loaded ROM (available to every service). The gate is a fingerprint that matches every ROM of that generation, so a new ROM of a known generation Just Works. **Boundary condition (the approach's own fail case):** a per-version *seed* substituted for the bootloader's output is legitimate ONLY when the OEM shipped a small, enumerable set of generations. If an OEM shipped many ROMs per generation, the seeded data cannot be enumerated by version, and CERF must model or execute the bootloader itself instead. Flag this boundary, and do not assume. This pattern is the home for per-ROM-within-a-board variation, which the three-tree (board / SoC / off-chip-part) model has no default slot for.
 

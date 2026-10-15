@@ -154,7 +154,7 @@ if ($CoreDllDef) {
     if ($CoreDllDefLocal.Count -gt 0) {
         $trimmed = Join-Path $ObjDir "coredll_local_filtered.def"
         Get-Content $defPath | Where-Object { $_.Trim() -notin $CoreDllDefLocal } |
-            Set-Content $trimmed -Encoding utf8
+            Set-Content $trimmed -Encoding ASCII
         $defPath = (Resolve-Path $trimmed).Path
     }
     & $LIBTOOL /nologo /machine:$Machine "/def:$defPath" "/out:$coreLib"

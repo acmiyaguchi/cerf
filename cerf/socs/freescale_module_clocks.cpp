@@ -2,7 +2,7 @@
 
 #include "../core/cerf_emulator.h"
 #include "../core/fatal.h"
-#include "../jit/guest_cycle_clock.h"
+#include "../execution/guest_cycle_clock.h"
 
 namespace {
 

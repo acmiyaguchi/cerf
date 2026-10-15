@@ -11,9 +11,9 @@ CERF only halts the CPU and drives the wake.
 conflation of the two is the most common mistake in this subsystem.
 
 Host implementation: `cerf/host/guest_deep_sleep.{h,cpp}`,
-`cerf/state/shutdown_dialog.{h,cpp}`. CPU halt/wake: `cerf/jit/arm/arm_jit.cpp`
-(`EnterDeepSleep`, `SetResetPending`, delivery), `cerf/jit/jit_runner.cpp` (the
-park), `cerf/jit/arm/arm_cpu.cpp` (`RaiseResetException`). Reset cause + reset
+`cerf/state/shutdown_dialog.{h,cpp}`. CPU halt/wake: `libCerfEngine/src/arm/arm_jit.cpp`
+(`EnterDeepSleep`, `SetResetPending`, delivery), `cerf/execution/jit_runner.cpp` (the
+park), `libCerfEngine/src/arm/arm_cpu.cpp` (`RaiseResetException`). Reset cause + reset
 line: `cerf/socs/guest_cpu_reset.{h,cpp}`.
 
 ## The halt model
@@ -122,7 +122,7 @@ applies to every board.
    `GuestDeepSleep::RegisterResumeVectorProvider`. Its `ApplyPendingResume()`
    arms the next reset delivery through its own CPU service: an ARM board calls
    `ArmCpu::SetPendingResumeVector(pc)`. When the resume entry expects the MMU
-   still live, the provider also calls `ArmCpu::SetPendingResumeMmu(control, ttbr0, dacr)`.
+   still live, the provider also calls `ArmCp15Registers::SetPendingResumeMmu(control, ttbr0, dacr)`.
    If you arm nothing, the reset stays at the cold entry.
 5. **On a clock-stop SoC**, there is no reset, no cause to latch and no resume
    vector. The peripheral that owns the power register implements
@@ -206,7 +206,7 @@ read what the guest's own resume code does (decompile the boot / StartUp path):
   thing that reads the wake cause, restores cp15, and jumps to a saved resume
   address, the board's provider replays that: read the resume address + cp15 block
   the kernel left in RAM, then arm both via `ArmCpu::SetPendingResumeVector` and
-  `ArmCpu::SetPendingResumeMmu`.
+  `ArmCp15Registers::SetPendingResumeMmu`.
   When CERF skips a bootloader, it silently drops any sleep handling that the
   bootloader does and the kernel relies on - model that role, and do not assume
   that the kernel is self-contained (see `agent_docs/boot_loaders.md`).
@@ -239,4 +239,4 @@ wake, no dialog). Consequences:
   `DeliverWake` - not a separate hibernation defect to chase.
 
 - `cerf/host/guest_deep_sleep.{h,cpp}`, `cerf/socs/guest_cpu_reset.{h,cpp}`,
-`cerf/state/shutdown_dialog.{h,cpp}`; CPU halt/wake under `cerf/jit/`.
+`cerf/state/shutdown_dialog.{h,cpp}`; CPU halt/wake under `libCerfEngine/`.

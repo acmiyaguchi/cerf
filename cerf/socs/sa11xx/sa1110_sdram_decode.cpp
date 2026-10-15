@@ -6,7 +6,8 @@
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
 #include "../../core/log.h"
-#include "../../jit/arm/arm_mmu.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/arm/arm_mmu.h>
 
 REGISTER_SERVICE(Sa1110SdramDecode);
 
@@ -85,6 +86,6 @@ void Sa1110SdramDecode::ApplyMdcnfg(uint32_t mdcnfg) {
     if (next == active_) return;
     active_ = next;
     emu_.Get<EmulatedMemory>().SetAddressDecode(kBank0Base, next);
-    emu_.Get<ArmMmu>().InvalidateAllTlbs();
+    emu_.Get<EngineBridge>().Engine().Get<cerfengine::ArmMmu>().InvalidateAllTlbs();
     LOG(Mem, "SA-1110 MDCNFG 0x%08X: DE0 %u DRAC0 %u\n", mdcnfg, mdcnfg & kMdcnfgDe0, drac);
 }

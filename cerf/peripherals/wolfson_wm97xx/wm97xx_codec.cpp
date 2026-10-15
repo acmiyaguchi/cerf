@@ -3,8 +3,9 @@
 #include "../../core/cerf_emulator.h"
 #include "../../core/fatal.h"
 #include "../../core/log.h"
-#include "../../jit/guest_cycle_clock.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/guest_cycle_clock.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/host_request_channel.h>
 #include "../../state/state_stream.h"
 
 namespace {
@@ -23,7 +24,7 @@ constexpr uint16_t kRpr        = 1u << 13;
 }  // namespace
 
 void Wm97xxCodec::OnReady() {
-    host_requests_ = &emu_.Get<HostRequestChannel>();
+    host_requests_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>();
     host_requests_->RegisterListener([this] { DrainPenEdges(); });
 }
 

@@ -7,7 +7,7 @@
 #include "../../core/log.h"
 #include "../../host/audio_activity_widget.h"
 #include "../../host/paced_wave_out.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../peripherals/peripheral_dispatcher.h"
 #include "../../state/state_stream.h"
 #include "../guest_cpu_reset.h"

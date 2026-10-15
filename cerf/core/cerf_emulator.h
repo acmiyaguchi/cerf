@@ -4,10 +4,30 @@
 
 #include <servicelocator/service_locator.h>
 
+#include <type_traits>
+
+namespace cerfengine { class EngineService; }
+
 class CerfEmulator : public servicelocator::ServiceLocator<CerfEmulator, 2048> {
+    using Locator = servicelocator::ServiceLocator<CerfEmulator, 2048>;
+
 public:
     CerfEmulator(const CerfConfig& config, int argc, char** argv);
     ~CerfEmulator();
+
+    template <class T>
+    T& Get() {
+        static_assert(!std::is_base_of_v<cerfengine::EngineService, T>,
+                      "an engine service is not a CerfEmulator service");
+        return Locator::Get<T>();
+    }
+
+    template <class T>
+    T* TryGet() {
+        static_assert(!std::is_base_of_v<cerfengine::EngineService, T>,
+                      "an engine service is not a CerfEmulator service");
+        return Locator::TryGet<T>();
+    }
 
     void Boot();
     void WaitForExit();

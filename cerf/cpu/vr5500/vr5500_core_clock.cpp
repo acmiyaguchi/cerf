@@ -1,4 +1,4 @@
-#include "../../jit/mips/mips_core_clock.h"
+#include "../mips/mips_core_clock.h"
 
 #include "../../boards/board_context.h"
 #include "../../core/cerf_emulator.h"

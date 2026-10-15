@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../jit/guest_cycle_clock.h"
+#include "../execution/guest_cycle_clock.h"
 #include "freescale_uart_receiver.h"
 #include "oscillator_ticks.h"
 

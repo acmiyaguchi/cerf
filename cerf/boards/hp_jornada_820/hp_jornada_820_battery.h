@@ -2,7 +2,7 @@
 
 #include "../../core/service.h"
 #include "../../host/battery_widget.h"
-#include "../../jit/guest_cycle_clock.h"
+#include "../../execution/guest_cycle_clock.h"
 #include "../../socs/rated_tick_count.h"
 #include "../../socs/uart_line_device.h"
 

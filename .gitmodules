@@ -4,3 +4,6 @@
 [submodule "libservicelocator"]
 	path = libservicelocator
 	url = https://github.com/dz333n/libservicelocator.git
+[submodule "libCerfEngine"]
+	path = libCerfEngine
+	url = https://github.com/gweslab/libCerfEngine.git

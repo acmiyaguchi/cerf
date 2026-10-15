@@ -2,7 +2,8 @@
 
 #include "../../core/cerf_emulator.h"
 #include "../../host/host_canvas.h"
-#include "../../jit/host_request_channel.h"
+#include "../../execution/engine_bridge.h"
+#include <cerfengine/host_request_channel.h>
 
 namespace {
 
@@ -19,7 +20,7 @@ void GuestClockTouchInput::OnReady() {
     clock_        = &emu_.Get<GuestCycleClock>();
     sample_event_ = clock_->Add([this] { OnSampleEvent(); });
     clock_->RegisterRateListener([this] { RescaleSamples(); });
-    host_requests_ = &emu_.Get<HostRequestChannel>();
+    host_requests_ = &emu_.Get<EngineBridge>().Engine().Get<cerfengine::HostRequestChannel>();
     host_requests_->RegisterListener([this] { OnHostRequest(); });
     OnTouchReady();
 }
