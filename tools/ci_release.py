@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
 import sys
 import time
 import urllib.error
@@ -206,36 +205,6 @@ def latest_release(token: str) -> Tuple[str, str]:
     if not sha:
         raise CiError(f"release tag {tag} resolves to no commit")
     return release.get("name") or tag, sha
-
-
-def _git(*args: str) -> str:
-    result = subprocess.run(["git", *args], capture_output=True,
-                            encoding="utf-8", errors="replace")
-    if result.returncode != 0:
-        raise CiError(f"git {' '.join(args)}: {result.stderr.strip()}")
-    return result.stdout
-
-
-def _ensure_commit(sha: str) -> None:
-    probe = subprocess.run(["git", "cat-file", "-e", f"{sha}^{{commit}}"],
-                           capture_output=True)
-    if probe.returncode == 0:
-        return
-    if _git("rev-parse", "--is-shallow-repository").strip() != "true":
-        raise CiError(f"commit {sha[:7]} is not in this clone; fetch it first")
-    _git("fetch", "--no-tags", "--depth=1", "origin", sha)
-
-
-def diffstat(base: str, head: str) -> Tuple[int, int]:
-    for sha in (base, head):
-        _ensure_commit(sha)
-    added = deleted = 0
-    for line in _git("diff", "--numstat", base, head).splitlines():
-        plus, minus, _ = line.split("\t", 2)
-        if plus != "-":
-            added += int(plus)
-            deleted += int(minus)
-    return added, deleted
 
 
 def _multipart(payload: dict, image: bytes, filename: str) -> Tuple[bytes, str]:

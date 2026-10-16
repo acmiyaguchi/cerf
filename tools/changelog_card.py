@@ -12,7 +12,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import changelog
-from ci_release import Artifact, diffstat, latest_release
+from ci_release import Artifact, latest_release
+from source_diffstat import diffstat
 
 ROOT = Path(__file__).resolve().parent.parent
 FONT_DIR = ROOT / "cerf-win32" / "assets" / "fonts"
