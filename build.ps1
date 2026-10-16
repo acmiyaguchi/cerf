@@ -13,6 +13,7 @@ param(
 Set-Location $PSScriptRoot
 
 . (Join-Path $PSScriptRoot "tools\cerf_locks.ps1")
+. (Join-Path $PSScriptRoot "tools\vs_toolchain.ps1")
 
 $buildLock = New-CerfLock -Path (Join-Path $PSScriptRoot ".build_lock") -StaleSeconds 300 -Label "BUILD"
 $runLocks  = @(New-CerfRunLocks -Root $PSScriptRoot -Label "BUILD")
@@ -95,9 +96,9 @@ Write-Host "============================================================"
 # at any path. vswhere ships with the VS Installer at a fixed location on
 # every machine that has any VS install. -prerelease so VS preview/insider
 # channels (e.g. early VS 2026 builds) are also picked up.
-$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-if (-not (Test-Path $vswhere)) {
-    Write-Host "[BUILD] FAILED! vswhere.exe not found at $vswhere. Install Visual Studio with the C++ desktop workload."
+$toolchain = Get-CerfVsToolchain
+if (-not (Test-Path $toolchain.Vswhere)) {
+    Write-Host "[BUILD] FAILED! vswhere.exe not found at $($toolchain.Vswhere). Install Visual Studio with the C++ desktop workload."
     Stop-Build 1
 }
 # Reset $LASTEXITCODE so a stale value from outside the script can't
@@ -116,40 +117,23 @@ $global:LASTEXITCODE = 0
 # AddressSanitizer does not flag it. Any 14.51.* toolset therefore yields a wrong
 # cerf.exe. It is the default toolset of VS 2026 and of the GitHub Actions
 # windows-latest image, so it must be excluded explicitly on both.
-$minToolsVersion = [version]'14.30'
-$vsInstances = (& $vswhere -all -prerelease -requires Microsoft.Component.MSBuild -format json |
-    ConvertFrom-Json) | Sort-Object { [version]$_.installationVersion } -Descending
-$vsInstance   = $null
-$toolsVersion = $null
-$installed    = @()
-foreach ($candidate in $vsInstances) {
-    $candidateTools = Join-Path $candidate.installationPath 'VC\Tools\MSVC'
-    if (-not (Test-Path $candidateTools)) { continue }
-    $names = @(Get-ChildItem $candidateTools -Directory | Select-Object -ExpandProperty Name)
-    $installed += "$($candidate.displayName): $($names -join ', ')"
-    $pick = $names |
-        Where-Object { $_ -notlike '14.51.*' -and [version]$_ -ge $minToolsVersion } |
-        Sort-Object { [version]$_ } | Select-Object -First 1
-    if ($pick) {
-        $vsInstance   = $candidate
-        $toolsVersion = $pick
-        break
-    }
-}
-if (-not $toolsVersion) {
-    Write-Host "[BUILD] FAILED! No usable MSVC toolset. Installed: $($installed -join '; ')."
-    Write-Host "[BUILD] Requires >= $minToolsVersion (for /std:c++20) and not 14.51.*, which"
+if (-not $toolchain.ToolsVersion) {
+    Write-Host "[BUILD] FAILED! No usable MSVC toolset. Installed: $($toolchain.Installed -join '; ')."
+    Write-Host "[BUILD] Requires >= $($toolchain.MinToolsVersion) (for /std:c++20) and not 14.51.*, which"
     Write-Host "[BUILD] miscompiles bit-mask dispatch loops on x86 /O2 /Oy- and would silently"
     Write-Host "[BUILD] produce a broken cerf.exe."
     Stop-Build 1
 }
-$vsRoot  = $vsInstance.installationPath
-$msbuild = & $vswhere -path $vsRoot -find 'MSBuild\**\Bin\amd64\MSBuild.exe' | Select-Object -First 1
+$vsInstance   = $toolchain.Instance
+$vsRoot       = $vsInstance.installationPath
+$toolsVersion = $toolchain.ToolsVersion
+$msbuild      = $toolchain.MSBuild
 if (-not $msbuild -or -not (Test-Path $msbuild)) {
     Write-Host "[BUILD] FAILED! MSBuild.exe not found in $vsRoot. Ensure Visual Studio's C++ desktop workload is installed."
     Stop-Build 1
 }
-Write-Host "[BUILD] $($vsInstance.displayName), MSVC toolset $toolsVersion (installed: $($installed -join '; '))"
+Write-Host ("[BUILD] $($vsInstance.displayName), MSVC toolset $toolsVersion ($($toolchain.PlatformToolset))" +
+            " (installed: $($toolchain.Installed -join '; '))")
 
 $devModeFlag = if ($Mode -eq "production") { "0" } else { "1" }
 $cerfDefines = "CERF_DEV_MODE=$devModeFlag"
@@ -241,7 +225,7 @@ foreach ($nested in $nestedPins) {
     }
 }
 
-$cmake = Join-Path $vsRoot 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
+$cmake = $toolchain.CMake
 if (-not (Test-Path $cmake)) {
     Write-Host "[BUILD] FAILED! CMake not found at $cmake. Install the 'C++ CMake tools for Windows' component of Visual Studio."
     Stop-Build 1
@@ -291,7 +275,7 @@ if ($Rebuild -and (Test-Path $libsOut)) { Remove-Item $libsOut -Recurse -Force }
 $libsGenerator = @{
     CMAKE_GENERATOR          = $vsGenerator
     CMAKE_GENERATOR_PLATFORM = "Win32"
-    CMAKE_GENERATOR_TOOLSET  = "version=$toolsVersion"
+    CMAKE_GENERATOR_TOOLSET  = "$($toolchain.PlatformToolset),version=$toolsVersion"
     CMAKE_GENERATOR_INSTANCE = $vsRoot
 }
 $libsCache = Join-Path $libsOut "CMakeCache.txt"

@@ -1,6 +1,7 @@
 param([switch]$Check)
 
 Set-Location $PSScriptRoot
+. (Join-Path $PSScriptRoot "tools\vs_toolchain.ps1")
 
 $script:Results = @()
 $script:Failed = $false
@@ -135,18 +136,22 @@ function Test-Vcpkg {
     }
 }
 
-function Test-CMake {
-    $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-    if (-not (Test-Path $vswhere)) {
-        Report 'FAIL' 'cmake' 'vswhere.exe not found -- install Visual Studio with the C++ desktop workload'
+function Test-VsToolchain {
+    $toolchain = Get-CerfVsToolchain
+    if (-not (Test-Path $toolchain.Vswhere)) {
+        Report 'FAIL' 'msvc' 'vswhere.exe not found -- install Visual Studio with the C++ desktop workload'
         return
     }
-    $vsRoot = & $vswhere -latest -prerelease -property installationPath | Select-Object -First 1
-    $cmake  = Join-Path $vsRoot 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
-    if (Test-Path $cmake) {
-        Report 'OK' 'cmake' $cmake
+    if (-not $toolchain.ToolsVersion) {
+        Report 'FAIL' 'msvc' ("no usable MSVC toolset (>= $($toolchain.MinToolsVersion), not 14.51.*) -- installed: " +
+                              ($toolchain.Installed -join '; '))
+        return
+    }
+    Report 'OK' 'msvc' "$($toolchain.Instance.displayName), toolset $($toolchain.ToolsVersion)"
+    if (Test-Path $toolchain.CMake) {
+        Report 'OK' 'cmake' $toolchain.CMake
     } else {
-        Report 'FAIL' 'cmake' "absent -- install the 'C++ CMake tools for Windows' Visual Studio component"
+        Report 'FAIL' 'cmake' "absent -- install the 'C++ CMake tools for Windows' component of $($toolchain.Instance.displayName)"
     }
 }
 
@@ -179,7 +184,7 @@ function Invoke-Checks {
     Test-Python
     Test-ClaudeHooks
     Test-Vcpkg
-    Test-CMake
+    Test-VsToolchain
     Test-CeToolchain
 }
 
