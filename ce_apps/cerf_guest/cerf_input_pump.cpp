@@ -51,13 +51,13 @@ static DWORD WINAPI CerfInputPumpThread(LPVOID) {
     CERF_LOG_X("cerf_guest: inputpump keybd_event", (DWORD)ke);
 
     if (me) {
-        ptr = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + CerfVirt::kPointerOffset,
-                                               CerfVirt::kPointerSize);
+        ptr = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + cerfcore::CerfVirt::kPointerOffset,
+                                               cerfcore::CerfVirt::kPointerSize);
         if (!ptr) me = NULL;
     }
     if (ke) {
-        kb = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + CerfVirt::kKeyboardOffset,
-                                              CerfVirt::kKeyboardSize);
+        kb = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + cerfcore::CerfVirt::kKeyboardOffset,
+                                              cerfcore::CerfVirt::kKeyboardSize);
         if (!kb) ke = NULL;
     }
     if (!me && !ke) {

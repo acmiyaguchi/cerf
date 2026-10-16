@@ -31,16 +31,16 @@ constexpr int32_t kOpFrame     = 1;
 constexpr int32_t kOpPing      = 3;
 constexpr int32_t kOpPong      = 4;
 
-class DiscordPresence : public Service {
+class DiscordPresence : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     bool ShouldRegister() override {
-        return emu_.Get<FrontendConfig>().DiscordRichPresence();
+        return emu_.Get<cerffrontend::FrontendConfig>().DiscordRichPresence();
     }
 
     void OnReady() override {
-        details_    = emu_.Get<WindowTitle>().Compose();
+        details_    = emu_.Get<cerffrontend::WindowTitle>().Compose();
         state_      = ResolveOsVersion();
         start_secs_ = static_cast<int64_t>(::time(nullptr));
 
@@ -62,7 +62,7 @@ public:
 
 private:
     std::string ResolveOsVersion() {
-        auto* rp = emu_.TryGet<RomParserQueries>();
+        auto* rp = emu_.TryGet<cerfcore::RomParserQueries>();
         if (!rp) return {};
         uint16_t major = 0, minor = 0;
         if (!rp->KernelSubsystemVersion(major, minor)) return {};
@@ -138,8 +138,8 @@ private:
 
     bool WriteFrame(int32_t opcode, const std::string& payload) {
         std::vector<uint8_t> buf(8 + payload.size());
-        cerf::le::Put32(buf.data() + 0, static_cast<uint32_t>(opcode));
-        cerf::le::Put32(buf.data() + 4, static_cast<uint32_t>(payload.size()));
+        cerfcore::cerf::le::Put32(buf.data() + 0, static_cast<uint32_t>(opcode));
+        cerfcore::cerf::le::Put32(buf.data() + 4, static_cast<uint32_t>(payload.size()));
         std::memcpy(buf.data() + 8, payload.data(), payload.size());
         return Transfer(true, buf.data(), static_cast<DWORD>(buf.size()));
     }
@@ -147,8 +147,8 @@ private:
     bool ReadFrame(int32_t& opcode, std::string& payload) {
         uint8_t hdr[8];
         if (!Transfer(false, hdr, 8)) return false;
-        opcode = static_cast<int32_t>(cerf::le::U32(hdr, 0));
-        const int32_t len = static_cast<int32_t>(cerf::le::U32(hdr, 4));
+        opcode = static_cast<int32_t>(cerfcore::cerf::le::U32(hdr, 0));
+        const int32_t len = static_cast<int32_t>(cerfcore::cerf::le::U32(hdr, 4));
         if (len < 0 || len > (1 << 20)) return false;
         payload.resize(static_cast<size_t>(len));
         if (len && !Transfer(false, reinterpret_cast<uint8_t*>(payload.data()),

@@ -76,8 +76,9 @@ extern "C" void CerfSetCarrierName(const wchar_t* name) {
 void CerfReadFbRegs(void) {
     CerfMainState* mn = Mn();
     if (mn->fb_regs) return;
-    mn->fb_regs = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + CerfVirt::kFramebufferRegsOffset,
-                                                   CerfVirt::kFramebufferRegsSize);
+    mn->fb_regs = (volatile ULONG*)CerfMapRegsPage(
+        g_CerfVirtBase + cerfcore::CerfVirt::kFramebufferRegsOffset,
+        cerfcore::CerfVirt::kFramebufferRegsSize);
     if (!mn->fb_regs) return;
     g_FbWidth  = mn->fb_regs[0];
     g_FbHeight = mn->fb_regs[1];
@@ -94,8 +95,8 @@ void CerfReadFbRegs(void) {
 
 static BOOL CerfMapGpeCmd(CerfMainState* mn) {
     if (mn->gpe_cmd) return TRUE;
-    mn->gpe_cmd = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + CerfVirt::kGpeCmdOffset,
-                                                   CerfVirt::kGpeCmdSize);
+    mn->gpe_cmd = (volatile ULONG*)CerfMapRegsPage(
+        g_CerfVirtBase + cerfcore::CerfVirt::kGpeCmdOffset, cerfcore::CerfVirt::kGpeCmdSize);
     return mn->gpe_cmd != NULL;
 }
 
@@ -123,15 +124,17 @@ extern "C" ULONG CerfGpeLine(ULONG desc_va) {
     return mn->gpe_cmd[CERF_GPE_STATUS / 4];
 }
 
-extern "C" ULONG CerfGpeFbMemBasePa(void) { return g_CerfVirtBase + CerfVirt::kFramebufferMemOffset; }
+extern "C" ULONG CerfGpeFbMemBasePa(void) {
+    return g_CerfVirtBase + cerfcore::CerfVirt::kFramebufferMemOffset;
+}
 
 extern "C" void CerfPublishPalette(const ULONG* rgb, unsigned first, unsigned count) {
     CerfMainState* mn = Mn();
     if (!mn->palette_regs)
         mn->palette_regs = (volatile ULONG*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kPaletteOffset, CerfVirt::kPaletteSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kPaletteOffset, cerfcore::CerfVirt::kPaletteSize);
     if (!mn->palette_regs || !rgb) return;
-    for (unsigned i = 0; i < count && first + i < CerfVirt::kPaletteEntries; ++i)
+    for (unsigned i = 0; i < count && first + i < cerfcore::CerfVirt::kPaletteEntries; ++i)
         mn->palette_regs[first + i] = rgb[i] & 0x00FFFFFFu;
 }
 

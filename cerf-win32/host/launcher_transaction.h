@@ -9,9 +9,9 @@
 
 #include <string>
 
-class LauncherTransaction : public Service {
+class LauncherTransaction : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     bool Run(HWND owner, const char* scaffolding,
              const nlohmann::json& query, nlohmann::json& response);

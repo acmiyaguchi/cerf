@@ -7,12 +7,12 @@
 
 #include <atomic>
 
-class StateWriter;
-class StateReader;
+namespace cerfcore { class StateWriter; }
+namespace cerfcore { class StateReader; }
 
-class StylusAltTap : public Service {
+class StylusAltTap : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void OnShutdown() override;
 
@@ -27,8 +27,8 @@ public:
     bool OnTimer(UINT_PTR timer_id);
     void Cancel();
 
-    void SaveState(StateWriter& w) const;
-    void RestoreState(StateReader& r);
+    void SaveState(cerfcore::StateWriter& w) const;
+    void RestoreState(cerfcore::StateReader& r);
 
 private:
     enum class Phase { Idle, AltLead, PenHold, AltTrail };

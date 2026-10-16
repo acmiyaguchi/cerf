@@ -61,7 +61,7 @@ HwScreenRenderer::~HwScreenRenderer() {
 void HwScreenRenderer::RenderInto(HDC, uint32_t* dib_bgra32,
                                   uint32_t width, uint32_t height) {
     std::vector<std::string> snapshot;
-    const uint64_t gen = emu_.Get<HwScreen>().Snapshot(snapshot);
+    const uint64_t gen = emu_.Get<cerfcore::HwScreen>().Snapshot(snapshot);
 
     if ((int)width != bg_w_ || (int)height != bg_h_) RebuildBgDib((int)width, (int)height);
 
@@ -76,7 +76,7 @@ void HwScreenRenderer::RenderInto(HDC, uint32_t* dib_bgra32,
 
     if (bg_bits_) std::memcpy(dib_bgra32, bg_bits_, (size_t)width * height * 4u);
     else          std::memset(dib_bgra32, 0, (size_t)width * height * 4u);
-    emu_.Get<BootBar>().RenderInto(dib_bgra32, width, height);
+    emu_.Get<cerffrontend::BootBar>().RenderInto(dib_bgra32, width, height);
 }
 
 void HwScreenRenderer::RebuildBgDib(int w, int h) {
@@ -142,13 +142,13 @@ void HwScreenRenderer::DrawLog(HDC dc, uint32_t width, uint32_t height,
     wrapped.reserve(snapshot.size());
     for (const std::string& line : snapshot) {
         const COLORREF color = ClassifyLineColor(line);
-        const std::wstring& wide = wide_lines.emplace_back(Utf8ToWide(line.c_str()));
+        const std::wstring& wide = wide_lines.emplace_back(cerfcore::Utf8ToWide(line.c_str()));
         if (wide.empty()) { wrapped.push_back({ {}, color }); continue; }
         size_t pos = 0;
         while (pos < wide.size()) {
             size_t take = std::min((size_t)chars_wide, wide.size() - pos);
             if (take > 1 && pos + take < wide.size() &&
-                IsHighSurrogate(static_cast<char16_t>(wide[pos + take - 1])))
+                cerfcore::IsHighSurrogate(static_cast<char16_t>(wide[pos + take - 1])))
                 --take;
             wrapped.push_back({ { wide.data() + pos, take }, color });
             pos += take;

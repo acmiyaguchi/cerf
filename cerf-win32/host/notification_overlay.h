@@ -10,9 +10,9 @@
 #include <string>
 #include <vector>
 
-class NotificationOverlay : public Service {
+class NotificationOverlay : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~NotificationOverlay() override;
 
     void RenderInto(HWND canvas, HDC dc, int dib_w, int dib_h);
@@ -21,7 +21,7 @@ public:
 private:
     struct Placed {
         uint32_t         id = 0;
-        NotificationKind kind = NotificationKind::Warning;
+        cerfcore::NotificationKind kind = cerfcore::NotificationKind::Warning;
         bool             more = false;
         RECT             box{};
         RECT             title_rc{};
@@ -35,7 +35,7 @@ private:
     void EnsureFonts(int px);
     int  MeasureText(HDC dc, HFONT font, const std::wstring& text, int width) const;
 
-    std::vector<NotificationCard> cards_;
+    std::vector<cerfcore::NotificationCard> cards_;
     std::vector<Placed>           placed_;
     uint64_t gen_     = ~0ull;
     int      w_       = 0;

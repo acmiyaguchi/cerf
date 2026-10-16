@@ -26,8 +26,9 @@ extern "C" void CerfInitLogging(ULONG id) {
     int i;
     for (i = 0; i < CERF_LOG_MAX_PROC; ++i)
         if (s_log_slot[i].pid == pid) return;
-    pa = g_CerfVirtBase + CerfVirt::kLogChannelOffset + id * CerfVirt::kLogChannelStride;
-    va = (volatile UCHAR*)CerfMapRegsPage(pa, CerfVirt::kLogChannelStride);
+    pa = g_CerfVirtBase + cerfcore::CerfVirt::kLogChannelOffset +
+         id * cerfcore::CerfVirt::kLogChannelStride;
+    va = (volatile UCHAR*)CerfMapRegsPage(pa, cerfcore::CerfVirt::kLogChannelStride);
     if (!va) return;
     idx = InterlockedIncrement(&s_log_slot_next) - 1;
     if (idx < 0 || idx >= CERF_LOG_MAX_PROC) { VirtualFree((LPVOID)va, 0, MEM_RELEASE); return; }
@@ -48,14 +49,14 @@ extern "C" void CerfDebugFatal(const char* msg) {
     const char* p;
     if (!tx)
         tx = (volatile UCHAR*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kLogChannelOffset,
-            CerfVirt::kLogChannelStride);
+            g_CerfVirtBase + cerfcore::CerfVirt::kLogChannelOffset,
+            cerfcore::CerfVirt::kLogChannelStride);
     if (tx) {
         if (msg) {
-            for (p = msg; *p; ++p) tx[CerfVirt::kLogChannelTxSlot] = (UCHAR)*p;
-            tx[CerfVirt::kLogChannelTxSlot] = '\n';
+            for (p = msg; *p; ++p) tx[cerfcore::CerfVirt::kLogChannelTxSlot] = (UCHAR)*p;
+            tx[cerfcore::CerfVirt::kLogChannelTxSlot] = '\n';
         }
-        tx[CerfVirt::kLogChannelFatalSlot] = 1;
+        tx[cerfcore::CerfVirt::kLogChannelFatalSlot] = 1;
     } else {
         *(volatile ULONG*)0 = 0;
     }

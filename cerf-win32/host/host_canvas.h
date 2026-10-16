@@ -7,11 +7,11 @@
 #include <cstdint>
 #include <vector>
 
-class HostCanvas : public Service, public PresenterCanvasHost {
+class HostCanvas : public cerfcore::Service, public PresenterCanvasHost {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
-    using Tab = CanvasTab;
+    using Tab = cerfcore::CanvasTab;
     using ViewportMode = PresenterCanvas::ViewportMode;
 
     /* UI thread. Create the child window inside `parent` at `rect`, with the

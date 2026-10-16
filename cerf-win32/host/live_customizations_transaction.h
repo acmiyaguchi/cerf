@@ -8,9 +8,9 @@
 #include <cstdint>
 #include <string>
 
-class LiveCustomizationsTransaction : public CustomizationsEditor {
+class LiveCustomizationsTransaction : public cerfcore::CustomizationsEditor {
 public:
-    using CustomizationsEditor::CustomizationsEditor;
+    using cerfcore::CustomizationsEditor::CustomizationsEditor;
 
     bool ShouldRegister() override;
 

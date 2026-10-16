@@ -16,7 +16,7 @@ extern "C" void  CerfGetVideoMem(unsigned long* base, unsigned long* size,
 extern "C" void  CerfGetVideoRegion(unsigned long* base, unsigned long* size);
 extern "C" BOOL  CerfDDSurfFbInfo(void* lcl, ULONG* pa, int* stride, int* bpp, int* height);
 extern "C" unsigned long CerfDDGPESurfBufferVa(unsigned long surf);
-extern "C" void  CerfFillSurfaceFromSurfobj(CerfVirt::CerfBltSurface* s, SURFOBJ* pso,
+extern "C" void  CerfFillSurfaceFromSurfobj(cerfcore::CerfVirt::CerfBltSurface* s, SURFOBJ* pso,
                                             int y0, int y1, CerfStageWb* wb);
 extern "C" int   CerfDDrawBlt(void* dstLcl, void* srcLcl, const RECTL* rDest,
                               const RECTL* rSrc, unsigned long ddFlags,
@@ -91,11 +91,11 @@ public:
     SCODE ApplyFbMode();
 
     virtual SCODE BltPrepare(GPEBltParms* p);
-    static void RectToDesc(CerfVirt::CerfBltRect* r, const RECTL* s);
-    void FillSurface(CerfVirt::CerfBltSurface* s, GPESurf* surf,
+    static void RectToDesc(cerfcore::CerfVirt::CerfBltRect* r, const RECTL* s);
+    void FillSurface(cerfcore::CerfVirt::CerfBltSurface* s, GPESurf* surf,
                      int x0, int y0, int x1, int y1, bool host_writes,
                      bool read_palette = true, CerfStageWb* wb = NULL);
-    void FillSurfaceFromSurfobj(CerfVirt::CerfBltSurface* s, SURFOBJ* pso,
+    void FillSurfaceFromSurfobj(cerfcore::CerfVirt::CerfBltSurface* s, SURFOBJ* pso,
                                 int y0, int y1, CerfStageWb* wb = NULL);
     SCODE HwBlt(GPEBltParms* p);
     SCODE HostLine(GPELineParms* p);

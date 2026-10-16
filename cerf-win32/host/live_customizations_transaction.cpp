@@ -12,10 +12,10 @@
 #include "host_window.h"
 #include "launcher_transaction.h"
 
-REGISTER_SERVICE_AS(LiveCustomizationsTransaction, CustomizationsEditor);
+REGISTER_SERVICE_AS(LiveCustomizationsTransaction, cerfcore::CustomizationsEditor);
 
 bool LiveCustomizationsTransaction::ShouldRegister() {
-    return emu_.Get<DeviceConfig>().guest_additions;
+    return emu_.Get<cerfcore::DeviceConfig>().guest_additions;
 }
 
 void LiveCustomizationsTransaction::Open() {
@@ -26,10 +26,10 @@ bool LiveCustomizationsTransaction::Open(HWND owner, bool force_reboot) {
     nlohmann::json query;
     query["force_reboot"] = force_reboot;
     uint16_t major = 0, minor = 0;
-    if (emu_.Get<GuestAdditionsUiPolicy>().CeVersion(major, minor))
+    if (emu_.Get<cerffrontend::GuestAdditionsUiPolicy>().CeVersion(major, minor))
         query["ce_version"] = { { "major", major }, { "minor", minor } };
 
-    auto& cfg = emu_.Get<DeviceConfig>();
+    auto& cfg = emu_.Get<cerfcore::DeviceConfig>();
     const uint32_t prev_w = cfg.board_configurable_screen_width;
     const uint32_t prev_h = cfg.board_configurable_screen_height;
 
@@ -38,11 +38,11 @@ bool LiveCustomizationsTransaction::Open(HWND owner, bool force_reboot) {
                                              query, response))
         return false;
 
-    emu_.Get<DeviceConfigRefresh>().Refresh();
+    emu_.Get<cerfcore::DeviceConfigRefresh>().Refresh();
 
     if (!response.is_object() || !response.contains("reboot")) return false;
 
-    emu_.Get<CerfVirtCustomizationsReset>().Invalidate();
+    emu_.Get<cerfcore::CerfVirtCustomizationsReset>().Invalidate();
 
     std::string reboot;
     if (response["reboot"].is_string())
@@ -53,7 +53,7 @@ bool LiveCustomizationsTransaction::Open(HWND owner, bool force_reboot) {
 
 void LiveCustomizationsTransaction::Apply(std::string reboot, uint32_t prev_w,
                                           uint32_t prev_h) {
-    auto& cfg = emu_.Get<DeviceConfig>();
+    auto& cfg = emu_.Get<cerfcore::DeviceConfig>();
     const uint32_t w = cfg.board_configurable_screen_width;
     const uint32_t h = cfg.board_configurable_screen_height;
 
@@ -61,13 +61,13 @@ void LiveCustomizationsTransaction::Apply(std::string reboot, uint32_t prev_w,
     if (reboot == "soft") {
         win.SetGuestResolution(w, h);
         win.FitToResolution(w, h);
-        emu_.Get<GuestCpuReset>().WarmReset();
+        emu_.Get<cerfcore::GuestCpuReset>().WarmReset();
     } else if (reboot == "hard") {
         win.SetGuestResolution(w, h);
         win.FitToResolution(w, h);
-        emu_.Get<GuestColdBoot>().RequestHardReset();
+        emu_.Get<cerfcore::GuestColdBoot>().RequestHardReset();
     } else if (w != prev_w || h != prev_h) {
         win.FitToResolution(w, h);
-        emu_.Get<CerfVirtResize>().RequestResize(w, h);
+        emu_.Get<cerfcore::CerfVirtResize>().RequestResize(w, h);
     }
 }

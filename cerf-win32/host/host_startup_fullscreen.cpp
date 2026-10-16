@@ -4,12 +4,12 @@
 #include "host_window.h"
 
 namespace {
-class HostStartupFullscreen : public Service {
+class HostStartupFullscreen : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void OnReady() override {
-        if (!emu_.Get<DeviceConfig>().start_fullscreen) return;
+        if (!emu_.Get<cerfcore::DeviceConfig>().start_fullscreen) return;
         /* Get<HostWindow> returns only after the window is shown (HostWindow::
            OnReady blocks on ui_ready_), so the HWND is live here. ToggleFullscreen
            manipulates the window, so it must run on the owning UI thread. */

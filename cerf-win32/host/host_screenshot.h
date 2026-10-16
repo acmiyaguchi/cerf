@@ -14,9 +14,9 @@
    already-captured buffer so other windows (a PCMCIA VGA card's external
    display) reuse the same path with their own pixels. */
 
-class HostScreenshot : public Service {
+class HostScreenshot : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void Save();   /* main window -> <exe_dir>\screenshots\<device>_<ts>.png */
     void Copy();   /* main window -> clipboard as CF_DIB */

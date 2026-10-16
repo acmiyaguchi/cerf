@@ -5,9 +5,9 @@
 #define NOMINMAX
 #include <windows.h>
 
-class HostFocusPolicy : public Service {
+class HostFocusPolicy : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     bool MayActivate() const;
 

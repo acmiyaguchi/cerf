@@ -9,20 +9,20 @@
 #include <functional>
 #include <vector>
 
-class WidgetMenuBinder : public Service {
+class WidgetMenuBinder : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     static constexpr int kIdBase = 0xC000;
     static constexpr int kIdEnd  = 0xCFFF;
     bool OwnsCommand(int id) const { return id >= kIdBase && id <= kIdEnd; }
 
-    HMENU BuildContextMenu(const std::vector<MenuItem>& items);
+    HMENU BuildContextMenu(const std::vector<cerffrontend::MenuItem>& items);
     void  AppendAllToMenu(HMENU dest);
     void  Dispatch(int id);
 
 private:
-    void AppendItems(HMENU menu, const std::vector<MenuItem>& items);
+    void AppendItems(HMENU menu, const std::vector<cerffrontend::MenuItem>& items);
 
     std::vector<std::function<void()>> id_callbacks_;
 };

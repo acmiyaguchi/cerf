@@ -14,18 +14,18 @@
 
 namespace {
 
-class HostCaptureLockWidget : public Service, public HostWidget {
+class HostCaptureLockWidget : public cerfcore::Service, public cerfcore::HostWidget {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void OnReady() override {
-        emu_.Get<HostWidgetRegistry>().Register(this);
+        emu_.Get<cerfcore::HostWidgetRegistry>().Register(this);
     }
 
     std::string WidgetName() const override { return "Input Capture"; }
-    WidgetGroup Group() const override { return WidgetGroup::InputCapture; }
+    cerfcore::WidgetGroup Group() const override { return cerfcore::WidgetGroup::InputCapture; }
     std::string Tooltip() const override {
-        const std::string key = WideToUtf8(emu_.Get<HostKeyBinding>().Label());
+        const std::string key = cerfcore::WideToUtf8(emu_.Get<HostKeyBinding>().Label());
         return emu_.Get<HostInputCapture>().IsCaptured()
             ? "Input captured - " + key + " (or click) to release"
             : "Input free - " + key +
@@ -35,19 +35,19 @@ public:
         emu_.Get<HostInputCapture>().Toggle();
         return true;
     }
-    std::vector<WidgetControl> Controls() override {
-        const std::string key = WideToUtf8(emu_.Get<HostKeyBinding>().Label());
-        ActionControl it;
+    std::vector<cerfcore::WidgetControl> Controls() override {
+        const std::string key = cerfcore::WideToUtf8(emu_.Get<HostKeyBinding>().Label());
+        cerfcore::ActionControl it;
         it.id    = "toggle_capture";
         it.label = emu_.Get<HostInputCapture>().IsCaptured()
                        ? "Release input capture\t" + key
                        : "Capture input\t" + key;
         it.press = [this] { emu_.Get<HostInputCapture>().Toggle(); };
-        return {WidgetControl{std::move(it)}};
+        return {cerfcore::WidgetControl{std::move(it)}};
     }
-    WidgetIcon Icon() const override {
+    cerfcore::WidgetIcon Icon() const override {
         const bool cap = emu_.Get<HostInputCapture>().IsCaptured();
-        return ResourceIcon{cap ? "ICON_LOCK_ON" : "ICON_LOCK_OFF"};
+        return cerfcore::ResourceIcon{cap ? "ICON_LOCK_ON" : "ICON_LOCK_OFF"};
     }
     bool PollDirty() override {
         const bool cap = emu_.Get<HostInputCapture>().IsCaptured();

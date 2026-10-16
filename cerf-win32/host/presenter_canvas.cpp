@@ -20,7 +20,7 @@ void DesaturateAndDim(uint32_t* px, int count) {
         const uint32_t r = (p >> 16) & 0xFFu;
         const uint32_t g = (p >> 8)  & 0xFFu;
         const uint32_t b =  p        & 0xFFu;
-        const uint32_t y = lcd_pixel::Luma8(p) * kPausedLumaQ10;
+        const uint32_t y = cerfcore::lcd_pixel::Luma8(p) * kPausedLumaQ10;
         px[i] = (p & 0xFF000000u) |
                 (((r * kPausedColorQ10 + y) >> 10) << 16) |
                 (((g * kPausedColorQ10 + y) >> 10) << 8) |
@@ -51,7 +51,7 @@ void PresenterCanvas::CreateOn(HWND parent, const RECT& rect,
         if (err != ERROR_CLASS_ALREADY_EXISTS) {
             LOG(Caution, "PresenterCanvas: RegisterClassExW failed (gle=%lu)\n",
                 err);
-            CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
+            cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
         }
     }
 
@@ -64,7 +64,7 @@ void PresenterCanvas::CreateOn(HWND parent, const RECT& rect,
     if (!hwnd_) {
         LOG(Caution, "PresenterCanvas: CreateWindowExW failed (gle=%lu)\n",
             GetLastError());
-        CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
+        cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
     }
 
     RebuildPresentDib(w, h);

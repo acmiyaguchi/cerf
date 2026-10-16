@@ -4,9 +4,13 @@
 
 #include <string>
 
-class LinkOpener : public Service {
+namespace cerffrontend {
+
+class LinkOpener : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     virtual void Open(const std::string& url) = 0;
 };
+
+}

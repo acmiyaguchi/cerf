@@ -6,29 +6,33 @@
 #include <cerffrontend/main_config.h>
 #include <cerffrontend/version.h>
 
-std::optional<int> FrontendLaunch::ParseArgs(int argc, char** argv, CerfConfig& cfg) {
+namespace cerffrontend {
+
+std::optional<int> FrontendLaunch::ParseArgs(int argc, char** argv, cerfcore::CerfConfig& cfg) {
     switch (ParseCerfArgs(argc, argv, cfg)) {
         case ArgParseResult::Run:         return std::nullopt;
-        case ArgParseResult::BadArgument: return CERF_FATAL_USER_ERROR;
+        case ArgParseResult::BadArgument: return cerfcore::CERF_FATAL_USER_ERROR;
         case ArgParseResult::HelpShown:   break;
     }
-    CerfEmulator help(cfg, argc, argv);
+    cerfcore::CerfEmulator help(cfg, argc, argv);
     help.CreateAllServices();
     help.Get<CliUsage>().Print(argv[0]);
-    return CERF_FATAL_NORMAL_EXIT;
+    return cerfcore::CERF_FATAL_NORMAL_EXIT;
 }
 
 void FrontendLaunch::OpenLog() {
-    Log::InitDefaultLogFile();
-    Log::InstallCrashHandler();
+    cerfcore::Log::InitDefaultLogFile();
+    cerfcore::Log::InstallCrashHandler();
     LOG(Cerf, "== CE Runtime Foundation %s ==\n", CERF_VERSION_DISPLAY_STR);
     LOG(Cerf, "compiled at: %s %s\n", __DATE__, __TIME__);
 }
 
-int FrontendLaunch::RunEmulator(const CerfConfig& cfg, int argc, char** argv) {
-    CerfEmulator emu(cfg, argc, argv);
+int FrontendLaunch::RunEmulator(const cerfcore::CerfConfig& cfg, int argc, char** argv) {
+    cerfcore::CerfEmulator emu(cfg, argc, argv);
     emu.Boot();
     emu.WaitForExit();
-    Log::Close();
+    cerfcore::Log::Close();
     return 0;
+}
+
 }

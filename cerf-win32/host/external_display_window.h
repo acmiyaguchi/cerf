@@ -15,16 +15,16 @@
 #include "presenter_canvas.h"
 #include "window_fullscreen.h"
 
-class CerfEmulator;
-class FrameSource;
+namespace cerfcore { class CerfEmulator; }
+namespace cerfcore { class FrameSource; }
 
 /* Standalone titled top-level window presenting one FrameSource (e.g. a PCMCIA
    VGA card) via a shared PresenterCanvas child; own UI thread, View-only menu,
    multi-instance, NOT a Service. on_eject (optional) fires when the user closes
    the window, letting the owner tear it down off this thread. */
-class ExternalDisplayWindow : public ExternalDisplay {
+class ExternalDisplayWindow : public cerfcore::ExternalDisplay {
 public:
-    ExternalDisplayWindow(CerfEmulator& emu, FrameSource& source,
+    ExternalDisplayWindow(cerfcore::CerfEmulator& emu, cerfcore::FrameSource& source,
                           std::wstring title,
                           std::function<void()> on_eject = {});
     ~ExternalDisplayWindow() override;
@@ -55,8 +55,8 @@ private:
     void  SyncMenuChecks();
     void  FitToSurface(uint32_t sw, uint32_t sh);
 
-    CerfEmulator& emu_;
-    FrameSource&  source_;
+    cerfcore::CerfEmulator& emu_;
+    cerfcore::FrameSource&  source_;
     std::function<void()> on_eject_;
 
     std::wstring  title_;

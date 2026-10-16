@@ -21,15 +21,16 @@ static const WCHAR* const kCerfFontKeys[] = {
 
 static BOOL CerfApplyColorScheme(void) {
     volatile ULONG* csc = (volatile ULONG*)CerfMapRegsPage(
-        g_CerfVirtBase + CerfVirt::kColorSchemeOffset, CerfVirt::kColorSchemeSize);
+        g_CerfVirtBase + cerfcore::CerfVirt::kColorSchemeOffset,
+        cerfcore::CerfVirt::kColorSchemeSize);
     if (!csc) return FALSE;
-    if (csc[CerfVirt::kCscPresent / 4] != CerfVirt::kCscMagic) return FALSE;
-    ULONG count = csc[CerfVirt::kCscCount / 4];
+    if (csc[cerfcore::CerfVirt::kCscPresent / 4] != cerfcore::CerfVirt::kCscMagic) return FALSE;
+    ULONG count = csc[cerfcore::CerfVirt::kCscCount / 4];
     if (count == 0 || count > 64) return FALSE;
     DWORD colors[64];
     ULONG i;
     for (i = 0; i < count; ++i)
-        colors[i] = csc[(CerfVirt::kCscEntries / 4) + i];
+        colors[i] = csc[(cerfcore::CerfVirt::kCscEntries / 4) + i];
 
     HKEY hk;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\GWE", 0, 0, &hk) == ERROR_SUCCESS) {
@@ -80,10 +81,10 @@ extern "C" void CerfFlushRegistry(void) {
 
 static void CerfSignalCustomizationsApplied(void) {
     volatile ULONG* fb = (volatile ULONG*)CerfMapRegsPage(
-        g_CerfVirtBase + CerfVirt::kFramebufferRegsOffset,
-        CerfVirt::kFramebufferRegsSize);
+        g_CerfVirtBase + cerfcore::CerfVirt::kFramebufferRegsOffset,
+        cerfcore::CerfVirt::kFramebufferRegsSize);
     if (!fb) return;
-    fb[CerfVirt::kFbRegCustomizationsApplied / 4] = 1u;
+    fb[cerfcore::CerfVirt::kFbRegCustomizationsApplied / 4] = 1u;
 }
 
 extern "C" void CerfApplyRegistryCustomizations(void) {

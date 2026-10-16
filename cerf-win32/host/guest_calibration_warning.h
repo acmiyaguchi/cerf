@@ -4,11 +4,11 @@
 
 #include <atomic>
 
-class PointerSource;
+namespace cerfcore { class PointerSource; }
 
-class GuestCalibrationWarning : public CalibrationNotice {
+class GuestCalibrationWarning : public cerfcore::CalibrationNotice {
 public:
-    using CalibrationNotice::CalibrationNotice;
+    using cerfcore::CalibrationNotice::CalibrationNotice;
 
     bool ShouldRegister() override;
     void OnReady() override;
@@ -19,7 +19,7 @@ public:
 private:
     void ShowWarning();
     void EndCycle();
-    PointerSource* StockSource();
+    cerfcore::PointerSource* StockSource();
 
     std::atomic<bool> present_{false};
     bool              switched_to_stock_ = false;

@@ -14,18 +14,19 @@
 #include <vector>
 
 int wmain(int argc, wchar_t* wargv[]) {
-    Log::SetCrashPresenter(&Win32CrashReport::Present);
+    cerfcore::Log::SetCrashPresenter(&Win32CrashReport::Present);
     std::vector<std::string> utf8_args;
     utf8_args.reserve(argc);
-    for (int i = 0; i < argc; ++i) utf8_args.push_back(WideToUtf8(wargv[i]));
+    for (int i = 0; i < argc; ++i) utf8_args.push_back(cerfcore::WideToUtf8(wargv[i]));
     std::vector<char*> argv_ptrs;
     argv_ptrs.reserve(argc + 1);
     for (std::string& a : utf8_args) argv_ptrs.push_back(a.data());
     argv_ptrs.push_back(nullptr);
     char** const argv = argv_ptrs.data();
 
-    CerfConfig cfg;
-    if (const std::optional<int> exit_code = FrontendLaunch::ParseArgs(argc, argv, cfg))
+    cerfcore::CerfConfig cfg;
+    if (const std::optional<int> exit_code =
+            cerffrontend::FrontendLaunch::ParseArgs(argc, argv, cfg))
         return *exit_code;
 
     /* Without this, sub-ms cv_.wait_for/Sleep round to the 15.625 ms
@@ -44,10 +45,10 @@ int wmain(int argc, wchar_t* wargv[]) {
     SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling,
                           &throttling, sizeof(throttling));
 
-    FrontendLaunch::OpenLog();
+    cerffrontend::FrontendLaunch::OpenLog();
     HostDiagnostics::LogReport();
 
-    const int exit_code = FrontendLaunch::RunEmulator(cfg, argc, argv);
+    const int exit_code = cerffrontend::FrontendLaunch::RunEmulator(cfg, argc, argv);
     timeEndPeriod(1);
     return exit_code;
 }

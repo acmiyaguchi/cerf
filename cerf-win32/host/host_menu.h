@@ -7,9 +7,9 @@
 
 /* The host window's menu bar: builds it, keeps its check/radio state in
    sync, and dispatches its WM_COMMAND ids. UI thread only. */
-class HostMenu : public Service {
+class HostMenu : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     /* Build the bar. Called once by HostWindow before CreateWindowExW;
        the bar's lifetime is tied to the window that adopts it. */

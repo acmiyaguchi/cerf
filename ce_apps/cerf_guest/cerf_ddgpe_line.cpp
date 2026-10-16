@@ -52,8 +52,8 @@ SCODE CerfDDGPE::HostLine(GPELineParms* p) {
     const int   W          = (int)p->pDst->Width();
     const int   dst_stride = (int)p->pDst->Stride();
     const int   dst_bits   = CerfFormatBpp(df);
-    const ULONG budget = CerfVirt::kDmaPartitionSize - CerfVirt::kDmaPartHdrSize
-                         - (ULONG)sizeof(CerfVirt::CerfLineDescriptor) - 64u;
+    const ULONG budget = cerfcore::CerfVirt::kDmaPartitionSize - cerfcore::CerfVirt::kDmaPartHdrSize
+                         - (ULONG)sizeof(cerfcore::CerfVirt::CerfLineDescriptor) - 64u;
 
     int yb0 = ymin;
     for (;;) {
@@ -66,12 +66,12 @@ SCODE CerfDDGPE::HostLine(GPELineParms* p) {
 
         if (!CerfArenaEnter()) CERF_FATAL("cerf_guest: DMA arena unavailable - halting");
         ULONG desc_off = 0u;
-        CerfVirt::CerfLineDescriptor* pd = (CerfVirt::CerfLineDescriptor*)
-            CerfArenaAlloc((ULONG)sizeof(CerfVirt::CerfLineDescriptor), &desc_off);
+        cerfcore::CerfVirt::CerfLineDescriptor* pd = (cerfcore::CerfVirt::CerfLineDescriptor*)
+            CerfArenaAlloc((ULONG)sizeof(cerfcore::CerfVirt::CerfLineDescriptor), &desc_off);
         if (!pd) CERF_FATAL("cerf_guest: DMA arena line alloc failed - halting");
-        CerfVirt::CerfLineDescriptor& d = *pd;
+        cerfcore::CerfVirt::CerfLineDescriptor& d = *pd;
         memset(&d, 0, sizeof(d));
-        d.magic       = CerfVirt::kCerfLineMagic;
+        d.magic       = cerfcore::CerfVirt::kCerfLineMagic;
         d.x_start     = p->xStart;
         d.y_start     = p->yStart;
         d.c_pels      = p->cPels;

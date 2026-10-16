@@ -52,7 +52,7 @@ void HostBalloonHint::Dismiss() {
     tip_ = nullptr;
 }
 
-void HostBalloonHint::ShowUnderWidget(const HostWidget* anchor,
+void HostBalloonHint::ShowUnderWidget(const cerfcore::HostWidget* anchor,
                                       const wchar_t* text, UINT hold_ms) {
     RECT rc;
     if (emu_.Get<HostStatusBar>().WidgetScreenRect(anchor, rc))

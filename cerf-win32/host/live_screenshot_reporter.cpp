@@ -19,18 +19,18 @@
 
 namespace {
 
-class LiveScreenshotReporter : public Service {
+class LiveScreenshotReporter : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     ~LiveScreenshotReporter() override { Stop(); }
     void OnShutdown() override { Stop(); }
 
     void OnReady() override {
-        const std::string name = emu_.Get<DeviceConfig>().device_name;
+        const std::string name = emu_.Get<cerfcore::DeviceConfig>().device_name;
         if (name.empty()) return;
-        const std::string dir = GetDeviceDir(name);
-        path_ = (std::filesystem::path(Utf8ToWide(dir.c_str())) /
+        const std::string dir = cerfcore::GetDeviceDir(name);
+        path_ = (std::filesystem::path(cerfcore::Utf8ToWide(dir.c_str())) /
                  L"live_state.png").wstring();
         capture_done_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
         if (!capture_done_) return;
@@ -49,7 +49,7 @@ private:
         if (capture_done_) SetEvent(capture_done_);  /* unblock a pending wait */
         if (thread_.joinable()) thread_.join();
         if (capture_done_) { CloseHandle(capture_done_); capture_done_ = nullptr; }
-        if (!path_.empty() && !RunTimeout::IsActive()) {
+        if (!path_.empty() && !cerfcore::RunTimeout::IsActive()) {
             std::error_code ec;
             std::filesystem::remove(std::filesystem::path(path_), ec);
         }

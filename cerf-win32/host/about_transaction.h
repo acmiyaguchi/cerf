@@ -5,9 +5,9 @@
 #define NOMINMAX
 #include <windows.h>
 
-class AboutTransaction : public Service {
+class AboutTransaction : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     bool Open(HWND owner);
 };

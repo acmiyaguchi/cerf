@@ -229,7 +229,7 @@ extern "C" void CerfSetVidBackingByOsMajor(unsigned long os_major) {
         (os_major >= 6u) ? kCerfVidHeapMapped : kCerfVidHeapByPa);
 }
 
-extern "C" void CerfFillSurfaceFromSurfobj(CerfVirt::CerfBltSurface* s,
+extern "C" void CerfFillSurfaceFromSurfobj(cerfcore::CerfVirt::CerfBltSurface* s,
                                            SURFOBJ* pso, int y0, int y1,
                                            CerfStageWb* wb) {
     ((CerfDDGPE*)GetGPE())->FillSurfaceFromSurfobj(s, pso, y0, y1, wb);

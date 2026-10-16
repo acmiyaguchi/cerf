@@ -7,9 +7,9 @@
 
 /* MS Learn: GetDpiForWindow / AdjustWindowRectExForDpi - minimum supported
    client Windows 10, version 1607; user32.dll. */
-class HostDpi : public Service {
+class HostDpi : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     void OnReady() override;
 
     UINT ForWindow(HWND h) const;

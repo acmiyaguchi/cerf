@@ -13,9 +13,9 @@
    top-level windows ("Windows", default) or processes ("Processes"), with
    switch-to / kill / run controls, backed by CerfVirtTaskManager. UI-thread
    only. */
-class TaskManagerWindow : public TaskManagerView {
+class TaskManagerWindow : public cerfcore::TaskManagerView {
 public:
-    using TaskManagerView::TaskManagerView;
+    using cerfcore::TaskManagerView::TaskManagerView;
 
     bool ShouldRegister() override;
     void OnReady() override;
@@ -39,7 +39,7 @@ private:
     void DoRun();
     void ShowRowMenu(int item, POINT screen_pt);
     void SetStatus(const std::wstring& text, COLORREF clr);
-    void UpdateTitle(const CerfVirtTaskManager::Snapshot& snap);
+    void UpdateTitle(const cerfcore::CerfVirtTaskManager::Snapshot& snap);
 
     HWND                hwnd_       = nullptr;
     HWND                tabs_       = nullptr;

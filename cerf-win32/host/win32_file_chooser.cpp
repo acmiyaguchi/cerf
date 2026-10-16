@@ -13,27 +13,27 @@ namespace {
 constexpr DWORD kOpenFlags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY |
                              OFN_NOCHANGEDIR;
 
-std::wstring FilterString(const std::vector<FileChooserFilter>& filters) {
+std::wstring FilterString(const std::vector<cerfcore::FileChooserFilter>& filters) {
     std::wstring out;
     for (const auto& f : filters) {
-        out += Utf8ToWide(f.description.c_str());
+        out += cerfcore::Utf8ToWide(f.description.c_str());
         out += L'\0';
-        out += Utf8ToWide(f.patterns.c_str());
+        out += cerfcore::Utf8ToWide(f.patterns.c_str());
         out += L'\0';
     }
     out += L'\0';
     return out;
 }
 
-class Win32FileChooser : public FileChooser {
+class Win32FileChooser : public cerfcore::FileChooser {
 public:
-    using FileChooser::FileChooser;
+    using cerfcore::FileChooser::FileChooser;
 
     std::string ChooseFile(const std::string& title,
-                           const std::vector<FileChooserFilter>& filters) override {
+                           const std::vector<cerfcore::FileChooserFilter>& filters) override {
         wchar_t file[MAX_PATH] = {};
         const std::wstring filter = FilterString(filters);
-        const std::wstring wide_title = Utf8ToWide(title.c_str());
+        const std::wstring wide_title = cerfcore::Utf8ToWide(title.c_str());
         OPENFILENAMEW ofn = {};
         ofn.lStructSize = sizeof(ofn);
         ofn.hwndOwner   = emu_.Get<HostWindow>().Hwnd();
@@ -42,15 +42,16 @@ public:
         ofn.nMaxFile    = MAX_PATH;
         ofn.lpstrTitle  = wide_title.c_str();
         ofn.Flags       = kOpenFlags;
-        return GetOpenFileNameW(&ofn) ? WideToUtf8(file) : std::string();
+        return GetOpenFileNameW(&ofn) ? cerfcore::WideToUtf8(file) : std::string();
     }
 
-    std::vector<std::string> ChooseFiles(const std::string& title,
-                                         const std::vector<FileChooserFilter>& filters) override {
+    std::vector<std::string> ChooseFiles(
+        const std::string& title,
+        const std::vector<cerfcore::FileChooserFilter>& filters) override {
         std::vector<std::string> out;
         std::vector<wchar_t> buf(64u * 1024u, 0);
         const std::wstring filter = FilterString(filters);
-        const std::wstring wide_title = Utf8ToWide(title.c_str());
+        const std::wstring wide_title = cerfcore::Utf8ToWide(title.c_str());
         OPENFILENAMEW ofn = {};
         ofn.lStructSize = sizeof(ofn);
         ofn.hwndOwner   = emu_.Get<HostWindow>().Hwnd();
@@ -65,13 +66,13 @@ public:
         std::wstring dir(p);
         p += dir.size() + 1;
         if (*p == L'\0') {
-            out.push_back(WideToUtf8(dir));
+            out.push_back(cerfcore::WideToUtf8(dir));
             return out;
         }
         while (*p) {
             std::wstring f(p);
             p += f.size() + 1;
-            out.push_back(WideToUtf8(dir + L"\\" + f));
+            out.push_back(cerfcore::WideToUtf8(dir + L"\\" + f));
         }
         return out;
     }
@@ -79,4 +80,4 @@ public:
 
 }
 
-REGISTER_SERVICE_AS(Win32FileChooser, FileChooser);
+REGISTER_SERVICE_AS(Win32FileChooser, cerfcore::FileChooser);

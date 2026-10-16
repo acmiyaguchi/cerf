@@ -8,9 +8,9 @@
 /* Turns the guest's captured cursor shape (CerfVirtCursor) into a host HCURSOR,
    rebuilt on the UI thread when the shape changes so all GDI cursor calls stay
    on one thread. */
-class HostGuestCursor : public Service {
+class HostGuestCursor : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~HostGuestCursor() override;
 
     /* UI thread (WM_SETCURSOR). active=false => no guest cursor exists (caller

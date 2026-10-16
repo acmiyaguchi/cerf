@@ -7,7 +7,7 @@
 REGISTER_SERVICE(HostFocusPolicy);
 
 bool HostFocusPolicy::MayActivate() const {
-    if (!emu_.Get<DeviceConfig>().no_focus) return true;
+    if (!emu_.Get<cerfcore::DeviceConfig>().no_focus) return true;
     DWORD pid = 0;
     GetWindowThreadProcessId(GetForegroundWindow(), &pid);
     return pid == GetCurrentProcessId();

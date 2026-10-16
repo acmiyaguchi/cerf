@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
-class HwScreenRenderer : public Service {
+class HwScreenRenderer : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~HwScreenRenderer() override;
 
     void RenderInto(HDC dc, uint32_t* dib_bgra32, uint32_t width, uint32_t height);

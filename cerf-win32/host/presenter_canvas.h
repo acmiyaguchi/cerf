@@ -9,7 +9,7 @@
 
 #include "canvas_presenter.h"
 
-class FrameSource;
+namespace cerfcore { class FrameSource; }
 
 class PresenterCanvasHost {
 public:
@@ -44,14 +44,14 @@ public:
 
     /* source may be null (HostCanvas binds the board FrameRenderer late via
        SetSource); host may be null (a plain FrameSource-only window). */
-    PresenterCanvas(FrameSource* source, PresenterCanvasHost* host)
+    PresenterCanvas(cerfcore::FrameSource* source, PresenterCanvasHost* host)
         : presenter_(source), host_(host) {}
     ~PresenterCanvas();
 
     PresenterCanvas(const PresenterCanvas&)            = delete;
     PresenterCanvas& operator=(const PresenterCanvas&) = delete;
 
-    void SetSource(FrameSource* source) { presenter_.SetSource(source); }
+    void SetSource(cerfcore::FrameSource* source) { presenter_.SetSource(source); }
 
     /* UI thread. Create the child window inside `parent` at `rect`, guest
        surface sized to surf_w x surf_h. */

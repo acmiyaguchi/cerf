@@ -17,14 +17,14 @@
 #define BLACKONWHITE 1
 #endif
 
-static void CerfRectIntersect(CerfVirt::CerfBltRect* out,
+static void CerfRectIntersect(cerfcore::CerfVirt::CerfBltRect* out,
                               const RECTL& a, const RECTL& b) {
     RECTL r = a;
     CerfRectClamp(&r, &b);
     out->left = r.left; out->top = r.top; out->right = r.right; out->bottom = r.bottom;
 }
 
-static BOOL CerfEmitGradient(CerfVirt::CerfGradDescriptor& g, ULONG desc_off,
+static BOOL CerfEmitGradient(cerfcore::CerfVirt::CerfGradDescriptor& g, ULONG desc_off,
                              const RECTL& grect_in, CLIPOBJ* pco, int W, int H) {
     RECTL grect = grect_in;
     RECTL sbound;
@@ -34,13 +34,13 @@ static BOOL CerfEmitGradient(CerfVirt::CerfGradDescriptor& g, ULONG desc_off,
     if (!pco || pco->iDComplexity == DC_TRIVIAL) {
         g.fill_rect.left = grect.left;  g.fill_rect.top    = grect.top;
         g.fill_rect.right = grect.right; g.fill_rect.bottom = grect.bottom;
-        return CerfGpeGrad(desc_off) == CerfVirt::kGpeStatusDone;
+        return CerfGpeGrad(desc_off) == cerfcore::CerfVirt::kGpeStatusDone;
     }
     if (pco->iDComplexity == DC_RECT) {
         CerfRectIntersect(&g.fill_rect, grect, pco->rclBounds);
         if (g.fill_rect.right <= g.fill_rect.left ||
             g.fill_rect.bottom <= g.fill_rect.top) return TRUE;
-        return CerfGpeGrad(desc_off) == CerfVirt::kGpeStatusDone;
+        return CerfGpeGrad(desc_off) == cerfcore::CerfVirt::kGpeStatusDone;
     }
 
     struct { ULONG c; RECTL arcl[24]; } eb;
@@ -52,7 +52,7 @@ static BOOL CerfEmitGradient(CerfVirt::CerfGradDescriptor& g, ULONG desc_off,
             CerfRectIntersect(&g.fill_rect, grect, eb.arcl[i]);
             if (g.fill_rect.right <= g.fill_rect.left ||
                 g.fill_rect.bottom <= g.fill_rect.top) continue;
-            if (CerfGpeGrad(desc_off) != CerfVirt::kGpeStatusDone) ok = FALSE;
+            if (CerfGpeGrad(desc_off) != cerfcore::CerfVirt::kGpeStatusDone) ok = FALSE;
         }
     } while (more);
     return ok;
@@ -124,8 +124,8 @@ extern "C" BOOL APIENTRY CerfDrvGradientFill(SURFOBJ* pso, CLIPOBJ* pco,
     if (ext_hi > H) ext_hi = H;
     if (ext_hi <= ext_lo) return TRUE;
 
-    const ULONG budget = CerfVirt::kDmaPartitionSize - CerfVirt::kDmaPartHdrSize
-                         - (ULONG)sizeof(CerfVirt::CerfGradDescriptor) - 64u;
+    const ULONG budget = cerfcore::CerfVirt::kDmaPartitionSize - cerfcore::CerfVirt::kDmaPartHdrSize
+                         - (ULONG)sizeof(cerfcore::CerfVirt::CerfGradDescriptor) - 64u;
     BOOL ok = TRUE;
     int yb0 = ext_lo;
     while (yb0 < ext_hi) {
@@ -136,14 +136,14 @@ extern "C" BOOL APIENTRY CerfDrvGradientFill(SURFOBJ* pso, CLIPOBJ* pco,
 
         if (!CerfArenaEnter()) CERF_FATAL("cerf_guest: DMA arena unavailable - halting");
         ULONG desc_off = 0u;
-        CerfVirt::CerfGradDescriptor* pg = (CerfVirt::CerfGradDescriptor*)
-            CerfArenaAlloc((ULONG)sizeof(CerfVirt::CerfGradDescriptor), &desc_off);
+        cerfcore::CerfVirt::CerfGradDescriptor* pg = (cerfcore::CerfVirt::CerfGradDescriptor*)
+            CerfArenaAlloc((ULONG)sizeof(cerfcore::CerfVirt::CerfGradDescriptor), &desc_off);
         if (!pg) CERF_FATAL("cerf_guest: DMA arena gradient alloc failed - halting");
-        CerfVirt::CerfGradDescriptor& g = *pg;
+        cerfcore::CerfVirt::CerfGradDescriptor& g = *pg;
         CerfStageWb dstwb = {0};
         memset(&g, 0, sizeof(g));
-        g.magic = CerfVirt::kCerfGradMagic;
-        g.axis  = horiz ? CerfVirt::kCerfGradAxisH : CerfVirt::kCerfGradAxisV;
+        g.magic = cerfcore::CerfVirt::kCerfGradMagic;
+        g.axis  = horiz ? cerfcore::CerfVirt::kCerfGradAxisH : cerfcore::CerfVirt::kCerfGradAxisV;
         g.band_y_first = (uint32_t)yb0;
         g.band_y_count = (uint32_t)(yb1 - yb0);
         CerfFillSurfaceFromSurfobj(&g.dst, pso, yb0, yb1, &dstwb);

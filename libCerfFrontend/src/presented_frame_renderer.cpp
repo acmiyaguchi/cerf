@@ -9,27 +9,29 @@
 #include <cstring>
 #include <vector>
 
+namespace cerffrontend {
+
 namespace {
 
 constexpr uint32_t kMaxBoxPixels = 0x00FFFFFFu;
 
-class PresentedFrameRenderer : public FrameRenderer {
+class PresentedFrameRenderer : public cerfcore::FrameRenderer {
 public:
-    using FrameRenderer::FrameRenderer;
+    using cerfcore::FrameRenderer::FrameRenderer;
 
     bool HasFrame() override {
-        auto* ga = emu_.TryGet<GuestAdditionsFrameRenderer>();
+        auto* ga = emu_.TryGet<cerfcore::GuestAdditionsFrameRenderer>();
         if (ga && ga->HasFrame()) return true;
-        auto* panel = emu_.TryGet<PanelFrameRenderer>();
+        auto* panel = emu_.TryGet<cerfcore::PanelFrameRenderer>();
         return panel && panel->HasFrame();
     }
 
     void PresentedSize(uint32_t& w, uint32_t& h) override {
-        if (auto* ga = emu_.TryGet<GuestAdditionsFrameRenderer>()) {
+        if (auto* ga = emu_.TryGet<cerfcore::GuestAdditionsFrameRenderer>()) {
             ga->PresentedSize(w, h);
             return;
         }
-        if (auto* panel = emu_.TryGet<PanelFrameRenderer>()) {
+        if (auto* panel = emu_.TryGet<cerfcore::PanelFrameRenderer>()) {
             panel->PresentedSize(w, h);
             return;
         }
@@ -40,13 +42,13 @@ public:
     void RenderInto(uint32_t* dib_bgra32,
                     uint32_t  width,
                     uint32_t  height) override {
-        auto* ga = emu_.TryGet<GuestAdditionsFrameRenderer>();
+        auto* ga = emu_.TryGet<cerfcore::GuestAdditionsFrameRenderer>();
         if (ga && ga->HasFrame()) {
             ga->RenderInto(dib_bgra32, width, height);
             return;
         }
 
-        auto* panel = emu_.TryGet<PanelFrameRenderer>();
+        auto* panel = emu_.TryGet<cerfcore::PanelFrameRenderer>();
         if (!panel || !panel->HasFrame()) {
             std::memset(dib_bgra32, 0, (size_t)width * height * 4u);
             return;
@@ -59,15 +61,15 @@ public:
     }
 
     void RearmContentLatch() override {
-        if (auto* ga = emu_.TryGet<GuestAdditionsFrameRenderer>())
+        if (auto* ga = emu_.TryGet<cerfcore::GuestAdditionsFrameRenderer>())
             ga->RearmContentLatch();
-        if (auto* panel = emu_.TryGet<PanelFrameRenderer>())
+        if (auto* panel = emu_.TryGet<cerfcore::PanelFrameRenderer>())
             panel->RearmContentLatch();
     }
 
 private:
     void ComposeLayer(uint32_t* dst, uint32_t dst_w, uint32_t dst_h,
-                      FrameRenderer& layer) {
+                      cerfcore::FrameRenderer& layer) {
         uint32_t lw = 0, lh = 0;
         layer.PresentedSize(lw, lh);
         if (lw == 0 || lh == 0) {
@@ -142,7 +144,7 @@ private:
         const uint64_t max_box = (uint64_t)(w0 + (w_rem != 0u ? 1u : 0u)) *
                                  (h0 + (h_rem != 0u ? 1u : 0u));
         if (max_box > kMaxBoxPixels) {
-            emu_.Get<Fatal>().Die(
+            emu_.Get<cerfcore::Fatal>().Die(
                 "PresentedFrameRenderer: %ux%u layer into %ux%u needs a %llu-pixel box",
                 lw, lh, out_w, out_h, (unsigned long long)max_box);
         }
@@ -229,4 +231,6 @@ private:
 
 }
 
-REGISTER_SERVICE_AS(PresentedFrameRenderer, FrameRenderer);
+REGISTER_SERVICE_AS(PresentedFrameRenderer, cerfcore::FrameRenderer);
+
+}

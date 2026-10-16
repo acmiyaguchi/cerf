@@ -68,8 +68,8 @@ extern "C" void CerfClearTypeTick(void) {
     if (!c->ready) {
         c->ready = TRUE;
         c->regs = (volatile ULONG*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kFramebufferRegsOffset,
-            CerfVirt::kFramebufferRegsSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kFramebufferRegsOffset,
+            cerfcore::CerfVirt::kFramebufferRegsSize);
         if (!c->regs) {
             CERF_LOG("cerf_guest: cleartype map FAILED");
             c->dead = TRUE;
@@ -80,14 +80,14 @@ extern "C" void CerfClearTypeTick(void) {
             c->dead = TRUE;
             return;
         }
-        c->seen = CerfVirt::kFbClearTypeDefault;
+        c->seen = cerfcore::CerfVirt::kFbClearTypeDefault;
     }
 
-    mode = c->regs[CerfVirt::kFbRegClearType / 4];
+    mode = c->regs[cerfcore::CerfVirt::kFbRegClearType / 4];
     if (mode == c->seen) return;
     c->seen = mode;
-    if (mode == CerfVirt::kFbClearTypeOn)
+    if (mode == cerfcore::CerfVirt::kFbClearTypeOn)
         CerfCtApply(c, TRUE);
-    else if (mode == CerfVirt::kFbClearTypeOff)
+    else if (mode == cerfcore::CerfVirt::kFbClearTypeOff)
         CerfCtApply(c, FALSE);
 }

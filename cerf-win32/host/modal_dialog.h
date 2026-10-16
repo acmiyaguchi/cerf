@@ -5,9 +5,9 @@
 #define NOMINMAX
 #include <windows.h>
 
-class ModalDialog : public Service {
+class ModalDialog : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
 protected:
     void RunModal(HWND owner, const wchar_t* class_name, const wchar_t* title,

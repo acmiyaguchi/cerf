@@ -25,16 +25,16 @@ constexpr uint8_t  kVkAlt      = 0x12;
 }  /* namespace */
 
 bool StylusAltTap::Supported() const {
-    if (!emu_.TryGet<TouchInput>()) return false;
-    if (emu_.Get<DeviceConfig>().guest_additions) return true;
-    auto* map = emu_.TryGet<KeyboardMap>();
+    if (!emu_.TryGet<cerfcore::TouchInput>()) return false;
+    if (emu_.Get<cerfcore::DeviceConfig>().guest_additions) return true;
+    auto* map = emu_.TryGet<cerfcore::KeyboardMap>();
     uint32_t code;
     return map && map->BaseDeviceCode(kVkAlt, code);
 }
 
 bool StylusAltTap::Armable() const {
     if (!Supported()) return false;
-    KeyboardInput* kbd = emu_.Get<KeyboardRouter>().Active();
+    cerfcore::KeyboardInput* kbd = emu_.Get<cerfcore::KeyboardRouter>().Active();
     return kbd && kbd->CanDeliverVk(kVkAlt);
 }
 
@@ -51,37 +51,37 @@ void StylusAltTap::UnwindHeld() {
     KillTimer(emu_.Get<HostCanvas>().Hwnd(), kTimerId);
     const bool pen_down = CurrentPhase() == Phase::PenHold;
     SetPhase(Phase::Idle);
-    if (pen_down) emu_.Get<TouchInput>().OnPenUp(tap_x_, tap_y_);
-    emu_.Get<KeyboardRouter>().OnHostKey(kVkAlt, /*key_up=*/true);
+    if (pen_down) emu_.Get<cerfcore::TouchInput>().OnPenUp(tap_x_, tap_y_);
+    emu_.Get<cerfcore::KeyboardRouter>().OnHostKey(kVkAlt, true);
 }
 
 bool StylusAltTap::Begin(int guest_x, int guest_y) {
     if (!Enabled() || !Armable()) return false;
     if (CurrentPhase() != Phase::Idle) return true;
-    auto freeze = emu_.Get<EmulationFreeze>().WorkerSection();
+    auto freeze = emu_.Get<cerfcore::EmulationFreeze>().WorkerSection();
     tap_x_ = guest_x;
     tap_y_ = guest_y;
-    emu_.Get<KeyboardRouter>().OnHostKey(kVkAlt, /*key_up=*/false);
+    emu_.Get<cerfcore::KeyboardRouter>().OnHostKey(kVkAlt, false);
     Arm(kAltLeadMs, Phase::AltLead);
     return true;
 }
 
 bool StylusAltTap::OnTimer(UINT_PTR timer_id) {
     if (timer_id != kTimerId || CurrentPhase() == Phase::Idle) return false;
-    auto freeze = emu_.Get<EmulationFreeze>().WorkerSection();
+    auto freeze = emu_.Get<cerfcore::EmulationFreeze>().WorkerSection();
     KillTimer(emu_.Get<HostCanvas>().Hwnd(), kTimerId);
     switch (CurrentPhase()) {
         case Phase::AltLead:
-            emu_.Get<TouchInput>().OnPenDown(tap_x_, tap_y_);
+            emu_.Get<cerfcore::TouchInput>().OnPenDown(tap_x_, tap_y_);
             Arm(kPenHoldMs, Phase::PenHold);
             return true;
         case Phase::PenHold:
-            emu_.Get<TouchInput>().OnPenUp(tap_x_, tap_y_);
+            emu_.Get<cerfcore::TouchInput>().OnPenUp(tap_x_, tap_y_);
             Arm(kAltTrailMs, Phase::AltTrail);
             return true;
         case Phase::AltTrail:
             SetPhase(Phase::Idle);
-            emu_.Get<KeyboardRouter>().OnHostKey(kVkAlt, /*key_up=*/true);
+            emu_.Get<cerfcore::KeyboardRouter>().OnHostKey(kVkAlt, true);
             return true;
         case Phase::Idle:
             return true;
@@ -91,17 +91,17 @@ bool StylusAltTap::OnTimer(UINT_PTR timer_id) {
 
 void StylusAltTap::Cancel() {
     if (CurrentPhase() == Phase::Idle) return;
-    auto freeze = emu_.Get<EmulationFreeze>().WorkerSection();
+    auto freeze = emu_.Get<cerfcore::EmulationFreeze>().WorkerSection();
     UnwindHeld();
 }
 
-void StylusAltTap::SaveState(StateWriter& w) const {
+void StylusAltTap::SaveState(cerfcore::StateWriter& w) const {
     w.Write<uint8_t>("phase", static_cast<uint8_t>(CurrentPhase()));
     w.Write<int32_t>("tap_x", tap_x_);
     w.Write<int32_t>("tap_y", tap_y_);
 }
 
-void StylusAltTap::RestoreState(StateReader& r) {
+void StylusAltTap::RestoreState(cerfcore::StateReader& r) {
     uint8_t raw = 0;
     int32_t x = 0, y = 0;
     r.Read("phase", raw);
@@ -112,18 +112,18 @@ void StylusAltTap::RestoreState(StateReader& r) {
     const uint32_t gen = restore_gen_.fetch_add(1u, std::memory_order_acq_rel) + 1u;
     if (saved == Phase::Idle && CurrentPhase() == Phase::Idle) return;
     emu_.Get<HostWindow>().RunOnUiThread([this, saved, x, y, gen] {
-        auto freeze = emu_.Get<EmulationFreeze>().WorkerSection();
+        auto freeze = emu_.Get<cerfcore::EmulationFreeze>().WorkerSection();
         if (restore_gen_.load(std::memory_order_acquire) != gen) return;
         KillTimer(emu_.Get<HostCanvas>().Hwnd(), kTimerId);
         SetPhase(Phase::Idle);
         if (saved == Phase::Idle) return;
-        if (saved == Phase::PenHold) emu_.Get<TouchInput>().OnPenUp(x, y);
-        emu_.Get<KeyboardRouter>().OnHostKey(kVkAlt, /*key_up=*/true);
+        if (saved == Phase::PenHold) emu_.Get<cerfcore::TouchInput>().OnPenUp(x, y);
+        emu_.Get<cerfcore::KeyboardRouter>().OnHostKey(kVkAlt, true);
     });
 }
 
 void StylusAltTap::OnShutdown() {
-    auto freeze = emu_.Get<EmulationFreeze>().WorkerSection();
+    auto freeze = emu_.Get<cerfcore::EmulationFreeze>().WorkerSection();
     if (CurrentPhase() == Phase::Idle) return;
     KillTimer(emu_.Get<HostCanvas>().Hwnd(), kTimerId);
     SetPhase(Phase::Idle);

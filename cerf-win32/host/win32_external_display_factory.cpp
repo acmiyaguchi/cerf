@@ -6,18 +6,19 @@
 
 namespace {
 
-class Win32ExternalDisplayFactory : public ExternalDisplayFactory {
+class Win32ExternalDisplayFactory : public cerfcore::ExternalDisplayFactory {
 public:
-    using ExternalDisplayFactory::ExternalDisplayFactory;
+    using cerfcore::ExternalDisplayFactory::ExternalDisplayFactory;
 
-    std::unique_ptr<ExternalDisplay> Create(FrameSource& source, const std::string& title,
-                                            std::function<void()> on_eject) override {
+    std::unique_ptr<cerfcore::ExternalDisplay> Create(cerfcore::FrameSource& source,
+                                                      const std::string& title,
+                                                      std::function<void()> on_eject) override {
         return std::make_unique<ExternalDisplayWindow>(emu_, source,
-                                                       Utf8ToWide(title.c_str()),
+                                                       cerfcore::Utf8ToWide(title.c_str()),
                                                        std::move(on_eject));
     }
 };
 
 }
 
-REGISTER_SERVICE_AS(Win32ExternalDisplayFactory, ExternalDisplayFactory);
+REGISTER_SERVICE_AS(Win32ExternalDisplayFactory, cerfcore::ExternalDisplayFactory);

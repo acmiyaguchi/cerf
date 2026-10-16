@@ -42,7 +42,7 @@ std::string RegString(HKEY root, const wchar_t* path, const wchar_t* name) {
     wchar_t buf[512] = {};
     if (!RegRead(root, path, name, REG_SZ, buf, sizeof(buf) - sizeof(wchar_t)))
         return {};
-    return Trimmed(WideToUtf8(buf));
+    return Trimmed(cerfcore::WideToUtf8(buf));
 }
 
 bool RegDword(HKEY root, const wchar_t* path, const wchar_t* name,
@@ -57,7 +57,7 @@ std::string EnvString(const wchar_t* name) {
     const DWORD n = GetEnvironmentVariableW(name, &buf[0], need);
     if (n == 0 || n >= need) return {};
     buf.resize(n);
-    return WideToUtf8(buf);
+    return cerfcore::WideToUtf8(buf);
 }
 
 std::wstring CurrentDirectory() {
@@ -206,7 +206,7 @@ void LogLocale() {
     GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SISO639LANGNAME, lang, 16);
     GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SISO3166CTRYNAME, country, 16);
     LOG(Cerf, "Host locale: %s-%s; ANSI code page %u; OEM code page %u\n",
-        WideToUtf8(lang).c_str(), WideToUtf8(country).c_str(), GetACP(),
+        cerfcore::WideToUtf8(lang).c_str(), cerfcore::WideToUtf8(country).c_str(), GetACP(),
         GetOEMCP());
 }
 
@@ -222,7 +222,8 @@ void LogProcess() {
         CloseHandle(token);
     }
 
-    const std::wstring exe = Utf8ToWide(host_platform::ExecutablePath().c_str());
+    const std::wstring exe =
+        cerfcore::Utf8ToWide(cerfcore::host_platform::ExecutablePath().c_str());
     std::string layers;
     const std::string user_layer =
         exe.empty() ? std::string()
@@ -237,10 +238,10 @@ void LogProcess() {
 
     LOG(Cerf, "Process: elevated %s; compatibility layers %s\n", elevated,
         OrNone(layers));
-    LOG(Cerf, "Process executable: %s\n", OrNone(WideToUtf8(exe)));
+    LOG(Cerf, "Process executable: %s\n", OrNone(cerfcore::WideToUtf8(exe)));
     LOG(Cerf, "Process working directory: %s\n",
-        OrNone(WideToUtf8(CurrentDirectory())));
-    LOG(Cerf, "Process command line: %s\n", WideToUtf8(GetCommandLineW()).c_str());
+        OrNone(cerfcore::WideToUtf8(CurrentDirectory())));
+    LOG(Cerf, "Process command line: %s\n", cerfcore::WideToUtf8(GetCommandLineW()).c_str());
 }
 
 }  // namespace

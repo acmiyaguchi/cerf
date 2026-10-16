@@ -8,7 +8,7 @@
 REGISTER_SERVICE(AboutTransaction);
 
 bool AboutTransaction::Open(HWND owner) {
-    auto& board = emu_.Get<BoardContext>();
+    auto& board = emu_.Get<cerfcore::BoardContext>();
 
     nlohmann::json query;
     if (!board.GetBoardId().empty()) {

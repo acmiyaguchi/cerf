@@ -2,9 +2,13 @@
 
 #include <cerfcore/core/service.h>
 
-class CliUsage : public Service {
+namespace cerffrontend {
+
+class CliUsage : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void Print(const char* prog);
 };
+
+}

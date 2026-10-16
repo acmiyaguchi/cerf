@@ -21,7 +21,7 @@ void HostIconCache::DrawCentered(HDC dc, const RECT& box,
     if (!h) {
         LOG(Caution, "HostIconCache: ICON resource '%s' absent from cerf.exe "
             "(missing/typo'd cerf.rc entry)\n", res_name.c_str());
-        CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
+        cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
     }
     DrawIconEx(dc, box.left + (bw - px) / 2, box.top + (bh - px) / 2,
                h, px, px, 0, nullptr, DI_NORMAL);
@@ -37,7 +37,7 @@ HICON HostIconCache::Resolve(const std::string& res_name, int px) {
        LoadImage scales an icon-group image to cx/cy and is exported by name
        (MS Learn LoadImageW: minimum supported client Windows 2000). */
     HICON h = static_cast<HICON>(LoadImageW(GetModuleHandleW(nullptr),
-                                            Utf8ToWide(res_name.c_str()).c_str(),
+                                            cerfcore::Utf8ToWide(res_name.c_str()).c_str(),
                                             IMAGE_ICON, px, px,
                                             LR_DEFAULTCOLOR));
     if (h) cache_[key] = h;

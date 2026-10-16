@@ -8,9 +8,9 @@
 #include <cstdint>
 #include <span>
 
-class HostResource : public Service {
+class HostResource : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     std::span<const uint8_t> Bytes(const wchar_t* name) const;
 };

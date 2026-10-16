@@ -33,10 +33,11 @@ static BOOL CerfMapCursorRegs(void) {
     CerfCursorState* c = Cur();
     if (!c->regs)
         c->regs = (volatile ULONG*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kCursorOffset, CerfVirt::kCursorSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kCursorOffset, cerfcore::CerfVirt::kCursorSize);
     if (!c->desc)
         c->desc = (CerfCursorDesc*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kCurStageOffset, CerfVirt::kCurStageSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kCurStageOffset,
+            cerfcore::CerfVirt::kCurStageSize);
     return c->regs != NULL && c->desc != NULL;
 }
 

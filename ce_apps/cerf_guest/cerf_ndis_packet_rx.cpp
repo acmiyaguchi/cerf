@@ -7,7 +7,8 @@
 #include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 #include "cerfcore/peripherals/cerf_virt/cerf_virt_nic_regs.h"
 
-#define CERF_MP_RX_SLOT_BYTES (CerfVirt::kNicSlotSize - CerfVirt::kNicSlotPayloadOff)
+#define CERF_MP_RX_SLOT_BYTES \
+    (cerfcore::CerfVirt::kNicSlotSize - cerfcore::CerfVirt::kNicSlotPayloadOff)
 
 #define CERF_NDIS_PACKET_TAIL 12
 

@@ -43,7 +43,7 @@ extern "C" ULONG CerfMpLookaheadGet(void) { return CerfMpSelf()->lookahead; }
 extern "C" void  CerfMpLookaheadSet(ULONG v) { CerfMpSelf()->lookahead = v; }
 extern "C" ULONG CerfMpLinkUp(void) {
     CerfMpSlot* mp = CerfMpFind();
-    return mp && mp->nic && mp->nic[CerfVirt::kNicRegLinkUp / 4] ? 1u : 0u;
+    return mp && mp->nic && mp->nic[cerfcore::CerfVirt::kNicRegLinkUp / 4] ? 1u : 0u;
 }
 
 static volatile ULONG* CerfMpMapNic(CerfMpSlot* mp) {
@@ -51,9 +51,9 @@ static volatile ULONG* CerfMpMapNic(CerfMpSlot* mp) {
 
     if (mp->nic_page) return mp->nic_page;
     nic = (volatile ULONG*)CerfMapRegsPage(
-        g_CerfVirtBase + CerfVirt::kNicRegsOffset, CerfVirt::kNicRegsSize);
+        g_CerfVirtBase + cerfcore::CerfVirt::kNicRegsOffset, cerfcore::CerfVirt::kNicRegsSize);
     if (!nic) return 0;
-    if (nic[CerfVirt::kNicRegMagic / 4] != CerfVirt::kNicMagic) {
+    if (nic[cerfcore::CerfVirt::kNicRegMagic / 4] != cerfcore::CerfVirt::kNicMagic) {
         VirtualFree((LPVOID)nic, 0, MEM_RELEASE);
         return 0;
     }
@@ -120,7 +120,7 @@ static void* CerfMpFilter(CerfMpSlot* mp) {
 }
 
 static ULONG CerfMpMaxFrame(void) {
-    return CerfVirt::kNicSlotSize - CerfVirt::kNicSlotPayloadOff;
+    return cerfcore::CerfVirt::kNicSlotSize - cerfcore::CerfVirt::kNicSlotPayloadOff;
 }
 
 extern "C" NDIS_STATUS CerfMpSend(NDIS_HANDLE adapter, void* packet) {
@@ -159,15 +159,15 @@ extern "C" NDIS_STATUS CerfMpSend(NDIS_HANDLE adapter, void* packet) {
         return CERF_NDIS_STATUS_FAILURE;
     }
 
-    wseq = mp->nic[CerfVirt::kNicRegTxWriteSeq / 4];
-    rseq = mp->nic[CerfVirt::kNicRegTxReadSeq / 4];
-    if (wseq - rseq >= CerfVirt::kNicTxSlots) {
+    wseq = mp->nic[cerfcore::CerfVirt::kNicRegTxWriteSeq / 4];
+    rseq = mp->nic[cerfcore::CerfVirt::kNicRegTxReadSeq / 4];
+    if (wseq - rseq >= cerfcore::CerfVirt::kNicTxSlots) {
         CERF_LOG_X("ndis: send rejected, tx ring full at", wseq);
         return CERF_NDIS_STATUS_FAILURE;
     }
 
-    slot = (UCHAR*)mp->stage + CerfVirt::kNicTxBufOffset +
-           (wseq % CerfVirt::kNicTxSlots) * CerfVirt::kNicSlotSize;
+    slot = (UCHAR*)mp->stage + cerfcore::CerfVirt::kNicTxBufOffset +
+           (wseq % cerfcore::CerfVirt::kNicTxSlots) * cerfcore::CerfVirt::kNicSlotSize;
 
     off = 0;
     while (buf && off < total) {
@@ -176,7 +176,7 @@ extern "C" NDIS_STATUS CerfMpSend(NDIS_HANDLE adapter, void* packet) {
         api->QueryBuffer(buf, &va, &n);
         if (va && n) {
             if (off + n > total) n = total - off;
-            memcpy(slot + CerfVirt::kNicSlotPayloadOff + off, va, n);
+            memcpy(slot + cerfcore::CerfVirt::kNicSlotPayloadOff + off, va, n);
             off += n;
         }
         buf = *(void**)((UCHAR*)buf + CERF_NDIS_BUFFER_NEXT);
@@ -187,8 +187,8 @@ extern "C" NDIS_STATUS CerfMpSend(NDIS_HANDLE adapter, void* packet) {
         return CERF_NDIS_STATUS_FAILURE;
     }
 
-    *(ULONG*)(slot + CerfVirt::kNicSlotLenOff) = off;
-    mp->nic[CerfVirt::kNicRegTxWriteSeq / 4] = wseq + 1;
+    *(ULONG*)(slot + cerfcore::CerfVirt::kNicSlotLenOff) = off;
+    mp->nic[cerfcore::CerfVirt::kNicRegTxWriteSeq / 4] = wseq + 1;
     return CERF_NDIS_STATUS_SUCCESS;
 }
 
@@ -232,7 +232,7 @@ static DWORD WINAPI CerfMpRxThread(LPVOID param) {
     CERF_LOG_X("ndis: rx thread start consumed", mp->rx_consumed);
 
     while (!mp->rx_stop) {
-        ULONG wseq  = mp->nic[CerfVirt::kNicRegRxWriteSeq / 4];
+        ULONG wseq  = mp->nic[cerfcore::CerfVirt::kNicRegRxWriteSeq / 4];
         ULONG ahead = (ULONG)(mp->rx_consumed - wseq);
 
         if (ahead != 0 && ahead < 0x80000000u) {
@@ -247,15 +247,16 @@ static DWORD WINAPI CerfMpRxThread(LPVOID param) {
             ULONG  len;
             void*  filter;
 
-            slot = (UCHAR*)mp->stage + CerfVirt::kNicRxBufOffset +
-                   (mp->rx_consumed % CerfVirt::kNicRxSlots) * CerfVirt::kNicSlotSize;
-            len = *(ULONG*)(slot + CerfVirt::kNicSlotLenOff);
+            slot = (UCHAR*)mp->stage + cerfcore::CerfVirt::kNicRxBufOffset +
+                   (mp->rx_consumed % cerfcore::CerfVirt::kNicRxSlots) *
+                       cerfcore::CerfVirt::kNicSlotSize;
+            len = *(ULONG*)(slot + cerfcore::CerfVirt::kNicSlotLenOff);
 
             filter = CerfMpFilter(mp);
 
             if (CerfNdisPacketRxReady() &&
                 len >= CERF_MP_ETH_HDR && len <= CerfMpMaxFrame()) {
-                if (CerfNdisPacketRxIndicate(slot + CerfVirt::kNicSlotPayloadOff,
+                if (CerfNdisPacketRxIndicate(slot + cerfcore::CerfVirt::kNicSlotPayloadOff,
                                              len)) {
                     ++mp->rx_consumed;
                     continue;
@@ -264,9 +265,9 @@ static DWORD WINAPI CerfMpRxThread(LPVOID param) {
             }
 
             if (filter && len >= CERF_MP_ETH_HDR && len <= CerfMpMaxFrame()) {
-                memcpy(mp->rx_hdr, slot + CerfVirt::kNicSlotPayloadOff,
+                memcpy(mp->rx_hdr, slot + cerfcore::CerfVirt::kNicSlotPayloadOff,
                        CERF_MP_ETH_HDR);
-                mp->rx_body     = slot + CerfVirt::kNicSlotPayloadOff + CERF_MP_ETH_HDR;
+                mp->rx_body     = slot + cerfcore::CerfVirt::kNicSlotPayloadOff + CERF_MP_ETH_HDR;
                 mp->rx_body_len = len - CERF_MP_ETH_HDR;
 
                 void* lock = 0;
@@ -290,7 +291,7 @@ static DWORD WINAPI CerfMpRxThread(LPVOID param) {
             }
             ++mp->rx_consumed;
         }
-        mp->nic[CerfVirt::kNicRegRxReadSeq / 4] = mp->rx_consumed;
+        mp->nic[cerfcore::CerfVirt::kNicRegRxReadSeq / 4] = mp->rx_consumed;
         Sleep(5);
     }
     return 0;
@@ -329,12 +330,13 @@ extern "C" NDIS_STATUS CerfMpInitialize(NDIS_STATUS* open_status, UINT* medium_i
     }
     if (!mp->stage) {
         mp->stage = (volatile UCHAR*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kNicStageOffset, CerfVirt::kNicStageSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kNicStageOffset,
+            cerfcore::CerfVirt::kNicStageSize);
     }
     if (!mp->stage) return CERF_NDIS_STATUS_FAILURE;
 
-    w0 = mp->nic[CerfVirt::kNicRegMacWord0 / 4];
-    w1 = mp->nic[CerfVirt::kNicRegMacWord1 / 4];
+    w0 = mp->nic[cerfcore::CerfVirt::kNicRegMacWord0 / 4];
+    w1 = mp->nic[cerfcore::CerfVirt::kNicRegMacWord1 / 4];
     mp->mac[0] = (UCHAR)(w0);       mp->mac[1] = (UCHAR)(w0 >> 8);
     mp->mac[2] = (UCHAR)(w0 >> 16); mp->mac[3] = (UCHAR)(w0 >> 24);
     mp->mac[4] = (UCHAR)(w1);       mp->mac[5] = (UCHAR)(w1 >> 8);
@@ -353,7 +355,7 @@ extern "C" NDIS_STATUS CerfMpInitialize(NDIS_STATUS* open_status, UINT* medium_i
 
     mp->adapter     = adapter;
     mp->lookahead   = CERF_MP_FRAME_MAX;
-    mp->rx_consumed = mp->nic[CerfVirt::kNicRegRxWriteSeq / 4];
+    mp->rx_consumed = mp->nic[cerfcore::CerfVirt::kNicRegRxWriteSeq / 4];
 
     CerfMpResolveLayout(mp);
 

@@ -7,9 +7,9 @@
 
 #include <vector>
 
-class HostFonts : public Service {
+class HostFonts : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void OnReady() override;
     void OnShutdown() override;

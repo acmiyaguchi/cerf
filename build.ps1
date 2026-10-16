@@ -100,12 +100,6 @@ if (-not (Test-Path $vswhere)) {
     Write-Host "[BUILD] FAILED! vswhere.exe not found at $vswhere. Install Visual Studio with the C++ desktop workload."
     Stop-Build 1
 }
-$msbuild = & $vswhere -latest -prerelease -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\amd64\MSBuild.exe' | Select-Object -First 1
-if (-not $msbuild -or -not (Test-Path $msbuild)) {
-    Write-Host "[BUILD] FAILED! MSBuild.exe not found via vswhere. Ensure Visual Studio's C++ desktop workload is installed."
-    Stop-Build 1
-}
-
 # Reset $LASTEXITCODE so a stale value from outside the script can't
 # make a throw-before-native-run look successful.
 $global:LASTEXITCODE = 0
@@ -122,27 +116,40 @@ $global:LASTEXITCODE = 0
 # AddressSanitizer does not flag it. Any 14.51.* toolset therefore yields a wrong
 # cerf.exe. It is the default toolset of VS 2026 and of the GitHub Actions
 # windows-latest image, so it must be excluded explicitly on both.
-$vsRoot = & $vswhere -latest -prerelease -property installationPath | Select-Object -First 1
-$toolsRoot = Join-Path $vsRoot 'VC\Tools\MSVC'
-if (-not (Test-Path $toolsRoot)) {
-    Write-Host "[BUILD] FAILED! No MSVC toolsets found under $toolsRoot."
-    Stop-Build 1
-}
-
 $minToolsVersion = [version]'14.30'
-$installed = Get-ChildItem $toolsRoot -Directory | Select-Object -ExpandProperty Name
-$usable = $installed |
-    Where-Object { $_ -notlike '14.51.*' -and [version]$_ -ge $minToolsVersion } |
-    Sort-Object { [version]$_ }
-$toolsVersion = $usable | Select-Object -First 1
+$vsInstances = (& $vswhere -all -prerelease -requires Microsoft.Component.MSBuild -format json |
+    ConvertFrom-Json) | Sort-Object { [version]$_.installationVersion } -Descending
+$vsInstance   = $null
+$toolsVersion = $null
+$installed    = @()
+foreach ($candidate in $vsInstances) {
+    $candidateTools = Join-Path $candidate.installationPath 'VC\Tools\MSVC'
+    if (-not (Test-Path $candidateTools)) { continue }
+    $names = @(Get-ChildItem $candidateTools -Directory | Select-Object -ExpandProperty Name)
+    $installed += "$($candidate.displayName): $($names -join ', ')"
+    $pick = $names |
+        Where-Object { $_ -notlike '14.51.*' -and [version]$_ -ge $minToolsVersion } |
+        Sort-Object { [version]$_ } | Select-Object -First 1
+    if ($pick) {
+        $vsInstance   = $candidate
+        $toolsVersion = $pick
+        break
+    }
+}
 if (-not $toolsVersion) {
-    Write-Host "[BUILD] FAILED! No usable MSVC toolset. Installed: $($installed -join ', ')."
+    Write-Host "[BUILD] FAILED! No usable MSVC toolset. Installed: $($installed -join '; ')."
     Write-Host "[BUILD] Requires >= $minToolsVersion (for /std:c++20) and not 14.51.*, which"
     Write-Host "[BUILD] miscompiles bit-mask dispatch loops on x86 /O2 /Oy- and would silently"
     Write-Host "[BUILD] produce a broken cerf.exe."
     Stop-Build 1
 }
-Write-Host "[BUILD] MSVC toolset: $toolsVersion (installed: $($installed -join ', '))"
+$vsRoot  = $vsInstance.installationPath
+$msbuild = & $vswhere -path $vsRoot -find 'MSBuild\**\Bin\amd64\MSBuild.exe' | Select-Object -First 1
+if (-not $msbuild -or -not (Test-Path $msbuild)) {
+    Write-Host "[BUILD] FAILED! MSBuild.exe not found in $vsRoot. Ensure Visual Studio's C++ desktop workload is installed."
+    Stop-Build 1
+}
+Write-Host "[BUILD] $($vsInstance.displayName), MSVC toolset $toolsVersion (installed: $($installed -join '; '))"
 
 $devModeFlag = if ($Mode -eq "production") { "0" } else { "1" }
 $cerfDefines = "CERF_DEV_MODE=$devModeFlag"
@@ -239,8 +246,13 @@ if (-not (Test-Path $cmake)) {
     Write-Host "[BUILD] FAILED! CMake not found at $cmake. Install the 'C++ CMake tools for Windows' component of Visual Studio."
     Stop-Build 1
 }
-$vsVersion  = [version](& $vswhere -latest -prerelease -property installationVersion | Select-Object -First 1)
-$vsYear     = & $vswhere -latest -prerelease -property catalog_productLineVersion | Select-Object -First 1
+$vsMajor     = ([version]$vsInstance.installationVersion).Major
+$vsGenerator = (& $cmake -E capabilities | ConvertFrom-Json).generators.name |
+    Where-Object { $_ -match "^Visual Studio $vsMajor \d{4}$" } | Select-Object -First 1
+if (-not $vsGenerator) {
+    Write-Host "[BUILD] FAILED! $cmake has no generator for Visual Studio $vsMajor."
+    Stop-Build 1
+}
 
 $vcpkgProps     = Get-Content "$env:LOCALAPPDATA\vcpkg\vcpkg.user.props" -Raw
 $vcpkgMatch     = [regex]::Match($vcpkgProps, 'Project="([^"]+)\\scripts\\buildsystems\\msbuild\\vcpkg\.props"')
@@ -276,9 +288,31 @@ $libsOut    = Join-Path $PSScriptRoot "build\cerflibs"
 $coreDevMode = if ($Mode -eq "production") { "OFF" } else { "ON" }
 if ($Rebuild -and (Test-Path $libsOut)) { Remove-Item $libsOut -Recurse -Force }
 
+$libsGenerator = @{
+    CMAKE_GENERATOR          = $vsGenerator
+    CMAKE_GENERATOR_PLATFORM = "Win32"
+    CMAKE_GENERATOR_TOOLSET  = "version=$toolsVersion"
+    CMAKE_GENERATOR_INSTANCE = $vsRoot
+}
+$libsCache = Join-Path $libsOut "CMakeCache.txt"
+if (Test-Path $libsCache) {
+    $cachedGenerator = @{}
+    foreach ($line in Get-Content $libsCache) {
+        if ($line -match '^(CMAKE_GENERATOR(?:_PLATFORM|_TOOLSET|_INSTANCE)?):[A-Z]+=(.*)$') {
+            $cachedGenerator[$Matches[1]] = $Matches[2]
+        }
+    }
+    $changedGenerator = $libsGenerator.Keys | Where-Object { $cachedGenerator[$_] -cne $libsGenerator[$_] }
+    if ($changedGenerator) {
+        Write-Host "[LIBS] $($changedGenerator -join ', ') changed; configuring $libsOut from scratch"
+        Remove-Item $libsOut -Recurse -Force
+    }
+}
+
 Write-Host "[LIBS] libCerfEngine, libCerfCore, libCerfFrontend ($Config)"
-& $cmake -S $PSScriptRoot -B $libsOut -G "Visual Studio $($vsVersion.Major) $vsYear" -A Win32 `
-    -T "version=$toolsVersion" "-DCMAKE_GENERATOR_INSTANCE=$vsRoot" `
+& $cmake -S $PSScriptRoot -B $libsOut -G $libsGenerator.CMAKE_GENERATOR `
+    -A $libsGenerator.CMAKE_GENERATOR_PLATFORM -T $libsGenerator.CMAKE_GENERATOR_TOOLSET `
+    "-DCMAKE_GENERATOR_INSTANCE=$($libsGenerator.CMAKE_GENERATOR_INSTANCE)" `
     '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `
     "-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded" `
     "-DCMAKE_PREFIX_PATH=$vcpkgInstalled\$vcpkgTriplet" `

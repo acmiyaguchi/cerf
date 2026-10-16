@@ -9,24 +9,26 @@
 
 namespace {
 
-class Win32UserAlert : public UserAlert {
+class Win32UserAlert : public cerfcore::UserAlert {
 public:
-    using UserAlert::UserAlert;
+    using cerfcore::UserAlert::UserAlert;
 
-    void Show(AlertLevel level, AlertPlacement placement, const std::string& title,
-              const std::string& text) override {
-        UINT flags = MB_OK | (level == AlertLevel::kError ? MB_ICONERROR : MB_ICONWARNING);
+    void Show(cerfcore::AlertLevel level, cerfcore::AlertPlacement placement,
+              const std::string& title, const std::string& text) override {
+        UINT flags =
+            MB_OK | (level == cerfcore::AlertLevel::kError ? MB_ICONERROR : MB_ICONWARNING);
         HWND owner = nullptr;
-        if (placement == AlertPlacement::kTopmost) flags |= MB_TASKMODAL | MB_TOPMOST;
-        if (placement == AlertPlacement::kOverWindow) owner = emu_.Get<HostWindow>().Hwnd();
-        MessageBoxW(owner, Utf8ToWide(text.c_str()).c_str(), Utf8ToWide(title.c_str()).c_str(),
-                    flags);
+        if (placement == cerfcore::AlertPlacement::kTopmost) flags |= MB_TASKMODAL | MB_TOPMOST;
+        if (placement == cerfcore::AlertPlacement::kOverWindow)
+            owner = emu_.Get<HostWindow>().Hwnd();
+        MessageBoxW(owner, cerfcore::Utf8ToWide(text.c_str()).c_str(),
+                    cerfcore::Utf8ToWide(title.c_str()).c_str(), flags);
     }
 
-    void Post(AlertLevel level, const std::string& title, const std::string& text,
+    void Post(cerfcore::AlertLevel level, const std::string& title, const std::string& text,
               std::function<void()> after) override {
         emu_.Get<HostWindow>().RunOnUiThread([this, level, title, text, after] {
-            Show(level, AlertPlacement::kStandalone, title, text);
+            Show(level, cerfcore::AlertPlacement::kStandalone, title, text);
             if (after) after();
         });
     }
@@ -34,4 +36,4 @@ public:
 
 }
 
-REGISTER_SERVICE_AS(Win32UserAlert, UserAlert);
+REGISTER_SERVICE_AS(Win32UserAlert, cerfcore::UserAlert);

@@ -29,7 +29,7 @@ public:
 
     /* Rebuilds rows when the snapshot changed for the active mode; returns true
        when the visible list was rebuilt (caller refreshes the window title). */
-    bool Update(const CerfVirtTaskManager::Snapshot& snap);
+    bool Update(const cerfcore::CerfVirtTaskManager::Snapshot& snap);
 
     bool SelectedProc(uint32_t* pid) const;
     bool SelectedWindow(uint32_t* hwnd, uint32_t* pid) const;
@@ -46,6 +46,6 @@ private:
     int      displayed_ = 0;
     WNDPROC  list_base_proc_ = nullptr;   /* dark-mode header-text subclass */
     COLORREF header_text_    = RGB(0, 0, 0);
-    std::vector<CerfVirtTaskManager::ProcEntry> procs_;
-    std::vector<CerfVirtTaskManager::WinEntry>  wins_;
+    std::vector<cerfcore::CerfVirtTaskManager::ProcEntry> procs_;
+    std::vector<cerfcore::CerfVirtTaskManager::WinEntry>  wins_;
 };

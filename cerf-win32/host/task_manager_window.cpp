@@ -14,7 +14,7 @@
 
 #include <cstdio>
 
-REGISTER_SERVICE_AS(TaskManagerWindow, TaskManagerView);
+REGISTER_SERVICE_AS(TaskManagerWindow, cerfcore::TaskManagerView);
 
 namespace {
 
@@ -53,12 +53,12 @@ constexpr COLORREF kTabText    = RGB(230, 230, 230);
 
 const wchar_t* ActionName(uint32_t code) {
     switch (code) {
-        case CerfVirt::kTmCmdKill:        return L"kill";
-        case CerfVirt::kTmCmdSwitchTo:    return L"switch to";
-        case CerfVirt::kTmCmdSwitchToWin: return L"switch to";
-        case CerfVirt::kTmCmdRun:         return L"run";
-        case CerfVirt::kTmCmdList:        return L"list";
-        case CerfVirt::kTmCmdListWindows: return L"list";
+        case cerfcore::CerfVirt::kTmCmdKill:        return L"kill";
+        case cerfcore::CerfVirt::kTmCmdSwitchTo:    return L"switch to";
+        case cerfcore::CerfVirt::kTmCmdSwitchToWin: return L"switch to";
+        case cerfcore::CerfVirt::kTmCmdRun:         return L"run";
+        case cerfcore::CerfVirt::kTmCmdList:        return L"list";
+        case cerfcore::CerfVirt::kTmCmdListWindows: return L"list";
         default:                          return L"command";
     }
 }
@@ -66,7 +66,7 @@ const wchar_t* ActionName(uint32_t code) {
 }  /* namespace */
 
 bool TaskManagerWindow::ShouldRegister() {
-    return emu_.Get<DeviceConfig>().guest_additions;
+    return emu_.Get<cerfcore::DeviceConfig>().guest_additions;
 }
 
 void TaskManagerWindow::OnReady() {
@@ -160,7 +160,7 @@ void TaskManagerWindow::BuildControls() {
     btn_run_    = mk(L"BUTTON", L"Run", BS_DEFPUSHBUTTON | WS_TABSTOP, IDC_RUN);
     status_     = mk(L"STATIC", L"", SS_LEFTNOWORDWRAP, 0);
 
-    SendMessageW(run_edit_, EM_SETLIMITTEXT, CerfVirt::kTmRunMaxWchars, 0);
+    SendMessageW(run_edit_, EM_SETLIMITTEXT, cerfcore::CerfVirt::kTmRunMaxWchars, 0);
     SetWindowLongPtrW(run_edit_, GWLP_USERDATA, (LONG_PTR)this);
     run_edit_base_proc_ = (WNDPROC)SetWindowLongPtrW(
         run_edit_, GWLP_WNDPROC, (LONG_PTR)&TaskManagerWindow::RunEditProcStatic);
@@ -196,7 +196,7 @@ void TaskManagerWindow::LayoutControls() {
 }
 
 void TaskManagerWindow::RequestActiveList() {
-    auto& svc = emu_.Get<CerfVirtTaskManager>();
+    auto& svc = emu_.Get<cerfcore::CerfVirtTaskManager>();
     if (list_.GetMode() == TaskManagerListView::Mode::Windows)
         svc.RequestWindowList();
     else
@@ -213,12 +213,12 @@ void TaskManagerWindow::OnTabChanged() {
 }
 
 void TaskManagerWindow::OnTick() {
-    auto& svc = emu_.Get<CerfVirtTaskManager>();
+    auto& svc = emu_.Get<cerfcore::CerfVirtTaskManager>();
     RequestActiveList();
 
     if (auto r = svc.TakeActionResult()) {
         wchar_t buf[96];
-        if (r->code == CerfVirt::kTmCmdRun) {
+        if (r->code == cerfcore::CerfVirt::kTmCmdRun) {
             if (r->ticket == run_ticket_) {
                 if (r->ok) {
                     SetStatus(L"success", kClrOk);
@@ -228,8 +228,8 @@ void TaskManagerWindow::OnTick() {
                     SetStatus(buf, kClrFail);
                 }
             }
-        } else if (r->code == CerfVirt::kTmCmdList ||
-                   r->code == CerfVirt::kTmCmdListWindows) {
+        } else if (r->code == cerfcore::CerfVirt::kTmCmdList ||
+                   r->code == cerfcore::CerfVirt::kTmCmdListWindows) {
             if (!r->ok) {
                 _snwprintf_s(buf, _TRUNCATE, L"list failed (error %u)",
                              r->guest_err);
@@ -255,7 +255,7 @@ void TaskManagerWindow::OnTick() {
     }
 }
 
-void TaskManagerWindow::UpdateTitle(const CerfVirtTaskManager::Snapshot& snap) {
+void TaskManagerWindow::UpdateTitle(const cerfcore::CerfVirtTaskManager::Snapshot& snap) {
     wchar_t title[96];
     if (list_.GetMode() == TaskManagerListView::Mode::Windows) {
         /* One row per process; the count is processes shown, not raw windows. */
@@ -274,7 +274,7 @@ void TaskManagerWindow::UpdateTitle(const CerfVirtTaskManager::Snapshot& snap) {
 }
 
 void TaskManagerWindow::DoSwitchTo() {
-    auto& svc = emu_.Get<CerfVirtTaskManager>();
+    auto& svc = emu_.Get<cerfcore::CerfVirtTaskManager>();
     if (list_.GetMode() == TaskManagerListView::Mode::Windows) {
         uint32_t hwnd, pid;
         if (!list_.SelectedWindow(&hwnd, &pid)) {
@@ -305,16 +305,16 @@ void TaskManagerWindow::DoKill() {
         SetStatus(L"no process selected", kClrFail);
         return;
     }
-    emu_.Get<CerfVirtTaskManager>().RequestKill(pid);
+    emu_.Get<cerfcore::CerfVirtTaskManager>().RequestKill(pid);
     SetStatus(L"killing…", kClrInfo);
 }
 
 void TaskManagerWindow::DoRun() {
-    wchar_t buf[CerfVirt::kTmRunMaxWchars + 1] = { 0 };
-    GetWindowTextW(run_edit_, buf, (int)(CerfVirt::kTmRunMaxWchars + 1));
+    wchar_t buf[cerfcore::CerfVirt::kTmRunMaxWchars + 1] = { 0 };
+    GetWindowTextW(run_edit_, buf, (int)(cerfcore::CerfVirt::kTmRunMaxWchars + 1));
     const std::wstring cmd = buf;
     if (cmd.empty()) { SetStatus(L"enter a command", kClrFail); return; }
-    run_ticket_ = emu_.Get<CerfVirtTaskManager>().RequestRun(WideToUtf16(cmd));
+    run_ticket_ = emu_.Get<cerfcore::CerfVirtTaskManager>().RequestRun(cerfcore::WideToUtf16(cmd));
     if (run_ticket_ == 0) { SetStatus(L"failed", kClrFail); return; }
     SetStatus(L"running…", kClrInfo);
 }

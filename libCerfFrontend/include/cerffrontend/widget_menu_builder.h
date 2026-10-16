@@ -6,14 +6,18 @@
 
 #include <vector>
 
-class WidgetMenuBuilder : public Service {
-public:
-    using Service::Service;
+namespace cerffrontend {
 
-    std::vector<MenuItem> Build(const std::vector<WidgetControl>& controls);
+class WidgetMenuBuilder : public cerfcore::Service {
+public:
+    using cerfcore::Service::Service;
+
+    std::vector<MenuItem> Build(const std::vector<cerfcore::WidgetControl>& controls);
 
 private:
-    void Append(std::vector<MenuItem>& out, const std::vector<WidgetControl>& controls);
-    void AppendSlot(std::vector<MenuItem>& out, const SlotControl& slot);
-    std::vector<MenuItem> Entries(const std::vector<SlotEntry>& entries);
+    void Append(std::vector<MenuItem>& out, const std::vector<cerfcore::WidgetControl>& controls);
+    void AppendSlot(std::vector<MenuItem>& out, const cerfcore::SlotControl& slot);
+    std::vector<MenuItem> Entries(const std::vector<cerfcore::SlotEntry>& entries);
 };
+
+}

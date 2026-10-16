@@ -6,19 +6,19 @@
 #define NOMINMAX
 #include <windows.h>
 
-class WidgetIconPainter : public Service {
+class WidgetIconPainter : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
-    void Paint(HDC dc, const RECT& box, const WidgetIcon& icon);
+    void Paint(HDC dc, const RECT& box, const cerfcore::WidgetIcon& icon);
 
 private:
-    void Draw(HDC dc, const RECT& box, const ResourceIcon& icon);
-    void Draw(HDC dc, const RECT& box, const ChipIcon& icon);
-    void Draw(HDC dc, const RECT& box, const HardDiskIcon& icon);
-    void Draw(HDC dc, const RECT& box, const LedIcon& icon);
-    void Draw(HDC dc, const RECT& box, const LedGridIcon& icon);
-    void Draw(HDC dc, const RECT& box, const PowerInputIcon& icon);
-    void Draw(HDC dc, const RECT& box, const BatteryIcon& icon);
-    void Draw(HDC dc, const RECT& box, const FolderIcon& icon);
+    void Draw(HDC dc, const RECT& box, const cerfcore::ResourceIcon& icon);
+    void Draw(HDC dc, const RECT& box, const cerfcore::ChipIcon& icon);
+    void Draw(HDC dc, const RECT& box, const cerfcore::HardDiskIcon& icon);
+    void Draw(HDC dc, const RECT& box, const cerfcore::LedIcon& icon);
+    void Draw(HDC dc, const RECT& box, const cerfcore::LedGridIcon& icon);
+    void Draw(HDC dc, const RECT& box, const cerfcore::PowerInputIcon& icon);
+    void Draw(HDC dc, const RECT& box, const cerfcore::BatteryIcon& icon);
+    void Draw(HDC dc, const RECT& box, const cerfcore::FolderIcon& icon);
 };

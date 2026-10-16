@@ -5,9 +5,9 @@
 #include <atomic>
 #include <cstdint>
 
-class HostAutoResize : public GuestResizePolicy {
+class HostAutoResize : public cerfcore::GuestResizePolicy {
 public:
-    using GuestResizePolicy::GuestResizePolicy;
+    using cerfcore::GuestResizePolicy::GuestResizePolicy;
 
     bool ShouldRegister() override;
     void OnReady() override;

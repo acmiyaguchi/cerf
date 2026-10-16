@@ -4,6 +4,8 @@
 
 #include <cstdint>
 
+namespace cerffrontend {
+
 constexpr uint32_t kUartBootBarWidth  = 128;
 constexpr uint32_t kUartBootBarHeight = 16;
 
@@ -280,3 +282,5 @@ constexpr uint32_t kUartBootBarPixels[kUartBootBarWidth * kUartBootBarHeight] = 
     0x177AA6BC, 0x12809CB8, 0x0D769DC4, 0x08609FBF, 0x03AAAAAA, 0x00000000, 0x00000000, 0x00000000,
     0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000
 };
+
+}

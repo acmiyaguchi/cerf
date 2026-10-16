@@ -48,8 +48,8 @@ static CerfRszState* Rsz(void) { return &s_rsz; }
 
 static BOOL CerfMapRszRegs(CerfRszState* z) {
     if (z->regs) return TRUE;
-    z->regs = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + CerfVirt::kResizeOffset,
-                                               CerfVirt::kResizeSize);
+    z->regs = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + cerfcore::CerfVirt::kResizeOffset,
+                                               cerfcore::CerfVirt::kResizeSize);
     return z->regs != NULL;
 }
 

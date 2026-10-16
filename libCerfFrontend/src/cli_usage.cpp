@@ -6,6 +6,8 @@
 
 #include <cstdio>
 
+namespace cerffrontend {
+
 REGISTER_SERVICE(CliUsage);
 
 void CliUsage::Print(const char* prog) {
@@ -19,7 +21,8 @@ void CliUsage::Print(const char* prog) {
     printf("  --no-log=CATEGORIES      Disable specific categories\n");
     printf("  --log-file=PATH          Write logs to PATH (default cerf.log next to exe)\n");
     printf("  --flush-outputs          Flush log file after every write\n");
-    printf("  --timeout=SECONDS        Stop the run after SECONDS and exit with code %d\n", CERF_FATAL_TIMEOUT);
+    printf("  --timeout=SECONDS        Stop the run after SECONDS and exit with code %d\n",
+           cerfcore::CERF_FATAL_TIMEOUT);
     printf("  --allow-flood            Disable stdout anti-flood\n");
     printf("  --quiet                  Disable all log output\n");
     printf("  --disable-network        Force-disable network backend\n");
@@ -49,12 +52,14 @@ void CliUsage::Print(const char* prog) {
     printf("\n");
     printf("Board ids (cerf.json board.id / --board-id):\n  ");
     bool first = true;
-    for (const auto& b : emu_.Get<BoardDatabase>().Boards()) {
-        if (b.support_level != SupportLevel::BootableFull &&
-            b.support_level != SupportLevel::BootablePartial) continue;
+    for (const auto& b : emu_.Get<cerfcore::BoardDatabase>().Boards()) {
+        if (b.support_level != cerfcore::SupportLevel::BootableFull &&
+            b.support_level != cerfcore::SupportLevel::BootablePartial) continue;
         printf("%s%s", first ? "" : ", ", b.id.c_str());
         first = false;
     }
     printf("\n\n");
-    Log::PrintCategoryList();
+    cerfcore::Log::PrintCategoryList();
+}
+
 }

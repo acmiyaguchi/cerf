@@ -15,9 +15,9 @@ namespace Gdiplus { class Bitmap; }
    Advance() runs off the render loop's wall clock, never an internal timer: a
    separate timer would not freeze on pause and would keep ticking after the
    tab stops being rendered. */
-class BootScreen : public Service {
+class BootScreen : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~BootScreen() override;
 
     void OnReady() override;

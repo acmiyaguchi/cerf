@@ -9,9 +9,9 @@ namespace Gdiplus { class Bitmap; }
 
 /* The host's GDI+ facility: owns the process GDI+ token and the GDI+-backed
    operations host code shares. Plain GDI cannot anti-alias. */
-class HostGdiPlus : public Service {
+class HostGdiPlus : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~HostGdiPlus() override;
 
     void OnReady() override;

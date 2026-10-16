@@ -6,9 +6,11 @@
 #include <string>
 #include <vector>
 
-class FrontendConfig : public Service {
+namespace cerffrontend {
+
+class FrontendConfig : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void OnReady() override;
 
@@ -27,3 +29,5 @@ private:
     bool                 discord_rich_presence_ = false;
     std::vector<uint8_t> host_key_vks_;
 };
+
+}

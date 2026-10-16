@@ -11,11 +11,11 @@
 #include <utility>
 #include <vector>
 
-class HostWidget;
+namespace cerfcore { class HostWidget; }
 
-class HostStatusBar : public Service {
+class HostStatusBar : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~HostStatusBar() override;
 
     void OnReady() override;
@@ -28,26 +28,26 @@ public:
 
     HWND Hwnd() const { return hwnd_; }
 
-    bool WidgetScreenRect(const HostWidget* w, RECT& out) const;
+    bool WidgetScreenRect(const cerfcore::HostWidget* w, RECT& out) const;
     bool CaptureWidgetScreenRect(RECT& out) const;
 
 private:
     static LRESULT CALLBACK WndProcStatic(HWND, UINT, WPARAM, LPARAM);
     LRESULT WndProc(HWND, UINT, WPARAM, LPARAM);
 
-    bool Relayout(const std::vector<HostWidget*>& ordered);  /* true if boxes changed */
+    bool Relayout(const std::vector<cerfcore::HostWidget*>& ordered);
     void RebuildTooltips();
     void UpdateTipText(size_t idx, std::wstring text);       /* flicker-free live refresh */
-    HostWidget* WidgetAt(int x) const;
-    void SecondaryAction(HostWidget* w, int x, int y, UINT button_flag);
+    cerfcore::HostWidget* WidgetAt(int x) const;
+    void SecondaryAction(cerfcore::HostWidget* w, int x, int y, UINT button_flag);
 
     struct Glow {
         int  rx         = 0;
         int  tx         = 0;
         bool was_active = false;
     };
-    bool SampleActivity(HostWidget* w);
-    void DrawComposited(HDC dc, HostWidget* w, const RECT& box, COLORREF bar_bg);
+    bool SampleActivity(cerfcore::HostWidget* w);
+    void DrawComposited(HDC dc, cerfcore::HostWidget* w, const RECT& box, COLORREF bar_bg);
 
     HWND    hwnd_            = nullptr;
     HWND    tip_hwnd_        = nullptr;
@@ -59,8 +59,8 @@ private:
     /* UI-thread only. Right-to-left layout: terminal-range widgets pin to
        the right edge and always show; device widgets fill the space to their
        left, leftmost dropping off into the Actions menu on overflow. */
-    std::vector<std::pair<HostWidget*, RECT>> layout_;
+    std::vector<std::pair<cerfcore::HostWidget*, RECT>> layout_;
     std::vector<std::wstring>                 tip_texts_;   /* backs TTTOOLINFO ptrs */
     size_t                                    tip_count_ = 0;
-    std::unordered_map<const HostWidget*, Glow> glow_;
+    std::unordered_map<const cerfcore::HostWidget*, Glow> glow_;
 };

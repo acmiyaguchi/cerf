@@ -404,13 +404,13 @@ void CerfFsAfsInit(void) {
     InitializeCriticalSection(&af->cs);
     {
         unsigned char* base = (unsigned char*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kFsStageOffset, CerfVirt::kFsStageSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kFsStageOffset, cerfcore::CerfVirt::kFsStageSize);
         if (!base) {
             CERF_LOG("cerf_guest: foldershare stage map FAILED");
             return;
         }
-        af->pb    = (CerfFsServerPB*)(base + CerfVirt::kFsStagePbOff);
-        af->iobuf = base + CerfVirt::kFsStageIoOff;
+        af->pb    = (CerfFsServerPB*)(base + cerfcore::CerfVirt::kFsStagePbOff);
+        af->iobuf = base + cerfcore::CerfVirt::kFsStageIoOff;
     }
     memset(af->pb, 0, sizeof(*af->pb));
     af->pb->fStructureSize = sizeof(*af->pb);

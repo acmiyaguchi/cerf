@@ -138,7 +138,7 @@ void HostMenu::OnInitMenuPopup(HMENU popup) {
         AppendMenuW(actions, MF_STRING, kIdLoadState, L"Load state...");
         AppendMenuW(actions, MF_SEPARATOR, 0, nullptr);
         auto& host_key = emu_.Get<HostKeyBinding>();
-        auto& pause = emu_.Get<EmulationPause>();
+        auto& pause = emu_.Get<cerfcore::EmulationPause>();
         AppendMenuW(actions, MF_STRING | (pause.UserCanToggle() ? 0u : MF_GRAYED), kIdPause,
                     ((pause.IsUserPaused()
                           ? std::wstring(L"Resume\t") : std::wstring(L"Pause\t")) +
@@ -161,8 +161,8 @@ void HostMenu::HandleCommand(int id) {
 
     auto pick_state_path = [this](bool save) -> std::string {
         wchar_t path[MAX_PATH];
-        lstrcpynW(path, Utf8ToWide(emu_.Get<Hibernation>().DefaultStatePath().c_str()).c_str(),
-                  MAX_PATH);
+        const std::string state_path = emu_.Get<cerfcore::Hibernation>().DefaultStatePath();
+        lstrcpynW(path, cerfcore::Utf8ToWide(state_path.c_str()).c_str(), MAX_PATH);
         OPENFILENAMEW ofn{};
         ofn.lStructSize = sizeof(ofn);
         ofn.hwndOwner   = emu_.Get<HostWindow>().Hwnd();
@@ -173,26 +173,26 @@ void HostMenu::HandleCommand(int id) {
         ofn.Flags = OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR |
                     (save ? OFN_OVERWRITEPROMPT : OFN_FILEMUSTEXIST);
         const BOOL ok = save ? GetSaveFileNameW(&ofn) : GetOpenFileNameW(&ofn);
-        return ok ? WideToUtf8(path) : std::string();
+        return ok ? cerfcore::WideToUtf8(path) : std::string();
     };
 
     switch (id) {
         case kIdSaveState: {
             const std::string p = pick_state_path(true);
-            if (!p.empty()) emu_.Get<Hibernation>().SaveAsync(p);
+            if (!p.empty()) emu_.Get<cerfcore::Hibernation>().SaveAsync(p);
             break;
         }
         case kIdLoadState: {
             const std::string p = pick_state_path(false);
-            if (!p.empty()) emu_.Get<Hibernation>().RestoreAsync(p, false);
+            if (!p.empty()) emu_.Get<cerfcore::Hibernation>().RestoreAsync(p, false);
             break;
         }
-        case kIdPause:      emu_.Get<EmulationPause>().Toggle(); break;
+        case kIdPause:      emu_.Get<cerfcore::EmulationPause>().Toggle(); break;
         case kIdSettings:
             emu_.Get<SettingsTransaction>().Open(emu_.Get<HostWindow>().Hwnd());
             break;
         case kIdCtrlAltDel: emu_.Get<HostInputCapture>().SendCtrlAltDel(); break;
-        case kIdSoftReset:  emu_.Get<GuestCpuReset>().WarmReset(); break;
+        case kIdSoftReset:  emu_.Get<cerfcore::GuestCpuReset>().WarmReset(); break;
         case kIdHardReset:
             if (MessageBoxW(emu_.Get<HostWindow>().Hwnd(),
                     L"Hard reset clears all guest RAM.\n"
@@ -200,7 +200,7 @@ void HostMenu::HandleCommand(int id) {
                     L"Continue?",
                     L"Hard reset - CE Runtime Foundation",
                     MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) == IDYES) {
-                emu_.Get<GuestColdBoot>().RequestHardReset();
+                emu_.Get<cerfcore::GuestColdBoot>().RequestHardReset();
             }
             break;
         case kIdViewBoot:   canvas.SetTab(HostCanvas::Tab::Boot, true);        break;

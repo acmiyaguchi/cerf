@@ -6,10 +6,10 @@
 #include <cerfcore/peripherals/cerf_virt/cerf_virt_resize.h>
 #include <cerffrontend/guest_additions_ui_policy.h>
 
-REGISTER_SERVICE_AS(HostAutoResize, GuestResizePolicy);
+REGISTER_SERVICE_AS(HostAutoResize, cerfcore::GuestResizePolicy);
 
 bool HostAutoResize::ShouldRegister() {
-    return emu_.Get<DeviceConfig>().guest_additions;
+    return emu_.Get<cerfcore::DeviceConfig>().guest_additions;
 }
 
 void HostAutoResize::OnReady() {
@@ -17,7 +17,7 @@ void HostAutoResize::OnReady() {
 }
 
 bool HostAutoResize::Available() const {
-    return emu_.Get<GuestAdditionsUiPolicy>().LiveResizeAvailable();
+    return emu_.Get<cerffrontend::GuestAdditionsUiPolicy>().LiveResizeAvailable();
 }
 
 void HostAutoResize::SetEnabled(bool on) {
@@ -30,7 +30,6 @@ void HostAutoResize::OnUserResizeEnd(uint32_t canvas_w, uint32_t canvas_h) {
     if (canvas_w == last_w_ && canvas_h == last_h_) return;
     last_w_ = canvas_w;
     last_h_ = canvas_h;
-    emu_.Get<CerfVirtResize>().RequestResize(canvas_w, canvas_h);
-    emu_.Get<UserConfigWriter>().WriteConfigurableScreenSize(canvas_w,
-                                                             canvas_h);
+    emu_.Get<cerfcore::CerfVirtResize>().RequestResize(canvas_w, canvas_h);
+    emu_.Get<cerfcore::UserConfigWriter>().WriteConfigurableScreenSize(canvas_w, canvas_h);
 }

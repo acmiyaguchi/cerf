@@ -69,14 +69,14 @@ struct DlgBuf {
     void Str(const wchar_t* s) { for (; *s; ++s) W16(static_cast<uint16_t>(*s)); W16(0); }
 };
 
-class Win32NumberPrompt : public NumberPrompt {
+class Win32NumberPrompt : public cerfcore::NumberPrompt {
 public:
-    using NumberPrompt::NumberPrompt;
+    using cerfcore::NumberPrompt::NumberPrompt;
 
     uint32_t AskAtLeast(const std::string& title, const std::string& caption,
                         uint32_t minimum) override {
-        const std::wstring wide_title   = Utf8ToWide(title.c_str());
-        const std::wstring wide_caption = Utf8ToWide(caption.c_str());
+        const std::wstring wide_title   = cerfcore::Utf8ToWide(title.c_str());
+        const std::wstring wide_caption = cerfcore::Utf8ToWide(caption.c_str());
 
         DlgBuf t;
         t.W32(WS_POPUP | WS_BORDER | WS_CAPTION | WS_SYSMENU |
@@ -140,4 +140,4 @@ public:
 
 }
 
-REGISTER_SERVICE_AS(Win32NumberPrompt, NumberPrompt);
+REGISTER_SERVICE_AS(Win32NumberPrompt, cerfcore::NumberPrompt);

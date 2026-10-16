@@ -12,6 +12,11 @@ Put each core library at the repository root. Put third-party code in
 - A library builds and passes its own tests without its consumers. A consumer
   is a repository or a library that includes the library as a submodule. The
   library includes no file of a consumer, and it names no type of a consumer.
+- A library declares its names in its own namespace. A consumer can define a
+  global name that a library also defines. The program then breaks the
+  one-definition rule, and the linker accepts it with no error. A macro that a
+  consumer expands writes each library name in full, from the global
+  namespace.
 - A library calls no facility of a consumer, for example the log or the fatal
   path of the consumer. When a library must report a condition, it calls an
   interface that its consumer implements.

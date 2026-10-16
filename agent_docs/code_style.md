@@ -64,7 +64,9 @@ A **service** is a class owned by `CerfEmulator` via `ServiceRegistry`, accessed
 ```cpp
 /* foo_service.h */
 #pragma once
-#include "../core/service.h"
+#include <cerfcore/core/service.h>
+
+namespace cerfcore {
 
 class FooService : public Service {
 public:
@@ -74,8 +76,13 @@ public:
     bool DoThing(int arg);
 };
 
+}
+
 /* foo_service.cpp */
 #include "foo_service.h"
+
+namespace cerfcore {
+
 REGISTER_SERVICE(FooService);
 
 void FooService::OnReady() {
@@ -84,6 +91,8 @@ void FooService::OnReady() {
        dependencies via emu_.Get<BarService>(), spawn worker threads. */
 }
 bool FooService::DoThing(int arg) { /* ... */ }
+
+}
 ```
 
 - **One service = one `.h` + one `.cpp` pair, OR one anonymous-namespaced `.cpp` with no public header.** Two shapes, picked by whether other TUs need to name the class:

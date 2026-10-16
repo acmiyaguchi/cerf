@@ -328,8 +328,9 @@ extern "C" void CerfTaskManagerTick(void) {
     if (tm->dead) return;
 
     if (!tm->ready) {
-        tm->regs = (volatile ULONG*)CerfMapRegsPage(g_CerfVirtBase + CerfVirt::kTaskManagerOffset,
-                                                    CerfVirt::kTaskManagerSize);
+        tm->regs = (volatile ULONG*)CerfMapRegsPage(
+            g_CerfVirtBase + cerfcore::CerfVirt::kTaskManagerOffset,
+            cerfcore::CerfVirt::kTaskManagerSize);
         if (!tm->regs) {
             CERF_LOG("cerf_guest: tmpump map FAILED");
             tm->dead = TRUE;

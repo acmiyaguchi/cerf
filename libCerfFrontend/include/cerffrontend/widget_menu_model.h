@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+namespace cerffrontend {
+
 struct MenuItem {
     std::string           label;
     bool                  enabled = true;
@@ -11,3 +13,5 @@ struct MenuItem {
     std::function<void()> on_click;
     std::vector<MenuItem> submenu;
 };
+
+}

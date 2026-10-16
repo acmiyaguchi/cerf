@@ -19,7 +19,7 @@ void ModalDialog::RunModal(HWND owner, const wchar_t* class_name,
     if (hwnd_) {
         LOG(Caution, "ModalDialog::RunModal re-entered while '%ls' is open\n",
             title);
-        CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
+        cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
     }
 
     WNDCLASSEXW wc = {};

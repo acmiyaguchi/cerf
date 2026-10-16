@@ -3,10 +3,12 @@
 #include <cerfcore/boot/rom_parser_queries.h>
 #include <cerfcore/core/cerf_emulator.h>
 
+namespace cerffrontend {
+
 REGISTER_SERVICE(GuestAdditionsUiPolicy);
 
 bool GuestAdditionsUiPolicy::CeVersion(uint16_t& major, uint16_t& minor) const {
-    auto* rom = emu_.TryGet<RomParserQueries>();
+    auto* rom = emu_.TryGet<cerfcore::RomParserQueries>();
     return rom && rom->KernelSubsystemVersion(major, minor);
 }
 
@@ -14,4 +16,6 @@ bool GuestAdditionsUiPolicy::LiveResizeAvailable() const {
     uint16_t maj = 0, min = 0;
     if (!CeVersion(maj, min)) return true;
     return maj > 3;
+}
+
 }

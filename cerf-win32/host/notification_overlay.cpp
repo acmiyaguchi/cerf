@@ -52,7 +52,7 @@ NotificationOverlay::~NotificationOverlay() {
 }
 
 void NotificationOverlay::RenderInto(HWND canvas, HDC dc, int dib_w, int dib_h) {
-    auto& stack = emu_.Get<NotificationStack>();
+    auto& stack = emu_.Get<cerfcore::NotificationStack>();
     const uint64_t gen = stack.Generation();
     if (gen == gen_ && cards_.empty()) return;
 
@@ -94,8 +94,8 @@ void NotificationOverlay::EnsureFonts(int px) {
                            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
                            VARIABLE_PITCH | FF_SWISS, face);
     if (!bold_ || !regular_)
-        emu_.Get<Fatal>().Die("NotificationOverlay: CreateFontW %dpx failed (gle=%lu)",
-                              px, GetLastError());
+        emu_.Get<cerfcore::Fatal>().Die("NotificationOverlay: CreateFontW %dpx failed (gle=%lu)",
+                                        px, GetLastError());
     font_px_ = px;
 }
 
@@ -138,7 +138,7 @@ void NotificationOverlay::Relayout(HDC dc, int w, int h, UINT dpi) {
         Placed p;
         p.id   = cards_[i].id;
         p.kind = cards_[i].kind;
-        const std::wstring text = Utf8ToWide(cards_[i].text.c_str());
+        const std::wstring text = cerfcore::Utf8ToWide(cards_[i].text.c_str());
         const size_t nl = text.find(L'\n');
         p.title = text.substr(0, nl);
         if (nl != std::wstring::npos) p.body = text.substr(nl + 1);
@@ -195,7 +195,7 @@ void NotificationOverlay::Draw(HDC dc) {
     for (auto it = placed_.rbegin(); it != placed_.rend(); ++it) {
         const Placed& p = *it;
         const Palette& pal = p.more ? kMore
-                           : p.kind == NotificationKind::Error ? kError : kWarning;
+                           : p.kind == cerfcore::NotificationKind::Error ? kError : kWarning;
         RECT shadow = p.box;
         OffsetRect(&shadow, 0, shadow_);
         gdip.FillRoundRectAlphaAA(dc, shadow, radius_, RGB(0, 0, 0), kShadowAlpha);

@@ -7,9 +7,9 @@
 
 #include <cstdint>
 
-class HostCanvasInput : public Service {
+class HostCanvasInput : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     /* Returns true (with `out` set) when the message is consumed; `out` is
        the WndProc result HostCanvas returns. */

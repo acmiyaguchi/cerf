@@ -10,32 +10,32 @@
 
 static void CerfAutorunReadEntry(const volatile ULONG* regs, ULONG idx, WCHAR* out) {
     const volatile ULONG* words =
-        regs + (CerfVirt::kArEntries + idx * CerfVirt::kArEntryStride) / 4;
+        regs + (cerfcore::CerfVirt::kArEntries + idx * cerfcore::CerfVirt::kArEntryStride) / 4;
     ULONG i;
-    for (i = 0; i < CerfVirt::kArEntryWchars / 2; ++i) {
+    for (i = 0; i < cerfcore::CerfVirt::kArEntryWchars / 2; ++i) {
         ULONG v = words[i];
         out[i * 2]     = (WCHAR)(v & 0xFFFFu);
         out[i * 2 + 1] = (WCHAR)(v >> 16);
     }
-    out[CerfVirt::kArEntryWchars] = 0;
+    out[cerfcore::CerfVirt::kArEntryWchars] = 0;
 }
 
 static DWORD WINAPI CerfAutorunThread(LPVOID) {
     volatile ULONG* regs = (volatile ULONG*)CerfMapRegsPage(
-        g_CerfVirtBase + CerfVirt::kAutorunOffset, CerfVirt::kAutorunSize);
+        g_CerfVirtBase + cerfcore::CerfVirt::kAutorunOffset, cerfcore::CerfVirt::kAutorunSize);
     ULONG count, i;
     if (!regs) {
         CERF_LOG("cerf_guest: autorun map FAILED");
         return 0;
     }
-    if (regs[CerfVirt::kArPresent / 4] != CerfVirt::kArMagic) {
+    if (regs[cerfcore::CerfVirt::kArPresent / 4] != cerfcore::CerfVirt::kArMagic) {
         CERF_LOG("cerf_guest: autorun list empty");
         return 0;
     }
-    count = regs[CerfVirt::kArCount / 4];
+    count = regs[cerfcore::CerfVirt::kArCount / 4];
     CERF_LOG_X("cerf_guest: autorun entries", count);
     for (i = 0; i < count; ++i) {
-        WCHAR cmd[CerfVirt::kArEntryWchars + 1];
+        WCHAR cmd[cerfcore::CerfVirt::kArEntryWchars + 1];
         DWORD err = 0;
         BOOL  ok;
         CerfAutorunReadEntry(regs, i, cmd);

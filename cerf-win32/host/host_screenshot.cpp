@@ -65,7 +65,7 @@ void HostScreenshot::Save() {
         return;
     }
     SavePixels(px, w, h,
-               Utf8ToWide(emu_.Get<DeviceConfig>().device_name.c_str()));
+               cerfcore::Utf8ToWide(emu_.Get<cerfcore::DeviceConfig>().device_name.c_str()));
 }
 
 void HostScreenshot::Copy() {
@@ -112,7 +112,8 @@ void HostScreenshot::SavePixels(const std::vector<uint32_t>& px, uint32_t w,
                                 uint32_t h, const std::wstring& name_hint) {
     if (px.empty() || w == 0 || h == 0) return;
 
-    const std::wstring dir = Utf8ToWide(GetCerfDir().c_str()) + L"screenshots\\";
+    const std::wstring dir =
+        cerfcore::Utf8ToWide(cerfcore::GetCerfDir().c_str()) + L"screenshots\\";
     CreateDirectoryW(dir.c_str(), nullptr);  /* ok if it already exists */
 
     const std::wstring path =

@@ -19,13 +19,13 @@ public:
     /* source may be null - the main canvas binds the board FrameRenderer via
        TryGet, which yields null on a board with no renderer (matching the
        prior HostCanvas behavior). A VGA card always passes its own producer. */
-    explicit CanvasPresenter(FrameSource* source) : source_(source) {}
+    explicit CanvasPresenter(cerfcore::FrameSource* source) : source_(source) {}
     ~CanvasPresenter();
 
     /* Late-bind the producer when it isn't known at presenter construction
        (HostCanvas resolves the board FrameRenderer only once its window is
        created). Bound once, before the first ComposeInto. */
-    void SetSource(FrameSource* source) { source_ = source; }
+    void SetSource(cerfcore::FrameSource* source) { source_ = source; }
 
     /* Whether the producer currently has a frame - drives the owner's
        auto-switch-to-framebuffer decision, independent of what is composed. */
@@ -102,7 +102,7 @@ private:
     };
     Layout ComputeLayout(int canvas_w, int canvas_h) const;
 
-    FrameSource* source_;
+    cerfcore::FrameSource* source_;
 
     HWND      hwnd_      = nullptr;
     HDC       guest_dc_  = nullptr;   /* wraps guest_dib_ (surface-sized) */

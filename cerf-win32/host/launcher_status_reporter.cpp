@@ -18,19 +18,19 @@
 
 namespace {
 
-class LauncherStatusReporter : public Service {
+class LauncherStatusReporter : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     ~LauncherStatusReporter() override { Stop(); }
     void OnShutdown() override { Stop(); }
 
     void OnReady() override {
-        const std::string name = emu_.Get<DeviceConfig>().device_name;
+        const std::string name = emu_.Get<cerfcore::DeviceConfig>().device_name;
         if (name.empty()) return;
-        const std::string dir = GetDeviceDir(name);
+        const std::string dir = cerfcore::GetDeviceDir(name);
         status_path_ =
-            (std::filesystem::path(Utf8ToWide(dir.c_str())) / L"cerf-status.json")
+            (std::filesystem::path(cerfcore::Utf8ToWide(dir.c_str())) / L"cerf-status.json")
                 .wstring();
         started_unix_ = NowUnix();
         thread_ = std::thread([this] { HeartbeatLoop(); });

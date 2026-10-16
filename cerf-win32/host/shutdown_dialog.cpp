@@ -112,14 +112,14 @@ void ShutdownDialog::SyncActionBlock() {
 
 void ShutdownDialog::CommitOk() {
     switch (SelectedAction()) {
-        case 1: choice_ = ShutdownChoice::SoftReset; break;
-        case 2: choice_ = ShutdownChoice::HardReset; break;
+        case 1: choice_ = cerfcore::ShutdownChoice::SoftReset; break;
+        case 2: choice_ = cerfcore::ShutdownChoice::HardReset; break;
         default: {
             const bool save =
                 SendMessageW(chk_save_, BM_GETCHECK, 0, 0) == BST_CHECKED;
             if (SendMessageW(chk_remember_, BM_GETCHECK, 0, 0) == BST_CHECKED)
-                emu_.Get<FrontendConfig>().SaveLastSaveStateMode(save);
-            choice_ = save ? ShutdownChoice::ExitSave : ShutdownChoice::Exit;
+                emu_.Get<cerffrontend::FrontendConfig>().SaveLastSaveStateMode(save);
+            choice_ = save ? cerfcore::ShutdownChoice::ExitSave : cerfcore::ShutdownChoice::Exit;
             break;
         }
     }
@@ -140,7 +140,7 @@ void ShutdownDialog::BuildControls(HWND hwnd) {
                                nullptr);
     };
 
-    const wchar_t* intro = (trigger_ == ShutdownTrigger::DeepSleep)
+    const wchar_t* intro = (trigger_ == cerfcore::ShutdownTrigger::DeepSleep)
         ? L"The guest OS has requested a shut down."
         : L"You have requested a shut down.";
     mk(L"STATIC", intro, SS_LEFT, S(kTextX), cb + S(kIntroDy),
@@ -160,14 +160,14 @@ void ShutdownDialog::BuildControls(HWND hwnd) {
 
     const int block_y = cb + S(kBlockDy);
     const unsigned long long mb =
-        emu_.Get<EmulatedMemory>().VolatileByteCount() >> 20;
+        emu_.Get<cerfcore::EmulatedMemory>().VolatileByteCount() >> 20;
     wchar_t save_text[64];
     swprintf(save_text, 64, L"Save the state (%llu MB, ", mb);
     chk_save_ = mk(L"BUTTON", save_text, BS_AUTOCHECKBOX | WS_TABSTOP,
                    S(kTextX), block_y, cw - S(kTextX) - S(kMarginR),
                    S(kRowH), IDC_SAVE);
     SendMessageW(chk_save_, BM_SETCHECK,
-                 emu_.Get<FrontendConfig>().LastSaveStateMode()
+                 emu_.Get<cerffrontend::FrontendConfig>().LastSaveStateMode()
                      ? BST_CHECKED : BST_UNCHECKED, 0);
 
     save_link_ = mk(WC_LINK, kSaveLinkMarkup, WS_TABSTOP, S(kTextX), block_y,
@@ -189,7 +189,7 @@ void ShutdownDialog::BuildControls(HWND hwnd) {
        cw - S(kMarginR + kBtnGap) - 2 * S(kBtnW), btn_y, S(kBtnW), S(kBtnH),
        IDOK);
     mk(L"BUTTON",
-       trigger_ == ShutdownTrigger::DeepSleep ? L"Resume" : L"Cancel",
+       trigger_ == cerfcore::ShutdownTrigger::DeepSleep ? L"Resume" : L"Cancel",
        BS_PUSHBUTTON | WS_TABSTOP,
        cw - S(kMarginR) - S(kBtnW), btn_y, S(kBtnW), S(kBtnH), IDCANCEL);
 
@@ -277,7 +277,7 @@ void ShutdownDialog::OnCommand(int id, int notify) {
         return;
     }
     if (id == IDCANCEL) {
-        choice_ = ShutdownChoice::Cancel;
+        choice_ = cerfcore::ShutdownChoice::Cancel;
         Finish();
         return;
     }
@@ -331,13 +331,13 @@ void ShutdownDialog::DismissAsCancel() {
     PostDismiss();
 }
 
-ShutdownChoice ShutdownDialog::Show(ShutdownTrigger trigger) {
-    if (IsOpen()) return ShutdownChoice::Cancel;
+cerfcore::ShutdownChoice ShutdownDialog::Show(cerfcore::ShutdownTrigger trigger) {
+    if (IsOpen()) return cerfcore::ShutdownChoice::Cancel;
 
     HWND owner = emu_.Get<HostWindow>().Hwnd();
     trigger_        = trigger;
-    choice_         = ShutdownChoice::Cancel;
-    timer_on_       = (trigger == ShutdownTrigger::WindowClose);
+    choice_         = cerfcore::ShutdownChoice::Cancel;
+    timer_on_       = (trigger == cerfcore::ShutdownTrigger::WindowClose);
     remaining_ms_   = kTotalMs;
     painted_fill_w_ = -1;
     painted_secs_   = -1;

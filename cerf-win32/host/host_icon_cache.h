@@ -11,9 +11,9 @@
 
 /* Renders cerf.rc ICON resources for status-bar widgets, sized to fit the
    widget box, with a per-(resource,size) HICON cache. UI-thread only. */
-class HostIconCache : public Service {
+class HostIconCache : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~HostIconCache() override;
 
     void DrawCentered(HDC dc, const RECT& box, const std::string& res_name);

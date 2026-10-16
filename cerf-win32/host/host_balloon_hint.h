@@ -7,16 +7,16 @@
 
 #include <string>
 
-class HostWidget;
+namespace cerfcore { class HostWidget; }
 
-class HostBalloonHint : public Service {
+class HostBalloonHint : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void OnReady() override;
     void OnShutdown() override;
 
-    void ShowUnderWidget(const HostWidget* anchor, const wchar_t* text,
+    void ShowUnderWidget(const cerfcore::HostWidget* anchor, const wchar_t* text,
                          UINT hold_ms);
     void ShowUnderCaptureWidget(const wchar_t* text, UINT hold_ms);
 

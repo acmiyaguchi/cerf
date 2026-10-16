@@ -4,9 +4,11 @@
 
 #include <atomic>
 
-class PointerStylusSimulation : public Service {
+namespace cerffrontend {
+
+class PointerStylusSimulation : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     bool Enabled() const { return enabled_.load(std::memory_order_acquire); }
     void SetEnabled(bool on) { enabled_.store(on, std::memory_order_release); }
@@ -14,3 +16,5 @@ public:
 private:
     std::atomic<bool> enabled_{false};
 };
+
+}

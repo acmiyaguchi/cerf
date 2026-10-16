@@ -7,7 +7,8 @@ class ShutdownDialog : public ModalDialog {
 public:
     using ModalDialog::ModalDialog;
 
-    ShutdownChoice Show(ShutdownTrigger trigger = ShutdownTrigger::WindowClose);
+    cerfcore::ShutdownChoice Show(
+        cerfcore::ShutdownTrigger trigger = cerfcore::ShutdownTrigger::WindowClose);
 
     void DismissAsCancel();
 
@@ -36,8 +37,8 @@ private:
     HWND chk_remember_ = nullptr;
     HWND desc_         = nullptr;
 
-    ShutdownTrigger trigger_ = ShutdownTrigger::WindowClose;
-    ShutdownChoice  choice_  = ShutdownChoice::Cancel;
+    cerfcore::ShutdownTrigger trigger_ = cerfcore::ShutdownTrigger::WindowClose;
+    cerfcore::ShutdownChoice  choice_  = cerfcore::ShutdownChoice::Cancel;
 
     int  band_h_    = 0;
     bool timer_on_  = false;

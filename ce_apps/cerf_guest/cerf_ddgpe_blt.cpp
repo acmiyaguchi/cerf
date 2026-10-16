@@ -100,7 +100,7 @@ static void CerfNarrowToMask(int* x0, int* y0, int* x1, int* y1, GPESurf* s,
                        *x0, *y0, *x1, *y1, w, h);
 }
 
-static void CerfStageSurface(CerfVirt::CerfBltSurface* s, ULONG buffer_va,
+static void CerfStageSurface(cerfcore::CerfVirt::CerfBltSurface* s, ULONG buffer_va,
                              int x0, int y0, int x1, int y1,
                              int stride, int bits, CerfStageWb* wb) {
     LONG  lo_off;
@@ -156,11 +156,11 @@ SCODE CerfDDGPE::BltPrepare(GPEBltParms* p) {
     return S_OK;
 }
 
-void CerfDDGPE::RectToDesc(CerfVirt::CerfBltRect* r, const RECTL* s) {
+void CerfDDGPE::RectToDesc(cerfcore::CerfVirt::CerfBltRect* r, const RECTL* s) {
     r->left = s->left; r->top = s->top; r->right = s->right; r->bottom = s->bottom;
 }
 
-void CerfDDGPE::FillSurface(CerfVirt::CerfBltSurface* s, GPESurf* surf,
+void CerfDDGPE::FillSurface(cerfcore::CerfVirt::CerfBltSurface* s, GPESurf* surf,
                             int x0, int y0, int x1, int y1, bool host_writes,
                             bool read_palette, CerfStageWb* wb) {
     ULONG pa;
@@ -183,17 +183,17 @@ void CerfDDGPE::FillSurface(CerfVirt::CerfBltSurface* s, GPESurf* surf,
     if (surf->IsRotate()) {
         s->is_rotate = 1u;
         switch (surf->Rotate()) {
-            case DMDO_90:  s->rotate = CerfVirt::kCerfRotate90;  break;
-            case DMDO_180: s->rotate = CerfVirt::kCerfRotate180; break;
-            case DMDO_270: s->rotate = CerfVirt::kCerfRotate270; break;
-            default:       s->rotate = CerfVirt::kCerfRotate0;   break;
+            case DMDO_90:  s->rotate = cerfcore::CerfVirt::kCerfRotate90;  break;
+            case DMDO_180: s->rotate = cerfcore::CerfVirt::kCerfRotate180; break;
+            case DMDO_270: s->rotate = cerfcore::CerfVirt::kCerfRotate270; break;
+            default:       s->rotate = cerfcore::CerfVirt::kCerfRotate0;   break;
         }
         s->screen_w = (uint32_t)surf->ScreenWidth();
         s->screen_h = (uint32_t)surf->ScreenHeight();
     }
 }
 
-void CerfDDGPE::FillSurfaceFromSurfobj(CerfVirt::CerfBltSurface* s, SURFOBJ* pso,
+void CerfDDGPE::FillSurfaceFromSurfobj(cerfcore::CerfVirt::CerfBltSurface* s, SURFOBJ* pso,
                                       int y0, int y1, CerfStageWb* wb) {
     if (!pso) return;
     if (pso->dhsurf) {
@@ -226,12 +226,12 @@ void CerfDDGPE::EmitBltBand(const CerfBltBand& b, GPEBltParms* p, int r0, int r1
 
     if (!CerfArenaEnter()) CERF_FATAL("cerf_guest: DMA arena unavailable - halting");
     ULONG desc_off = 0u;
-    CerfVirt::CerfBltDescriptor* pd = (CerfVirt::CerfBltDescriptor*)
-        CerfArenaAlloc((ULONG)sizeof(CerfVirt::CerfBltDescriptor), &desc_off);
+    cerfcore::CerfVirt::CerfBltDescriptor* pd = (cerfcore::CerfVirt::CerfBltDescriptor*)
+        CerfArenaAlloc((ULONG)sizeof(cerfcore::CerfVirt::CerfBltDescriptor), &desc_off);
     if (!pd) CERF_FATAL("cerf_guest: DMA arena descriptor alloc failed - halting");
-    CerfVirt::CerfBltDescriptor& d = *pd;
+    cerfcore::CerfVirt::CerfBltDescriptor& d = *pd;
     memset(&d, 0, sizeof(d));
-    d.magic          = CerfVirt::kCerfBltMagic;
+    d.magic          = cerfcore::CerfVirt::kCerfBltMagic;
     d.rop4           = (uint32_t)p->rop4;
     d.blt_flags      = (uint32_t)p->bltFlags;
     d.solid_color    = (uint32_t)p->solidColor;
@@ -276,8 +276,8 @@ void CerfDDGPE::EmitBltBand(const CerfBltBand& b, GPEBltParms* p, int r0, int r1
         FillSurface(&d.mask, p->pMask, mxa, mya, mxb, myb, false);
         if (b.mask_bits == 8)
             d.cleartype_indices = (g_OsMajor >= 4u)
-                ? CerfVirt::kCerfClearTypeLevelIndices
-                : CerfVirt::kCerfClearTypeSampleCountIndices;
+                ? cerfcore::CerfVirt::kCerfClearTypeLevelIndices
+                : cerfcore::CerfVirt::kCerfClearTypeSampleCountIndices;
     }
     if (b.has_brush) {
         d.has_brush    = 1u;
@@ -387,8 +387,8 @@ SCODE CerfDDGPE::HwBlt(GPEBltParms* p) {
             CERF_FATAL("cerf_guest: HwBlt brush has no buffer - halting");
         brush_t      = p->pptlBrush ? (bh - p->pptlBrush->y) : 0;
     }
-    ULONG budget = CerfVirt::kDmaPartitionSize - CerfVirt::kDmaPartHdrSize
-                   - (ULONG)sizeof(CerfVirt::CerfBltDescriptor)
+    ULONG budget = cerfcore::CerfVirt::kDmaPartitionSize - cerfcore::CerfVirt::kDmaPartHdrSize
+                   - (ULONG)sizeof(cerfcore::CerfVirt::CerfBltDescriptor)
                    - lut_bytes - 64u;
 
     bool brush_banded = false;

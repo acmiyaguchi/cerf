@@ -6,15 +6,15 @@
 
 namespace {
 
-class Win32ShutdownHost : public ShutdownHost {
+class Win32ShutdownHost : public cerfcore::ShutdownHost {
 public:
-    using ShutdownHost::ShutdownHost;
+    using cerfcore::ShutdownHost::ShutdownHost;
 
     void RunPromptJob(std::function<void()> job) override {
         emu_.Get<HostWindow>().RunOnUiThread(std::move(job));
     }
 
-    ShutdownChoice Ask(ShutdownTrigger trigger) override {
+    cerfcore::ShutdownChoice Ask(cerfcore::ShutdownTrigger trigger) override {
         return emu_.Get<ShutdownDialog>().Show(trigger);
     }
 
@@ -26,4 +26,4 @@ public:
 
 }
 
-REGISTER_SERVICE_AS(Win32ShutdownHost, ShutdownHost);
+REGISTER_SERVICE_AS(Win32ShutdownHost, cerfcore::ShutdownHost);

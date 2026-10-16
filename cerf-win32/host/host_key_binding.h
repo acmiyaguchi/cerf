@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
-class HostKeyBinding : public Service {
+class HostKeyBinding : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void OnReady() override;
 

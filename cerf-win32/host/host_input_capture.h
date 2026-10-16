@@ -8,9 +8,9 @@
 #include <atomic>
 #include <cstdint>
 
-class HostInputCapture : public Service {
+class HostInputCapture : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~HostInputCapture() override;
 
     /* UI thread only: the LL hook fires on the installing thread, so it

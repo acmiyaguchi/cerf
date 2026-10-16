@@ -8,19 +8,19 @@ REGISTER_SERVICE(WidgetIconPainter);
 
 namespace {
 
-COLORREF Rgb(const WidgetRgb& c) { return RGB(c.r, c.g, c.b); }
+COLORREF Rgb(const cerfcore::WidgetRgb& c) { return RGB(c.r, c.g, c.b); }
 
 }
 
-void WidgetIconPainter::Paint(HDC dc, const RECT& box, const WidgetIcon& icon) {
+void WidgetIconPainter::Paint(HDC dc, const RECT& box, const cerfcore::WidgetIcon& icon) {
     std::visit([&](const auto& i) { Draw(dc, box, i); }, icon);
 }
 
-void WidgetIconPainter::Draw(HDC dc, const RECT& box, const ResourceIcon& icon) {
+void WidgetIconPainter::Draw(HDC dc, const RECT& box, const cerfcore::ResourceIcon& icon) {
     emu_.Get<HostIconCache>().DrawCentered(dc, box, icon.name);
 }
 
-void WidgetIconPainter::Draw(HDC dc, const RECT& box, const ChipIcon&) {
+void WidgetIconPainter::Draw(HDC dc, const RECT& box, const cerfcore::ChipIcon&) {
     const int cx = (box.left + box.right) / 2;
     const int cy = (box.top + box.bottom) / 2;
     const RECT body = { cx - 8, cy - 6, cx + 8, cy + 6 };
@@ -41,7 +41,7 @@ void WidgetIconPainter::Draw(HDC dc, const RECT& box, const ChipIcon&) {
     DeleteObject(pen);
 }
 
-void WidgetIconPainter::Draw(HDC dc, const RECT& box, const HardDiskIcon&) {
+void WidgetIconPainter::Draw(HDC dc, const RECT& box, const cerfcore::HardDiskIcon&) {
     const int cx = (box.left + box.right) / 2;
     const int cy = (box.top + box.bottom) / 2;
     RECT body = { cx - 8, cy - 6, cx + 8, cy + 6 };
@@ -62,7 +62,7 @@ void WidgetIconPainter::Draw(HDC dc, const RECT& box, const HardDiskIcon&) {
     DeleteObject(pen);
 }
 
-void WidgetIconPainter::Draw(HDC dc, const RECT& box, const LedIcon& icon) {
+void WidgetIconPainter::Draw(HDC dc, const RECT& box, const cerfcore::LedIcon& icon) {
     const int cx = (box.left + box.right) / 2;
     const int cy = (box.top + box.bottom) / 2;
     const int r  = icon.radius;
@@ -85,7 +85,7 @@ void WidgetIconPainter::Draw(HDC dc, const RECT& box, const LedIcon& icon) {
     emu_.Get<HostGdiPlus>().FillCircleAA(dc, cx, cy, r, Rgb(icon.fill), Rgb(icon.rim));
 }
 
-void WidgetIconPainter::Draw(HDC dc, const RECT& box, const LedGridIcon& icon) {
+void WidgetIconPainter::Draw(HDC dc, const RECT& box, const cerfcore::LedGridIcon& icon) {
     constexpr int kCell = 4, kGap = 1;
     const int grid_w = 4 * kCell + 3 * kGap;
     const int grid_h = 2 * kCell + 1 * kGap;
@@ -110,7 +110,7 @@ void WidgetIconPainter::Draw(HDC dc, const RECT& box, const LedGridIcon& icon) {
     DeleteObject(pen);
 }
 
-void WidgetIconPainter::Draw(HDC dc, const RECT& box, const PowerInputIcon& icon) {
+void WidgetIconPainter::Draw(HDC dc, const RECT& box, const cerfcore::PowerInputIcon& icon) {
     const COLORREF outline = icon.failed ? RGB(245, 105, 105) : RGB(155, 165, 175);
     const COLORREF fill = icon.failed ? RGB(105, 28, 28) : RGB(38, 48, 58);
     const int cx = (box.left + box.right) / 2;
@@ -133,9 +133,9 @@ void WidgetIconPainter::Draw(HDC dc, const RECT& box, const PowerInputIcon& icon
     DeleteObject(pen);
 }
 
-void WidgetIconPainter::Draw(HDC dc, const RECT& box, const BatteryIcon& icon) {
-    const COLORREF lvl = icon.level == BatteryLevel::kHigh ? RGB(78, 201, 90)
-                       : icon.level == BatteryLevel::kLow  ? RGB(220, 200, 60)
+void WidgetIconPainter::Draw(HDC dc, const RECT& box, const cerfcore::BatteryIcon& icon) {
+    const COLORREF lvl = icon.level == cerfcore::BatteryLevel::kHigh ? RGB(78, 201, 90)
+                       : icon.level == cerfcore::BatteryLevel::kLow  ? RGB(220, 200, 60)
                                                            : RGB(229, 80, 80);
 
     const int cx = (box.left + box.right) / 2;
@@ -180,7 +180,7 @@ void WidgetIconPainter::Draw(HDC dc, const RECT& box, const BatteryIcon& icon) {
     DeleteObject(pen);
 }
 
-void WidgetIconPainter::Draw(HDC dc, const RECT& box, const FolderIcon& icon) {
+void WidgetIconPainter::Draw(HDC dc, const RECT& box, const cerfcore::FolderIcon& icon) {
     const COLORREF clr = icon.enabled ? RGB(232, 196, 92) : RGB(224, 224, 224);
     const int cx = (box.left + box.right) / 2;
     const int cy = (box.top + box.bottom) / 2;

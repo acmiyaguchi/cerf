@@ -29,11 +29,11 @@ void HostCanvasInput::ReleasePenIfDown() {
     if (!pen_down_) return;
     pen_down_ = false;
     if (GetCapture() == emu_.Get<HostCanvas>().Hwnd()) ReleaseCapture();
-    if (auto* t = emu_.TryGet<TouchInput>()) t->OnCaptureLost();
+    if (auto* t = emu_.TryGet<cerfcore::TouchInput>()) t->OnCaptureLost();
 }
 
 bool HostCanvasInput::RoutePointerInput(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-    auto* pi = emu_.TryGet<PointerInput>();
+    auto* pi = emu_.TryGet<cerfcore::PointerInput>();
     auto& hc = emu_.Get<HostCanvas>();
     if (!pi || hc.CurrentTab() != HostCanvas::Tab::Framebuffer) return false;
 
@@ -60,13 +60,13 @@ bool HostCanvasInput::RoutePointerInput(HWND hwnd, UINT msg, WPARAM wp, LPARAM l
 
     const WORD ks = LOWORD(wp);
     uint32_t mask = 0;
-    if (ks & MK_LBUTTON) mask |= kPointerLeft;
-    if (ks & MK_RBUTTON) mask |= kPointerRight;
-    if (ks & MK_MBUTTON) mask |= kPointerMiddle;
+    if (ks & MK_LBUTTON) mask |= cerfcore::kPointerLeft;
+    if (ks & MK_RBUTTON) mask |= cerfcore::kPointerRight;
+    if (ks & MK_MBUTTON) mask |= cerfcore::kPointerMiddle;
 
-    const bool held   = (mask & (kPointerLeft | kPointerRight)) != 0;
+    const bool held   = (mask & (cerfcore::kPointerLeft | cerfcore::kPointerRight)) != 0;
     const bool report = down || up || held ||
-                        !emu_.Get<PointerStylusSimulation>().Enabled();
+                        !emu_.Get<cerffrontend::PointerStylusSimulation>().Enabled();
     if (report) pi->OnMove(sx, sy, mask);
 
     if (up && mask == 0) ReleaseCapture();
@@ -99,7 +99,7 @@ bool HostCanvasInput::RouteCapturedMouse(HWND hwnd, UINT msg, WPARAM wp,
         msg == WM_LBUTTONUP   || msg == WM_RBUTTONUP;
     if (!is_mouse) return false;
 
-    auto* rm = emu_.TryGet<RelativeMouseInput>();
+    auto* rm = emu_.TryGet<cerfcore::RelativeMouseInput>();
     if (!rm) return false;   /* board has no relative pointer device */
 
     if (!mouse_locked_active_) {
@@ -114,8 +114,8 @@ bool HostCanvasInput::RouteCapturedMouse(HWND hwnd, UINT msg, WPARAM wp,
 
     uint32_t mask = 0;
     const WORD ks = LOWORD(wp);
-    if (ks & MK_LBUTTON) mask |= kRelMouseLeft;
-    if (ks & MK_RBUTTON) mask |= kRelMouseRight;
+    if (ks & MK_LBUTTON) mask |= cerfcore::kRelMouseLeft;
+    if (ks & MK_RBUTTON) mask |= cerfcore::kRelMouseRight;
 
     if (msg == WM_MOUSEMOVE) {
         RECT rc;
@@ -166,7 +166,7 @@ bool HostCanvasInput::RouteNotificationInput(HWND hwnd, UINT msg, LPARAM lp,
         return true;
     }
     notification_click_mask_ |= button;
-    if (msg == WM_LBUTTONDOWN) emu_.Get<NotificationStack>().Dismiss(id);
+    if (msg == WM_LBUTTONDOWN) emu_.Get<cerfcore::NotificationStack>().Dismiss(id);
     return true;
 }
 
@@ -178,10 +178,10 @@ bool HostCanvasInput::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT&
 
     const bool framebuffer = hc.CurrentTab() == HostCanvas::Tab::Framebuffer;
 
-    PointerKind kind = PointerKind::Absolute;
-    if (auto* a = emu_.Get<PointerRouter>().Active()) kind = a->Kind();
-    const bool relative_active = kind == PointerKind::Relative;
-    const bool stylus_active   = kind == PointerKind::Stylus;
+    cerfcore::PointerKind kind = cerfcore::PointerKind::Absolute;
+    if (auto* a = emu_.Get<cerfcore::PointerRouter>().Active()) kind = a->Kind();
+    const bool relative_active = kind == cerfcore::PointerKind::Relative;
+    const bool stylus_active   = kind == cerfcore::PointerKind::Stylus;
 
     auto* cap = emu_.TryGet<HostInputCapture>();
     const bool locked = relative_active && cap && cap->IsCaptured() && framebuffer;
@@ -227,7 +227,7 @@ bool HostCanvasInput::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT&
        isn't driven, and HostGuestCursor's latched-hidden state would SetCursor(NULL)
        and blank the host cursor, leaving nothing to aim taps with. */
     if (msg == WM_SETCURSOR && LOWORD(lp) == HTCLIENT && framebuffer &&
-        kind == PointerKind::Absolute) {
+        kind == cerfcore::PointerKind::Absolute) {
         bool active = false;
         HCURSOR cur = emu_.Get<HostGuestCursor>().Resolve(active);
         if (active) {
@@ -239,7 +239,7 @@ bool HostCanvasInput::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT&
     }
 
     /* Absolute GA pointer: free host cursor mapped to guest pixels. */
-    if (kind == PointerKind::Absolute && RoutePointerInput(hwnd, msg, wp, lp))
+    if (kind == cerfcore::PointerKind::Absolute && RoutePointerInput(hwnd, msg, wp, lp))
         return true;
 
     /* Stylus: drive the raw touch panel (the path calibration apps read below
@@ -265,7 +265,7 @@ bool HostCanvasInput::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT&
                     return true;
                 pen_down_ = true;
                 SetCapture(hwnd);
-                if (auto* t = emu_.TryGet<TouchInput>()) t->OnPenDown(sx, sy);
+                if (auto* t = emu_.TryGet<cerfcore::TouchInput>()) t->OnPenDown(sx, sy);
                 return true;
             }
             case WM_MOUSEMOVE: {
@@ -273,7 +273,7 @@ bool HostCanvasInput::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT&
                 int sx, sy;
                 hc.HostToGuest((int)(short)LOWORD(lp), (int)(short)HIWORD(lp), sx, sy);
                 hc.ClampGuest(sx, sy);
-                if (auto* t = emu_.TryGet<TouchInput>()) t->OnPenMove(sx, sy);
+                if (auto* t = emu_.TryGet<cerfcore::TouchInput>()) t->OnPenMove(sx, sy);
                 return true;
             }
             case WM_LBUTTONUP: {
@@ -283,13 +283,13 @@ bool HostCanvasInput::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT&
                 int sx, sy;
                 hc.HostToGuest((int)(short)LOWORD(lp), (int)(short)HIWORD(lp), sx, sy);
                 hc.ClampGuest(sx, sy);
-                if (auto* t = emu_.TryGet<TouchInput>()) t->OnPenUp(sx, sy);
+                if (auto* t = emu_.TryGet<cerfcore::TouchInput>()) t->OnPenUp(sx, sy);
                 return true;
             }
             case WM_CAPTURECHANGED: {
                 if (pen_down_) {
                     pen_down_ = false;
-                    if (auto* t = emu_.TryGet<TouchInput>()) t->OnCaptureLost();
+                    if (auto* t = emu_.TryGet<cerfcore::TouchInput>()) t->OnCaptureLost();
                 }
                 return true;
             }
@@ -300,7 +300,8 @@ bool HostCanvasInput::Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT&
         case WM_KEYDOWN:
         case WM_KEYUP:
             if (framebuffer)
-                emu_.Get<KeyboardRouter>().OnHostKey(static_cast<uint8_t>(wp), msg == WM_KEYUP);
+                emu_.Get<cerfcore::KeyboardRouter>().OnHostKey(static_cast<uint8_t>(wp),
+                                                               msg == WM_KEYUP);
             return true;
         default:
             return false;

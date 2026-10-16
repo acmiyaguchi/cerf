@@ -18,9 +18,9 @@ REGISTER_SERVICE(HostCanvas);
 
 void HostCanvas::CreateOn(HWND parent, const RECT& rect,
                           uint32_t surf_w, uint32_t surf_h) {
-    tab_ = emu_.Get<DeviceConfig>().start_tab;
-    canvas_.SetSource(emu_.TryGet<FrameRenderer>());
-    const int rate = emu_.Get<RefreshRateService>().GetRefreshRate();
+    tab_ = emu_.Get<cerfcore::DeviceConfig>().start_tab;
+    canvas_.SetSource(emu_.TryGet<cerfcore::FrameRenderer>());
+    const int rate = emu_.Get<cerfcore::RefreshRateService>().GetRefreshRate();
     const UINT interval = rate > 0 ? (UINT)(1000 / rate) : 16;
     canvas_.CreateOn(parent, rect, surf_w, surf_h, interval < 1 ? 1 : interval);
     emu_.Get<HostFocusPolicy>().Focus(canvas_.Hwnd());
@@ -72,7 +72,8 @@ bool HostCanvas::RenderAltContent(HDC dc, uint32_t* bits, int w, int h) {
 
 bool HostCanvas::ShouldDesaturatePresent() {
     return tab_ == Tab::Framebuffer &&
-           (emu_.Get<EmulationPause>().IsPaused() || emu_.Get<GuestDeepSleep>().Asleep());
+           (emu_.Get<cerfcore::EmulationPause>().IsPaused() ||
+            emu_.Get<cerfcore::GuestDeepSleep>().Asleep());
 }
 
 void HostCanvas::RenderOverlay(HDC dc, int w, int h) {

@@ -5,11 +5,12 @@
 #include <QApplication>
 
 int main(int argc, char* argv[]) {
-    Log::SetCrashPresenter(&QtCrashReport::Present);
+    cerfcore::Log::SetCrashPresenter(&QtCrashReport::Present);
     QApplication app(argc, argv);
-    CerfConfig cfg;
-    if (const std::optional<int> exit_code = FrontendLaunch::ParseArgs(argc, argv, cfg))
+    cerfcore::CerfConfig cfg;
+    if (const std::optional<int> exit_code =
+            cerffrontend::FrontendLaunch::ParseArgs(argc, argv, cfg))
         return *exit_code;
-    FrontendLaunch::OpenLog();
-    return FrontendLaunch::RunEmulator(cfg, argc, argv);
+    cerffrontend::FrontendLaunch::OpenLog();
+    return cerffrontend::FrontendLaunch::RunEmulator(cfg, argc, argv);
 }

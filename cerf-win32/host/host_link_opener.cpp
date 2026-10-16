@@ -7,10 +7,10 @@
 #include <cerfcore/core/cerf_emulator.h>
 #include <cerfcore/platform/wide_text_win32.h>
 
-REGISTER_SERVICE_AS(HostLinkOpener, LinkOpener);
+REGISTER_SERVICE_AS(HostLinkOpener, cerffrontend::LinkOpener);
 
 void HostLinkOpener::Open(const std::string& url) {
-    Open(nullptr, Utf8ToWide(url.c_str()).c_str());
+    Open(nullptr, cerfcore::Utf8ToWide(url.c_str()).c_str());
 }
 
 void HostLinkOpener::Open(HWND owner, const wchar_t* url) {

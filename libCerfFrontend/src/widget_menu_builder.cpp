@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <utility>
 
+namespace cerffrontend {
+
 REGISTER_SERVICE(WidgetMenuBuilder);
 
 namespace {
@@ -19,19 +21,20 @@ void Trim(std::vector<MenuItem>& out) {
     while (!out.empty() && out.back().label.empty()) out.pop_back();
 }
 
-const char* InsertLabel(SlotKind kind) {
+const char* InsertLabel(cerfcore::SlotKind kind) {
     switch (kind) {
-        case SlotKind::kPcCard:
-        case SlotKind::kSerialPort: return "Insert card";
-        case SlotKind::kUsbDisk:
-        case SlotKind::kSdCard:     return "Insert media";
+        case cerfcore::SlotKind::kPcCard:
+        case cerfcore::SlotKind::kSerialPort: return "Insert card";
+        case cerfcore::SlotKind::kUsbDisk:
+        case cerfcore::SlotKind::kSdCard:     return "Insert media";
     }
     return "Insert";
 }
 
 }
 
-std::vector<MenuItem> WidgetMenuBuilder::Build(const std::vector<WidgetControl>& controls) {
+std::vector<MenuItem> WidgetMenuBuilder::Build(
+    const std::vector<cerfcore::WidgetControl>& controls) {
     std::vector<MenuItem> out;
     Append(out, controls);
     Trim(out);
@@ -39,49 +42,49 @@ std::vector<MenuItem> WidgetMenuBuilder::Build(const std::vector<WidgetControl>&
 }
 
 void WidgetMenuBuilder::Append(std::vector<MenuItem>& out,
-                               const std::vector<WidgetControl>& controls) {
+                               const std::vector<cerfcore::WidgetControl>& controls) {
     bool after_section = false;
-    for (const WidgetControl& c : controls) {
+    for (const cerfcore::WidgetControl& c : controls) {
         if (after_section) {
             Separate(out);
             after_section = false;
         }
         std::visit([&](const auto& v) {
             using T = std::decay_t<decltype(v)>;
-            if constexpr (std::is_same_v<T, InfoControl>) {
+            if constexpr (std::is_same_v<T, cerfcore::InfoControl>) {
                 MenuItem item;
                 item.label   = v.text;
                 item.enabled = false;
                 out.push_back(std::move(item));
-            } else if constexpr (std::is_same_v<T, LinkControl>) {
+            } else if constexpr (std::is_same_v<T, cerfcore::LinkControl>) {
                 MenuItem item;
                 item.label    = v.label;
                 item.on_click = [this, url = v.url] { emu_.Get<LinkOpener>().Open(url); };
                 out.push_back(std::move(item));
-            } else if constexpr (std::is_same_v<T, ActionControl>) {
+            } else if constexpr (std::is_same_v<T, cerfcore::ActionControl>) {
                 MenuItem item;
                 item.label    = v.label;
                 item.enabled  = v.enabled;
                 item.on_click = v.press;
                 out.push_back(std::move(item));
-            } else if constexpr (std::is_same_v<T, ToggleControl>) {
+            } else if constexpr (std::is_same_v<T, cerfcore::ToggleControl>) {
                 MenuItem item;
                 item.label    = v.label;
                 item.enabled  = v.enabled;
                 item.checked  = v.value;
                 if (v.set) item.on_click = [set = v.set, next = !v.value] { set(next); };
                 out.push_back(std::move(item));
-            } else if constexpr (std::is_same_v<T, ChoiceControl>) {
-                for (const ChoiceOption& o : v.options) {
+            } else if constexpr (std::is_same_v<T, cerfcore::ChoiceControl>) {
+                for (const cerfcore::ChoiceOption& o : v.options) {
                     MenuItem item;
                     item.label    = o.label;
                     item.checked  = o.id == v.selected;
                     if (v.select) item.on_click = [select = v.select, id = o.id] { select(id); };
                     out.push_back(std::move(item));
                 }
-            } else if constexpr (std::is_same_v<T, SlotControl>) {
+            } else if constexpr (std::is_same_v<T, cerfcore::SlotControl>) {
                 AppendSlot(out, v);
-            } else if constexpr (std::is_same_v<T, GroupControl>) {
+            } else if constexpr (std::is_same_v<T, cerfcore::GroupControl>) {
                 if (v.label.empty()) {
                     Separate(out);
                     Append(out, v.children);
@@ -98,7 +101,7 @@ void WidgetMenuBuilder::Append(std::vector<MenuItem>& out,
     }
 }
 
-void WidgetMenuBuilder::AppendSlot(std::vector<MenuItem>& out, const SlotControl& slot) {
+void WidgetMenuBuilder::AppendSlot(std::vector<MenuItem>& out, const cerfcore::SlotControl& slot) {
     if (!slot.inserted) {
         MenuItem insert;
         insert.label   = InsertLabel(slot.kind);
@@ -128,9 +131,9 @@ void WidgetMenuBuilder::AppendSlot(std::vector<MenuItem>& out, const SlotControl
     }
 }
 
-std::vector<MenuItem> WidgetMenuBuilder::Entries(const std::vector<SlotEntry>& entries) {
+std::vector<MenuItem> WidgetMenuBuilder::Entries(const std::vector<cerfcore::SlotEntry>& entries) {
     std::vector<MenuItem> out;
-    for (const SlotEntry& e : entries) {
+    for (const cerfcore::SlotEntry& e : entries) {
         MenuItem item;
         item.label   = e.label;
         item.enabled = e.enabled;
@@ -155,4 +158,6 @@ std::vector<MenuItem> WidgetMenuBuilder::Entries(const std::vector<SlotEntry>& e
         out.push_back(std::move(item));
     }
     return out;
+}
+
 }

@@ -59,7 +59,7 @@ std::wstring VkLabel(uint8_t vk) {
 }
 
 void HostKeyBinding::OnReady() {
-    vks_ = emu_.Get<FrontendConfig>().HostKeyVks();
+    vks_ = emu_.Get<cerffrontend::FrontendConfig>().HostKeyVks();
     if (vks_.empty()) vks_.push_back(kFallbackHostKeyVk);
 
     for (size_t i = 0; i < vks_.size(); i++) {

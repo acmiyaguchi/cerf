@@ -8,15 +8,15 @@
 #include <cstdint>
 
 struct KeyCap;
-struct KeyBinding;
+namespace cerfcore { struct KeyBinding; }
 
 /* Modal dialog showing the host PC keyboard as a replica: each key is dimmed
    when the board maps nothing to it, else lit with its legend and (when the
    guest action differs) what it maps to. Clicking a holdable modifier (e.g. Fn)
    previews that layer's bindings. UI-thread only. */
-class KeyboardMappingDialog : public KeyboardMappingView {
+class KeyboardMappingDialog : public cerfcore::KeyboardMappingView {
 public:
-    using KeyboardMappingView::KeyboardMappingView;
+    using cerfcore::KeyboardMappingView::KeyboardMappingView;
 
     bool ShouldRegister() override;
     void OnReady() override;
@@ -32,7 +32,7 @@ private:
     void DrawCap(HDC dc, const KeyCap& cap);
     RECT CapRect(const KeyCap& cap) const;
     RECT ToggleRect(int index) const;   /* lock-layer checkbox in the header. */
-    const KeyBinding* FindBinding(uint8_t vk, uint8_t layer) const;
+    const cerfcore::KeyBinding* FindBinding(uint8_t vk, uint8_t layer) const;
     void OnClick(int x, int y);
 
     HWND    hwnd_         = nullptr;

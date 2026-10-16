@@ -9,9 +9,9 @@
    undocumented UAH menu messages - best-effort, no-ops on an OS that
    doesn't send them. */
 
-class HostDarkMode : public Service {
+class HostDarkMode : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~HostDarkMode() override;
 
     void Init();                 /* once: load ordinals, app dark mode */

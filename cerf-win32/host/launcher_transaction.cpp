@@ -25,7 +25,7 @@ void LauncherTransaction::Complain(HWND owner, const std::wstring& text) {
 }
 
 bool LauncherTransaction::LocateLauncher(HWND owner, std::wstring& exe) {
-    exe = Utf8ToWide(GetCerfDir().c_str()) + kLauncherExe;
+    exe = cerfcore::Utf8ToWide(cerfcore::GetCerfDir().c_str()) + kLauncherExe;
     const DWORD attrs = GetFileAttributesW(exe.c_str());
     if (attrs != INVALID_FILE_ATTRIBUTES &&
         (attrs & FILE_ATTRIBUTE_DIRECTORY) == 0)
@@ -37,13 +37,13 @@ bool LauncherTransaction::LocateLauncher(HWND owner, std::wstring& exe) {
 
 bool LauncherTransaction::WriteRequest(HWND owner, const std::string& path,
                                        const nlohmann::json& request) {
-    std::ofstream f(Utf8ToWide(path.c_str()), std::ios::trunc | std::ios::binary);
+    std::ofstream f(cerfcore::Utf8ToWide(path.c_str()), std::ios::trunc | std::ios::binary);
     if (f.is_open()) {
         f << request.dump(2) << '\n';
         if (f.good()) return true;
     }
     Complain(owner, L"CERF could not write its request for the configuration "
-                    L"window.\n\n" + Utf8ToWide(path.c_str()));
+                    L"window.\n\n" + cerfcore::Utf8ToWide(path.c_str()));
     return false;
 }
 
@@ -71,9 +71,9 @@ bool LauncherTransaction::Spawn(HWND owner, const std::wstring& exe,
     _snwprintf_s(owner_arg, _TRUNCATE, L"%llu",
                  (unsigned long long)(uintptr_t)owner);
     std::wstring cmd = L"\"" + exe + L"\" transactional \"" +
-                       Utf8ToWide(device.c_str()) + L"\" \"" +
-                       Utf8ToWide(file.c_str()) + L"\" " + owner_arg;
-    const std::wstring cwd = Utf8ToWide(GetCerfDir().c_str());
+                       cerfcore::Utf8ToWide(device.c_str()) + L"\" \"" +
+                       cerfcore::Utf8ToWide(file.c_str()) + L"\" " + owner_arg;
+    const std::wstring cwd = cerfcore::Utf8ToWide(cerfcore::GetCerfDir().c_str());
 
     STARTUPINFOW si = {};
     si.cb = sizeof(si);
@@ -110,10 +110,10 @@ bool LauncherTransaction::ReadResponse(HWND owner, const std::string& path,
                                        nlohmann::json& response) {
     nlohmann::json parsed;
     {
-        std::ifstream f(Utf8ToWide(path.c_str()));
+        std::ifstream f(cerfcore::Utf8ToWide(path.c_str()));
         if (!f.is_open()) {
             Complain(owner, L"The configuration window left no answer "
-                            L"behind.\n\n" + Utf8ToWide(path.c_str()));
+                            L"behind.\n\n" + cerfcore::Utf8ToWide(path.c_str()));
             return false;
         }
         try {
@@ -121,7 +121,7 @@ bool LauncherTransaction::ReadResponse(HWND owner, const std::string& path,
         } catch (const std::exception&) {
             Complain(owner, L"CERF could not read the answer from the "
                             L"configuration window.\n\n" +
-                                Utf8ToWide(path.c_str()));
+                                cerfcore::Utf8ToWide(path.c_str()));
             return false;
         }
     }
@@ -145,17 +145,17 @@ bool LauncherTransaction::Run(HWND owner, const char* scaffolding,
         nlohmann::json request;
         request[scaffolding]["query"] = query;
 
-        const std::string device = emu_.Get<DeviceConfig>().device_name;
+        const std::string device = emu_.Get<cerfcore::DeviceConfig>().device_name;
         char file[64];
         _snprintf_s(file, _TRUNCATE, "transactional-%08lX-%04X.json",
                     GetCurrentProcessId(), ++serial_);
-        const std::string path = GetDeviceDir(device) + file;
+        const std::string path = cerfcore::GetDeviceDir(device) + file;
 
         ok = WriteRequest(owner, path, request);
         if (ok) {
             ok = Spawn(owner, exe, device, file);
             if (ok) ok = ReadResponse(owner, path, scaffolding, response);
-            DeleteFileW(Utf8ToWide(path.c_str()).c_str());
+            DeleteFileW(cerfcore::Utf8ToWide(path.c_str()).c_str());
         }
     }
 

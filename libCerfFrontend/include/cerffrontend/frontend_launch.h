@@ -4,9 +4,13 @@
 
 #include <optional>
 
+namespace cerffrontend {
+
 class FrontendLaunch {
 public:
-    static std::optional<int> ParseArgs(int argc, char** argv, CerfConfig& cfg);
+    static std::optional<int> ParseArgs(int argc, char** argv, cerfcore::CerfConfig& cfg);
     static void OpenLog();
-    static int  RunEmulator(const CerfConfig& cfg, int argc, char** argv);
+    static int  RunEmulator(const cerfcore::CerfConfig& cfg, int argc, char** argv);
 };
+
+}

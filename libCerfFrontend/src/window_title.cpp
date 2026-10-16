@@ -8,21 +8,23 @@
 
 #include <vector>
 
+namespace cerffrontend {
+
 REGISTER_SERVICE(WindowTitle);
 
 std::string WindowTitle::Compose() const {
-    const DeviceConfig& cfg = emu_.Get<DeviceConfig>();
-    const DeviceMeta& meta = cfg.meta;
+    const cerfcore::DeviceConfig& cfg = emu_.Get<cerfcore::DeviceConfig>();
+    const cerfcore::DeviceMeta& meta = cfg.meta;
 
     std::vector<std::string> parts;
     if (!meta.name.empty())
         parts.push_back(meta.name);
     else if (!meta.device_name.empty())
         parts.push_back(meta.device_name);
-    else if (const DbBoard* board =
-                 emu_.Get<BoardDatabase>().FindBoard(cfg.board_id))
+    else if (const cerfcore::DbBoard* board =
+                 emu_.Get<cerfcore::BoardDatabase>().FindBoard(cfg.board_id))
         parts.push_back(board->name);
-    const std::string os = OsDisplayLabel(meta);
+    const std::string os = cerfcore::OsDisplayLabel(meta);
     if (!os.empty())
         parts.push_back(os);
     parts.push_back("CERF " CERF_VERSION_DISPLAY_STR);
@@ -33,4 +35,6 @@ std::string WindowTitle::Compose() const {
         title += parts[i];
     }
     return title;
+}
+
 }

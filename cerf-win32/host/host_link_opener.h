@@ -5,9 +5,9 @@
 #define NOMINMAX
 #include <windows.h>
 
-class HostLinkOpener : public LinkOpener {
+class HostLinkOpener : public cerffrontend::LinkOpener {
 public:
-    using LinkOpener::LinkOpener;
+    using cerffrontend::LinkOpener::LinkOpener;
 
     void Open(const std::string& url) override;
     void Open(HWND owner, const wchar_t* url);

@@ -9,9 +9,9 @@
 
 namespace {
 
-class Win32HostPresentation : public HostPresentation {
+class Win32HostPresentation : public cerfcore::HostPresentation {
 public:
-    using HostPresentation::HostPresentation;
+    using cerfcore::HostPresentation::HostPresentation;
 
     void PanelEnabled() override { emu_.Get<HostWindow>().OnLcdEnabled(); }
 
@@ -30,7 +30,7 @@ public:
     }
 
     void SaveScreenshot(const std::string& path) override {
-        const std::wstring wide = Utf8ToWide(path.c_str());
+        const std::wstring wide = cerfcore::Utf8ToWide(path.c_str());
         emu_.Get<HostWindow>().RunOnUiThread([this, wide] {
             emu_.Get<HostScreenshot>().SaveGuestSurfaceTo(wide);
         });
@@ -43,4 +43,4 @@ public:
 
 }
 
-REGISTER_SERVICE_AS(Win32HostPresentation, HostPresentation);
+REGISTER_SERVICE_AS(Win32HostPresentation, cerfcore::HostPresentation);

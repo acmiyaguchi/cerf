@@ -7,13 +7,13 @@
 
 REGISTER_SERVICE(WidgetMenuBinder);
 
-void WidgetMenuBinder::AppendItems(HMENU menu, const std::vector<MenuItem>& items) {
+void WidgetMenuBinder::AppendItems(HMENU menu, const std::vector<cerffrontend::MenuItem>& items) {
     for (const auto& it : items) {
         if (it.label.empty()) {
             AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
             continue;
         }
-        const std::wstring label = Utf8ToWide(it.label.c_str());
+        const std::wstring label = cerfcore::Utf8ToWide(it.label.c_str());
         if (!it.submenu.empty()) {
             HMENU sub = CreatePopupMenu();
             AppendItems(sub, it.submenu);
@@ -33,7 +33,7 @@ void WidgetMenuBinder::AppendItems(HMENU menu, const std::vector<MenuItem>& item
     }
 }
 
-HMENU WidgetMenuBinder::BuildContextMenu(const std::vector<MenuItem>& items) {
+HMENU WidgetMenuBinder::BuildContextMenu(const std::vector<cerffrontend::MenuItem>& items) {
     id_callbacks_.clear();
     HMENU m = CreatePopupMenu();
     AppendItems(m, items);
@@ -42,11 +42,11 @@ HMENU WidgetMenuBinder::BuildContextMenu(const std::vector<MenuItem>& items) {
 
 void WidgetMenuBinder::AppendAllToMenu(HMENU dest) {
     id_callbacks_.clear();
-    auto ordered = emu_.Get<HostWidgetRegistry>().Ordered();
+    auto ordered = emu_.Get<cerfcore::HostWidgetRegistry>().Ordered();
     for (auto it = ordered.rbegin(); it != ordered.rend(); ++it) {
-        HostWidget* w = *it;
-        auto items = emu_.Get<WidgetMenuBuilder>().Build(w->Controls());
-        const std::wstring name = Utf8ToWide(w->WidgetName().c_str());
+        cerfcore::HostWidget* w = *it;
+        auto items = emu_.Get<cerffrontend::WidgetMenuBuilder>().Build(w->Controls());
+        const std::wstring name = cerfcore::Utf8ToWide(w->WidgetName().c_str());
         if (items.empty()) {
             AppendMenuW(dest, MF_STRING | MF_GRAYED, 0, name.c_str());
         } else if (items.size() == 1 && items[0].submenu.empty()) {

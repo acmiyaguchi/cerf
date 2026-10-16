@@ -7,9 +7,9 @@
 
 namespace Gdiplus { class Bitmap; }
 
-class DialogBand : public Service {
+class DialogBand : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     void OnShutdown() override;
 

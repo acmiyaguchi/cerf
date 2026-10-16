@@ -14,9 +14,9 @@
 #include <string>
 #include <thread>
 
-class HostWindow : public Service {
+class HostWindow : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
     ~HostWindow() override;
     void OnReady() override;
     void OnShutdown() override;

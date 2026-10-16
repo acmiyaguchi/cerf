@@ -25,10 +25,12 @@ void CerfArenaProcessAttach(void) {
 static BOOL CerfArenaMap(CerfArenaState* a) {
     if (!a->arena_va)
         a->arena_va = (volatile UCHAR*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kDmaArenaOffset, CerfVirt::kDmaArenaSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kDmaArenaOffset,
+            cerfcore::CerfVirt::kDmaArenaSize);
     if (!a->ctl)
         a->ctl = (volatile ULONG*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kArenaCtlOffset, CerfVirt::kArenaCtlSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kArenaCtlOffset,
+            cerfcore::CerfVirt::kArenaCtlSize);
     return a->arena_va != 0 && a->ctl != 0;
 }
 
@@ -38,11 +40,12 @@ static BOOL CerfArenaEnsure(CerfArenaState* a) {
     if (a->base_set) return TRUE;
     if (!CerfArenaMap(a)) return FALSE;
     pid = GetCurrentProcessId();
-    a->ctl[CerfVirt::kArenaCtlClaimPid / 4] = (ULONG)pid;
-    for (i = 0; i < CerfVirt::kDmaArenaProcMax; ++i) {
-        const ULONG off = i * CerfVirt::kDmaPartitionSize + CerfVirt::kDmaPartOwnerPid;
+    a->ctl[cerfcore::CerfVirt::kArenaCtlClaimPid / 4] = (ULONG)pid;
+    for (i = 0; i < cerfcore::CerfVirt::kDmaArenaProcMax; ++i) {
+        const ULONG off =
+            i * cerfcore::CerfVirt::kDmaPartitionSize + cerfcore::CerfVirt::kDmaPartOwnerPid;
         if (*(volatile ULONG*)(a->arena_va + off) == (ULONG)pid) {
-            a->base     = i * CerfVirt::kDmaPartitionSize;
+            a->base     = i * cerfcore::CerfVirt::kDmaPartitionSize;
             a->base_set = TRUE;
             return TRUE;
         }
@@ -57,7 +60,7 @@ BOOL CerfArenaEnter(void) {
     if (a->depth != 0)
         CERF_FATAL("cerf_guest: DMA arena re-entered - halting");
     a->depth  = 1;
-    a->cursor = CerfVirt::kDmaPartHdrSize;
+    a->cursor = cerfcore::CerfVirt::kDmaPartHdrSize;
     return TRUE;
 }
 
@@ -70,8 +73,8 @@ void CerfArenaLeave(void) {
 void* CerfArenaAlloc(ULONG bytes, ULONG* out_offset) {
     CerfArenaState* a = Arena();
     const ULONG at = (a->cursor + 3u) & ~3u;
-    if (bytes > CerfVirt::kDmaPartitionSize ||
-        at > CerfVirt::kDmaPartitionSize - bytes) {
+    if (bytes > cerfcore::CerfVirt::kDmaPartitionSize ||
+        at > cerfcore::CerfVirt::kDmaPartitionSize - bytes) {
         CERF_LOG_X("cerf_guest: DMA partition exhausted, need", bytes);
         CERF_FATAL("cerf_guest: DMA partition exhausted - halting");
     }

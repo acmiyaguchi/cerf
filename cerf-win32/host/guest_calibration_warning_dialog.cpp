@@ -71,7 +71,7 @@ const BodyBlock kBody[] = {
 }
 
 bool GuestCalibrationWarningDialog::ShouldRegister() {
-    return emu_.Get<DeviceConfig>().guest_additions;
+    return emu_.Get<cerfcore::DeviceConfig>().guest_additions;
 }
 
 void GuestCalibrationWarningDialog::DrawIconPair(HDC dc, const RECT& box,

@@ -7,6 +7,8 @@
 #include <cerfcore/host/emulation_pause.h>
 #include <cerffrontend/uart_boot_bar_data.h>
 
+namespace cerffrontend {
+
 REGISTER_SERVICE(BootBar);
 
 void BootBar::RenderInto(uint32_t* dib_bgra32,
@@ -15,7 +17,7 @@ void BootBar::RenderInto(uint32_t* dib_bgra32,
 
     const uint64_t cycle_ms = 4000;
     const uint32_t phase_ms =
-        (uint32_t)(emu_.Get<EmulationPause>().AnimationTickMs() % cycle_ms);
+        (uint32_t)(emu_.Get<cerfcore::EmulationPause>().AnimationTickMs() % cycle_ms);
     const int      x_origin = (int)(((uint64_t)phase_ms * width) / cycle_ms);
     const int      y_origin = (int)height - (int)kUartBootBarHeight;
 
@@ -40,7 +42,9 @@ void BootBar::RenderInto(uint32_t* dib_bgra32,
             const uint32_t out_r = (sr * sa + dr * inv) / 255u;
             const uint32_t out_g = (sg * sa + dg * inv) / 255u;
             const uint32_t out_b = (sb * sa + db * inv) / 255u;
-            dst_row[dst_x] = lcd_pixel::PackXrgb(out_r, out_g, out_b);
+            dst_row[dst_x] = cerfcore::lcd_pixel::PackXrgb(out_r, out_g, out_b);
         }
     }
+}
+
 }

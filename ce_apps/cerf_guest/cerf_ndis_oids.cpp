@@ -88,11 +88,11 @@ extern "C" NDIS_STATUS CerfMpQueryInformation(NDIS_HANDLE adapter, ULONG oid,
         return CerfMpReplyU32(buf, len, CERF_MP_TOTAL_MAX, written, needed);
     case OID_GEN_LINK_SPEED:            return CerfMpReplyU32(buf, len, 100000, written, needed);
     case OID_GEN_TRANSMIT_BUFFER_SPACE:
-        return CerfMpReplyU32(buf, len,
-                              CerfVirt::kNicTxSlots * CERF_MP_BLOCK_SIZE, written, needed);
+        return CerfMpReplyU32(buf, len, cerfcore::CerfVirt::kNicTxSlots * CERF_MP_BLOCK_SIZE,
+                              written, needed);
     case OID_GEN_RECEIVE_BUFFER_SPACE:
-        return CerfMpReplyU32(buf, len,
-                              CerfVirt::kNicRxSlots * CERF_MP_BLOCK_SIZE, written, needed);
+        return CerfMpReplyU32(buf, len, cerfcore::CerfVirt::kNicRxSlots * CERF_MP_BLOCK_SIZE,
+                              written, needed);
     case OID_GEN_VENDOR_ID: {
         const UCHAR* m = CerfMpMac();
         return CerfMpReplyU32(buf, len,

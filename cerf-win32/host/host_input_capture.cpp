@@ -64,7 +64,7 @@ bool HostInputCapture::IsForeground() const {
 }
 
 void HostInputCapture::ForwardToGuest(uint32_t vk, bool key_up) {
-    emu_.Get<KeyboardRouter>().OnHostKey((uint8_t)NormalizeVk(vk), key_up);
+    emu_.Get<cerfcore::KeyboardRouter>().OnHostKey((uint8_t)NormalizeVk(vk), key_up);
 }
 
 void HostInputCapture::Toggle() {
@@ -86,7 +86,7 @@ void HostInputCapture::OnFocusLost() {
 }
 
 void HostInputCapture::SendCtrlAltDel() {
-    auto& k = emu_.Get<KeyboardRouter>();
+    auto& k = emu_.Get<cerfcore::KeyboardRouter>();
     k.OnHostKey(VK_CONTROL, false);
     k.OnHostKey(VK_MENU,    false);
     k.OnHostKey(VK_DELETE,  false);
@@ -140,7 +140,7 @@ bool HostInputCapture::OnHookKey(WPARAM wParam, const KBDLLHOOKSTRUCT* k) {
     }
 
     if (host_key_held_ && vk == 'P') {
-        if (!key_up) emu_.Get<EmulationPause>().Toggle();
+        if (!key_up) emu_.Get<cerfcore::EmulationPause>().Toggle();
         return true;
     }
 

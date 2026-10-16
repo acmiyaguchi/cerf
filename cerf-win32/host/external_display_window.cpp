@@ -37,8 +37,8 @@ constexpr UINT kDestroyMsg    = WM_APP + 3;   /* eject: real teardown */
 
 }  /* namespace */
 
-ExternalDisplayWindow::ExternalDisplayWindow(CerfEmulator& emu,
-                                             FrameSource& source,
+ExternalDisplayWindow::ExternalDisplayWindow(cerfcore::CerfEmulator& emu,
+                                             cerfcore::FrameSource& source,
                                              std::wstring title,
                                              std::function<void()> on_eject)
     : emu_(emu), source_(source), on_eject_(std::move(on_eject)),
@@ -162,7 +162,7 @@ void ExternalDisplayWindow::UiThreadMain(uint32_t surf_w, uint32_t surf_h) {
         if (err != ERROR_CLASS_ALREADY_EXISTS) {
             LOG(Caution, "ExternalDisplayWindow: RegisterClassExW failed "
                 "(gle=%lu)\n", err);
-            CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
+            cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
         }
     }
 
@@ -177,7 +177,7 @@ void ExternalDisplayWindow::UiThreadMain(uint32_t surf_w, uint32_t surf_h) {
     if (!hwnd_) {
         LOG(Caution, "ExternalDisplayWindow: CreateWindowExW failed (gle=%lu)\n",
             GetLastError());
-        CerfFatalExit(CERF_FATAL_RUNTIME_ERROR);
+        cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
     }
 
     emu_.Get<HostDarkMode>().ApplyToWindow(hwnd_);  /* dark title bar + theme */

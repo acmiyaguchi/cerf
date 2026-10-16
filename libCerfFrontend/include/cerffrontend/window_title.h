@@ -4,9 +4,13 @@
 
 #include <string>
 
-class WindowTitle : public Service {
+namespace cerffrontend {
+
+class WindowTitle : public cerfcore::Service {
 public:
-    using Service::Service;
+    using cerfcore::Service::Service;
 
     std::string Compose() const;
 };
+
+}

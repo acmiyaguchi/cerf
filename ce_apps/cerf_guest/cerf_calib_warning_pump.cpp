@@ -66,8 +66,8 @@ extern "C" void CerfCalibWarningTick(void) {
     if (!cw->ready) {
         CERF_LOG_X("cerf_guest: cwpump SH_WMGR", CerfShWmgrApiSet());
         cw->regs = (volatile ULONG*)CerfMapRegsPage(
-            g_CerfVirtBase + CerfVirt::kCalibSignalOffset,
-            CerfVirt::kCalibSignalSize);
+            g_CerfVirtBase + cerfcore::CerfVirt::kCalibSignalOffset,
+            cerfcore::CerfVirt::kCalibSignalSize);
         if (!cw->regs) {
             CERF_LOG("cerf_guest: cwpump map FAILED");
             cw->dead = TRUE;
