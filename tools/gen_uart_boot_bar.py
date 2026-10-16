@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Bake cerf/assets/uart_boot_bar.png into cerf/host/uart_boot_bar_data.h."""
 
 import sys
 from pathlib import Path
@@ -7,8 +6,8 @@ from pathlib import Path
 from PIL import Image
 
 REPO = Path(__file__).resolve().parent.parent
-PNG  = REPO / "cerf" / "assets" / "uart_boot_bar.png"
-OUT  = REPO / "cerf" / "host" / "uart_boot_bar_data.h"
+PNG  = REPO / "cerf-win32" / "assets" / "uart_boot_bar.png"
+OUT  = REPO / "libCerfFrontend" / "include" / "cerffrontend" / "uart_boot_bar_data.h"
 
 
 def main() -> int:

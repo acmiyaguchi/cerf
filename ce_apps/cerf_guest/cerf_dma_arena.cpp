@@ -2,7 +2,7 @@
 #include "cerf_regs_map.h"
 #include "cerf_debug_log.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 typedef struct {
     volatile UCHAR*  arena_va;

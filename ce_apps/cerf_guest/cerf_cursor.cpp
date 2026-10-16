@@ -3,7 +3,7 @@
 #include "cerf_regs_map.h"
 #include <string.h>
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 #define CERF_CUR_KICK         0x004u
 
 #define CERF_CUR_MAX_DIM      64u

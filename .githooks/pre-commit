@@ -33,8 +33,9 @@ fi
 # file to justify itself is not a technical note — it's a pointer to an
 # external document, and per CLAUDE.md rules that kind of comment is dead
 # weight and should not exist.
-if [ -d docs/ai_checklists ]; then
-    checklist_names=$(find docs/ai_checklists -type f -name '*.md' | sed 's|.*/||' | sort -u)
+checklist_dir="$(cd "$(dirname "$0")/.." && pwd)/docs/ai_checklists"
+if [ -d "$checklist_dir" ]; then
+    checklist_names=$(find "$checklist_dir" -type f -name '*.md' | sed 's|.*/||' | sort -u)
     if [ -n "$checklist_names" ]; then
         added=$(git diff --cached -U0 | grep -E '^\+[^+]' || true)
         if [ -n "$added" ]; then

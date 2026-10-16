@@ -12,7 +12,8 @@ MAX_LINES = 3
 C_EXTS = (".cpp", ".c", ".h", ".hpp", ".cc", ".cxx")
 PY_EXTS = (".py",)
 PROJECT_PATH_RE = re.compile(
-    r"\b(?:cerf|ce_apps|launcher|tools|docs|agent_docs|bundled|\.claude)"
+    r"\b(?:cerf|cerf-win32|libCerfCore|libCerfFrontend|libCerfEngine|libservicelocator"
+    r"|ce_apps|launcher|tools|docs|agent_docs|bundled|\.claude)"
     r"/[\w./-]*",
     re.IGNORECASE,
 )

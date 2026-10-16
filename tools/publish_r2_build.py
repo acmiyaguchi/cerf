@@ -4,7 +4,7 @@
 
 Uploads the zip under R2_PREFIX keeping its name, rewrites latest.json to point
 at it, then deletes every other zip under that prefix. Version fields are read
-from the stamped cerf/version.h.
+from the stamped version.h of libCerfFrontend.
 
 Reads R2_ACCOUNT_ID, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and
 R2_PREFIX from the environment."""
@@ -21,7 +21,7 @@ from typing import List
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ci_release import CiError, changelog_markdown
 
-VERSION_PATH = Path("cerf/version.h")
+VERSION_PATH = Path("libCerfFrontend/include/cerffrontend/version.h")
 LATEST_NAME = "latest.json"
 LATEST_SCHEMA = 1
 

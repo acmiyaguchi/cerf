@@ -2,7 +2,7 @@
 #include "cerf_dma_arena.h"
 #include "main.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 static void CerfSpan(int x0, int y0, int x1, int y1, int stride, int bits,
                      LONG* lo_off, ULONG* span) {

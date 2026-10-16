@@ -4,6 +4,22 @@ The host-side subsystem set is small. CE-side binaries (kernel, OAL, drivers,
 userspace) run unmodified as guest code through the JIT. They are not host
 subsystems. This page lists what CERF itself owns.
 
+## Libraries and frontends
+
+CERF splits into libraries and frontends:
+
+- **libCerfEngine** (submodule) - the JIT.
+- **libCerfCore** (submodule) - the emulation core and the seams that a
+  frontend implements.
+- **libCerfFrontend** (in this repository) - frontend code that uses no UI
+  toolkit. Every frontend shares it.
+- **Frontends** - each frontend is one application in its own `cerf-<name>` directory.
+
+The core never includes frontend code. A frontend includes only public core
+headers. When the core needs an action or an answer from the frontend, it
+declares a seam service, for example `UserAlert` or `DeviceSelection`. A seam
+is required unless the core resolves it with `TryGet<T>()`.
+
 ## CerfEmulator
 
 The composition root. One C++ class, owned by `main.cpp`, owns every service.
@@ -45,7 +61,7 @@ state are forbidden.
   resolve, and any thread can call `Get<>`.
 - **The locator is the `libservicelocator` submodule.**
 
-- `cerf/core/cerf_emulator.h`, `cerf/core/service.h`,
+- `libCerfCore/include/cerfcore/core/cerf_emulator.h`, `libCerfCore/include/cerfcore/core/service.h`,
   `libservicelocator/include/servicelocator/`
 
 ## Guest CPU JIT
@@ -60,7 +76,7 @@ in per-core strategy services that `GetSocId()` selects. These reach the
 engine through its host interfaces. Per-SoC variation is never an
 `if (soc == X)` branch in the engine.
 
-- `libCerfEngine/`, `cerf/execution/`, [agent_docs/jit.md](jit.md)
+- `libCerfEngine/`, `libCerfCore/src/execution/`, [agent_docs/jit.md](jit.md)
 - the guest cycle clock every timer derives from:
   [agent_docs/timers_clocks.md](timers_clocks.md)
 
@@ -69,7 +85,7 @@ engine through its host interfaces. Per-SoC variation is never an
 CERF splits per-impl code across three orthogonal trees. The nature of the
 implemented thing selects the tree.
 
-### `cerf/socs/<chip>/` - on-die silicon
+### `libCerfCore/src/socs/<chip>/` - on-die silicon
 
 Each SoC family has one directory. The directory contains:
 
@@ -84,18 +100,18 @@ never knows its board. It knows only its chip.
 The VA→PA placement map (`PageTableBuilder`) does not live here. The core
 CPU strategies (`ArmCoprocProvider`) split on a different axis. VA→PA placement
 is a BSP/board choice, because the OEMAddressTable differs per board. Its
-concretes live under `cerf/boards/<family>/`, and `GetBoardFamilyId()`
+concretes live under `libCerfCore/src/boards/<family>/`, and `GetBoardFamilyId()`
 selects them.
 
 A core strategy is a CPU-arch property that
 is identical across every board on that core. Its concretes live under
-`cerf/cpu/<core>/`, and `GetSocId()` selects them. A core strategy that a board
+`libCerfCore/src/cpu/<core>/`, and `GetSocId()` selects them. A core strategy that a board
 family gates leaves every other family on that SoC with no winner.
 
 The static facts of a core are data, not a strategy. ID register values and
 instruction-set capabilities live in the `cpu_configs` rows of `db.json`.
 
-### `cerf/boards/<family>/` - one board family
+### `libCerfCore/src/boards/<family>/` - one board family
 
 Each board family has one directory. The directory and its files carry the
 family name, never the name of one member. The directory contains:
@@ -113,7 +129,7 @@ family name, never the name of one member. The directory contains:
 The `ShouldRegister` of a concrete returns
 `emu_.Get<BoardContext>().GetBoardFamilyId() == BoardFamilyId::X`.
 
-### `cerf/peripherals/<vendor>_<part>/` - off-chip silicon shared across boards
+### `libCerfCore/src/peripherals/<vendor>_<part>/` - off-chip silicon shared across boards
 
 Each off-chip IC family has one directory.
 
@@ -126,7 +142,7 @@ The list grows when a new family adopts the same part. Do not duplicate the
 part file. The part directory is the single source of truth for what the IC
 does.
 
-The `cerf/peripherals/` root (not under any vendor subdir) also holds
+The `libCerfCore/src/peripherals/` root (not under any vendor subdir) also holds
 the abstract `Peripheral` base (`peripheral_base.{h,cpp}`) and the
 MMIO router (`peripheral_dispatcher.{h,cpp}`). All peripheral-domain
 code - framework and concretes - lives in this one tree.
@@ -134,8 +150,8 @@ code - framework and concretes - lives in this one tree.
 ### Trees vs bases
 
 Abstract bases (`BoardContext`, `PageTableBuilder`,
-`Peripheral`) live next to their consumers (`cerf/boards/`, `cerf/core/`,
-`cerf/cpu/`, `cerf/peripherals/`), not under any per-impl tree.
+`Peripheral`) live next to their consumers (`libCerfCore/src/boards/`, `libCerfCore/src/core/`,
+`libCerfCore/src/cpu/`, `libCerfCore/src/peripherals/`), not under any per-impl tree.
 
 To add or remove a chip / board / vendor-part, you touch exactly one
 directory. A split of the pieces of one impl across multiple trees (chip
@@ -151,20 +167,19 @@ into a board-local carve-out to avoid the shared file is architecture
 destruction, not faithfulness. The words "faithful" and "minimal" on such a
 carve-out do not change that.
 
-- `cerf/socs/`, `cerf/boards/`, `cerf/peripherals/`
+- `libCerfCore/src/socs/`, `libCerfCore/src/boards/`, `libCerfCore/src/peripherals/`
 
 ## PCMCIA
 
 16-bit PC Card emulation, split framework/controller/card:
 
-- **`PcmciaCard`** (`cerf/peripherals/pcmcia/pcmcia_card.h`) - the abstract
-  card: attribute/common/IO surface, PowerOn/Off, SocketReset, optional
-  `BuildCardMenu`. Cards are plain objects (NOT Services).
+- **`PcmciaCard`** (`libCerfCore/src/peripherals/pcmcia/pcmcia_card.h`) - the abstract
+  card. Cards are plain objects (NOT Services).
   `PcmciaCardCatalog::Create()` creates a card, and its slot owns it. One
   type can occupy two slots at once. Concretes:
-  `cerf/peripherals/realtek_rtl8019/` (NE2000 NIC),
-  `cerf/peripherals/compactflash/` (PC Card ATA + FAT32 image builder +
-  insert submenu), `cerf/peripherals/serial_pccard/` (16550 serial /
+  `libCerfCore/src/peripherals/realtek_rtl8019/` (NE2000 NIC),
+  `libCerfCore/src/peripherals/compactflash/` (PC Card ATA + FAT32 image builder +
+  insert entry), `libCerfCore/src/peripherals/serial_pccard/` (16550 serial /
   modem card - the PC-card consumer of the Serial stack on this page).
 
   **A card releases its pins in `PowerOff` / `OnShutdown`, NEVER in a
@@ -176,10 +191,11 @@ carve-out do not change that.
   host or network thread gates its interrupt on power. If it does not, it
   strands a line on a socket that it already left.
 - **`PcmciaSlot`** (`pcmcia_slot.{h,cpp}`) - one physical socket. It owns
-  card lifetime and bus serialization. It IS the HostWidget with the
-  universal Insert/Eject/Eject-and-insert menu. The controller that owns the
+  card lifetime and bus serialization. It IS the HostWidget, and it exposes
+  the socket as one slot control. The controller that owns the
   slot implements **`PcmciaSlotHost`** (card-detect / IRQ callbacks) and
   routes guest accesses to the Read/Write surface of the slot.
+
   **Card-detect and Vcc (`HasCard` / `IsPowered`) are lock-free reads of
   an atomic pin word, published under the bus lock - keep them that way.**
   A controller reads them from inside its own lock. At the same time, eject
@@ -188,7 +204,7 @@ carve-out do not change that.
   Every other slot entry point is a bus transaction, and a host calls it
   with its own lock released.
 - **`PcmciaCardCatalog`** (`pcmcia_card_catalog.{h,cpp}`) - the
-  insert-menu card registry. A new card type is one `PcmciaCard`
+  registry of insertable card types. A new card type is one `PcmciaCard`
   subclass plus one catalog entry.
 - **`PcmciaSpaceRouter`** (`pcmcia_space_router.{h,cpp}`) - the shared
   SA-1110/PXA255 static-window PC Card space decode (PA 0x20000000,
@@ -202,7 +218,7 @@ and drives `SetPowered` from its power register. For examples, see
 `cirrus_pd6710/` (DevEmu), `intel_sa1111/sa1111_pcmcia.cpp` (Jornada),
 `compaq_ipaq_h3000_pcmcia_sleeve.cpp`, `askey_pc3xx_pcmcia.cpp`.
 
-- `cerf/peripherals/pcmcia/`
+- `libCerfCore/src/peripherals/pcmcia/`
 
 ## Serial
 
@@ -210,7 +226,7 @@ The serial stack that any UART can use. The same endpoints serve an
 on-SoC UART and a serial PC card. A board therefore gains ActiveSync /
 dial-up through one interface. The stack splits into line and personality:
 
-- **`SerialLine`** (`cerf/peripherals/serial/serial_line.h`) - the abstract
+- **`SerialLine`** (`libCerfCore/src/peripherals/serial/serial_line.h`) - the abstract
   UART surface that an endpoint drives: push RX, read the line configuration
   of the guest (baud/framing), raise modem-status inputs, drain callbacks.
   Concretes: **`Serial16550`** (the PC16550D model that the `ser16550`
@@ -225,12 +241,12 @@ dial-up through one interface. The stack splits into line and personality:
   holds the line.
 - **`SerialCradle`** (`serial_cradle.{h,cpp}`) - the HostWidget for an
   on-SoC UART. It mirrors the insert/eject flow of `PcmciaSlot` and shares
-  its card menus. A modem attached to the serial port of a board therefore
+  its insert entries. A modem attached to the serial port of a board therefore
   looks like an inserted card. The UART peripheral owns it. It is not a
   Service.
-- `cerf/peripherals/serial_pccard/` holds ONLY the PC-card consumer. The
+- `libCerfCore/src/peripherals/serial_pccard/` holds ONLY the PC-card consumer. The
   framework named here is board-neutral and lives in
-  `cerf/peripherals/serial/`.
+  `libCerfCore/src/peripherals/serial/`.
 
 To wire the stock UART of a board, implement `SerialLine` on the UART
 peripheral (RX path + an RX interrupt + baud from its divisor + modem
@@ -238,7 +254,7 @@ status on whatever pins the board wires). Own a `SerialCradle`. Supply a
 per-board seam that names the modem pins. Take those pin numbers from the
 serial driver of the board. Never guess them.
 
-- `cerf/peripherals/serial/`
+- `libCerfCore/src/peripherals/serial/`
 
 ## CPU reset & cold boot
 
@@ -263,7 +279,7 @@ are a new clock rate, a pin level that the other unit latches, and a value
 that a skipped bootloader leaves in another unit. Release listeners run after
 every reset listener and after the cold boot.
 
-- `cerf/socs/guest_cpu_reset.{h,cpp}`
+- `libCerfCore/include/cerfcore/socs/guest_cpu_reset.h`, `libCerfCore/src/socs/guest_cpu_reset.cpp`
 
 **`GuestColdBoot`** implements hard reset (cold boot). At reset
 delivery it wipes every volatile RAM region (flash survives), replays
@@ -275,7 +291,7 @@ allocates and must not run again, register a byte-exact `RecordPatch`
 instead. Without one of the two, the bytes of that service are silently
 absent after every hard reset on that board.
 
-- `cerf/boot/guest_cold_boot.{h,cpp}`
+- `libCerfCore/include/cerfcore/boot/guest_cold_boot.h`, `libCerfCore/src/boot/guest_cold_boot.cpp`
 
 ## Host window & presentation
 
@@ -286,10 +302,11 @@ concretes (strategy pattern, selected by `BoardContext`).
 
 - **`HostWindow`** - the top-level window. It owns the dedicated UI thread
   (window + message pump live there, not the main thread), the menu, and
-  auto-resize-to-guest. The SoC LCD service calls `OnLcdEnabled()` on the
-  guest panel-enable edge. The call carries no dimensions. The call tells the
+  auto-resize-to-guest. The SoC LCD service calls `HostPresentation::PanelEnabled()`
+  on the guest panel-enable edge, and the Win32 frontend forwards it to
+  `OnLcdEnabled()`. The call carries no dimensions. The call tells the
   host to read the new size from `FrameRenderer::PresentedSize`.
-  - `cerf/host/host_window.{h,cpp}`
+  - `cerf-win32/host/host_window.{h,cpp}`
 
 - **The panel code is the only authority on the guest resolution. Two
   states sit outside it, and one board fact serves both.** The guest signals
@@ -318,7 +335,7 @@ concretes (strategy pattern, selected by `BoardContext`).
   `Tab` is an alias of the core `CanvasTab` enum, so core configuration can
   name the startup tab with no dependency on the host layer. The
   guest-surface dimensions are atomic, so any thread can read them.
-  - `cerf/host/host_canvas.{h,cpp}`
+  - `cerf-win32/host/host_canvas.{h,cpp}`
 
 - **`FrameRenderer`** (abstract) - one producer of guest frames.
   `RenderInto(dib_bgra32, w, h)` fills a BGRA32 surface. `PresentedSize(w, h)`
@@ -327,14 +344,14 @@ concretes (strategy pattern, selected by `BoardContext`).
   reports the swapped extent.
 
   **`PresentedSize` is the only authority on the panel-enable edge.**
-  `HostWindow::OnLcdEnabled()` carries no dimensions. It posts to the UI
-  thread, and the UI thread reads the size through `PresentedSize`. A
+  `HostPresentation::PanelEnabled()` carries no dimensions. The frontend posts
+  it to the UI thread, and the UI thread reads the size through `PresentedSize`. A
   peripheral must never pass its own dimensions to the host. A renderer can
   draw at a different extent than the panel timing. If a peripheral passes its
   own dimensions, the window size disagrees with the image.
 
   The size read stays on the UI thread by construction. A publisher usually
-  reaches `OnLcdEnabled()` with its own peripheral lock held, and
+  reaches `PanelEnabled()` with its own peripheral lock held, and
   `PresentedSize` goes back into that same peripheral. A read on the
   publishing thread therefore re-locks a non-recursive mutex. That wedges the
   JIT thread and the UI thread together.
@@ -345,9 +362,10 @@ concretes (strategy pattern, selected by `BoardContext`).
   `HostWindow::SetGuestResolution` calls it for a guest re-mode and for the
   resolution dialog. `HostAutoResize::OnUserResizeEnd` reaches it through that
   same path, and is not a separate setter.
-  `Hibernation::RestorePresentation` calls it with the size from the state
-  image. A restore therefore installs a surface size that `PresentedSize`
-  never produced.
+  `Hibernation::RestorePresentation` reaches it through
+  `HostPresentation::RestoreSurfaceSize` with the size from the state image.
+  As a result, a restore installs a surface size that `PresentedSize` never
+  produced.
 
   Three slots build on this base:
 
@@ -355,11 +373,11 @@ concretes (strategy pattern, selected by `BoardContext`).
     hardware renderer registers here. Its `ShouldRegister` gates on hardware
     presence only (board, SoC or part). It never gates on guest additions.
     Concretes live with the hardware that produces the frame: per-SoC
-    LCD/DSS/IPU renderers under `cerf/socs/<chip>/`, board renderers under
-    `cerf/boards/<family>/`, off-chip display parts under
-    `cerf/peripherals/<vendor>_<part>/`.
+    LCD/DSS/IPU renderers under `libCerfCore/src/socs/<chip>/`, board renderers under
+    `libCerfCore/src/boards/<family>/`, off-chip display parts under
+    `libCerfCore/src/peripherals/<vendor>_<part>/`.
   - **`GuestAdditionsFrameRenderer`** - the guest-additions virtual
-    framebuffer under `cerf/peripherals/cerf_virt/`. It wins only on a
+    framebuffer under `libCerfCore/src/peripherals/cerf_virt/`. It wins only on a
     `--guest-additions` run.
   - **`FrameRenderer`** itself - the presented surface. It has one candidate,
     **`PresentedFrameRenderer`**, and `HostCanvas` binds it.
@@ -390,15 +408,17 @@ concretes (strategy pattern, selected by `BoardContext`).
 
   To add a layer, register it on its own role slot. Then put the layer in the
   order of the compositor.
-  - `cerf/host/frame_renderer.h`, `panel_frame_renderer.h`,
-    `guest_additions_frame_renderer.h`, `presented_frame_renderer.cpp`
+  - `libCerfCore/include/cerfcore/host/frame_renderer.h`, `panel_frame_renderer.h`,
+    `guest_additions_frame_renderer.h`,
+    `libCerfFrontend/src/presented_frame_renderer.cpp`
 
 - **`HwScreen`** - the hardware text console behind the `Tab::Hw` tab. It is
   the bounded text-mode RX/TX line buffer for guest UART / OEM-debug output
   and for the notices of CERF itself (power events, save/restore progress).
-  `AddLine` appends a line. `RenderInto` draws the scrolled log over the
-  `BootBar`.
-  - `cerf/host/hw_screen.{h,cpp}`
+  `AddLine` appends a line, and `Snapshot` copies the lines for a frontend.
+  The Win32 `HwScreenRenderer` draws the scrolled log over the `BootBar`.
+  - `libCerfCore/include/cerfcore/host/hw_screen.h`, `libCerfCore/src/host/hw_screen.cpp`,
+    `cerf-win32/host/hw_screen_renderer.{h,cpp}`
 
 - **`NotificationStack`** is the card stack over every canvas tab, and it takes
   only notices that interrupt the user's workflow, never routine events.
@@ -407,18 +427,18 @@ concretes (strategy pattern, selected by `BoardContext`).
   plus the `BootBar`. The 60 Hz present loop drives it in time, with no
   thread. `Restart` (guest reboot / deep-sleep wake) and
   `OnFramebufferLatched` are its cross-thread control hooks.
-  - `cerf/host/boot_screen.{h,cpp}`
+  - `cerf-win32/host/boot_screen.{h,cpp}`
 
 - **`BootBar`** - the bottom CPU-activity bar shared by the Boot Screen and
   Hardware Screen tabs. It is a strip that scrolls. The host animation clock
   advances it, so it freezes when emulation is paused.
-  - `cerf/host/boot_bar.{h,cpp}`
+  - `libCerfFrontend/include/cerffrontend/boot_bar.h`, `libCerfFrontend/src/boot_bar.cpp`
 
 - **`TouchInput`** (abstract) - `OnPenDown/Move/Up` + `OnCaptureLost` in
   guest-surface coordinates. The touch peripheral concrete of the board
   converts them into guest pen samples. Concretes live under
-  `cerf/boards/<family>/`.
-  - `cerf/host/touch_input.h`
+  `libCerfCore/src/boards/<family>/`.
+  - `libCerfCore/include/cerfcore/host/touch_input.h`
 
 - **Off-screen bezel touch buttons are physical, never framebuffer-drawn.**
   Some resistive-panel boards (Jornada 720, Casio Toricomail) print soft
@@ -434,9 +454,9 @@ concretes (strategy pattern, selected by `BoardContext`).
 - **`KeyboardInput`** (abstract) - one keyboard source: `OnHostKey(vk, key_up)`
   plus `SourceName` / `SourcePriority` / `SourceReady`. Concretes self-register
   with `KeyboardRouter`. They are the keyboard of a board under
-  `cerf/boards/<family>/` and the guest-additions keyboard under
-  `cerf/peripherals/cerf_virt/`.
-  - `cerf/host/keyboard_input.h`
+  `libCerfCore/src/boards/<family>/` and the guest-additions keyboard under
+  `libCerfCore/src/peripherals/cerf_virt/`.
+  - `libCerfCore/include/cerfcore/host/keyboard_input.h`
 
 - **`KeyboardRouter`** - the keyboard-source registry and host-key funnel.
   `KeyboardInput` concretes self-register from `OnReady`. The router forwards
@@ -455,7 +475,7 @@ concretes (strategy pattern, selected by `BoardContext`).
   widget switches the active source. That switch is a manual choice, and it
   suppresses automatic selection until the next reset. The widget keeps the
   choice across hibernation.
-  - `cerf/host/keyboard_router.{h,cpp}`
+  - `libCerfCore/include/cerfcore/host/keyboard_router.h`, `libCerfCore/src/host/keyboard_router.cpp`
 
 - **`PointerRouter` / `PointerWidget`** - the pointer-source registry and
   host-mouse funnel. It mirrors `KeyboardRouter`. Pointing-device sources
@@ -469,37 +489,37 @@ concretes (strategy pattern, selected by `BoardContext`).
   apps (calibrators) read the stock touch/mouse stream directly. On a board
   whose stock pointer is a relative mouse, the host-capture mouse lock
   engages only while that source is active.
-  - `cerf/host/pointer_router.{h,cpp}`, `cerf/host/pointer_widget.{h,cpp}`
+  - `libCerfCore/include/cerfcore/host/pointer_router.h`, `libCerfCore/src/host/pointer_router.cpp`, `libCerfCore/src/host/pointer_widget.cpp`
 
 - **`HostInputCapture`** - the low-level keyboard hook and capture toggle, so
   the guest receives the keys that the host shell normally takes. It forwards
   to `KeyboardInput` and synthesizes Ctrl-Alt-Del. Installation and removal
-  happen on the UI thread. - `cerf/host/host_input_capture.{h,cpp}`
+  happen on the UI thread. - `cerf-win32/host/host_input_capture.{h,cpp}`
 
 - **`HostStatusBar`** - the bottom status bar. It renders the ordered widget
   set of `HostWidgetRegistry` (icons and per-icon tooltips), and it sends
   each mouse click to its widget. The capture/lock
   indicator is itself one such host-owned widget.
-  - `cerf/host/host_status_bar.{h,cpp}`
+  - `cerf-win32/host/host_status_bar.{h,cpp}`
 
-- **`HostWidget` / `HostWidgetRegistry`** - the status-bar + Actions-menu
-  widget framework. `HostWidget` is an abstract, **non-`Service`** interface,
-  so a `Peripheral`, which already derives `Service`, implements it with no
-  diamond. Any service implements it to declare a host-UI presence: a custom
-  GDI icon, tooltip, optional left-click action, declarative right-click menu
-  (replicated into the Actions menu), hot-path-safe RX/TX activity dots, an
-  `IsEnabled()` grayscale seam, and a `WidgetGroup` order key (the terminal
-  `InputControl` group pins rightmost). Implementers self-register with
-  `HostWidgetRegistry` from `OnReady`, the same way peripherals self-register
-  with `PeripheralDispatcher`. `HostStatusBar` renders the ordered set, and
-  concretes obey the three-tree rule (`cerf/socs|boards|peripherals/`). Use
-  this framework whenever a peripheral or board has user-visible state
-  (RX/TX, enabled/disabled) or a configuration/toggle surface.
-  - `cerf/host/host_widget*.{h,cpp}`
+- **`HostWidget` / `HostWidgetRegistry`** - the live configuration surface of
+  a peripheral or a board feature. `HostWidget` is an abstract,
+  **non-`Service`** interface, so a `Peripheral`, which already derives
+  `Service`, implements it with no diamond. A widget declares typed metadata
+  only: its state and its controls. A slot control names the inserted item
+  and every insertable item by a stable id. A widget draws nothing and builds
+  no menu. Each frontend renders the metadata in its own form.
+
+  Implementers self-register with `HostWidgetRegistry` from `OnReady`, the
+  same way peripherals self-register with `PeripheralDispatcher`. Concretes
+  obey the three-tree rule (`libCerfCore/src/socs|boards|peripherals/`). Use this
+  framework whenever a peripheral or board has user-visible state (RX/TX,
+  enabled/disabled) or a configuration/toggle surface.
+  - `libCerfCore/include/cerfcore/host/host_widget*.h`, `libCerfCore/src/host/host_widget_registry.cpp`
 
 - **`HostScreenshot`** - screenshot + clipboard capture of the live guest
   surface (via `HostCanvas::CaptureGuestSurface`, 1:1).
-  - `cerf/host/host_screenshot.{h,cpp}`
+  - `cerf-win32/host/host_screenshot.{h,cpp}`
 
 ## TraceManager
 
@@ -517,11 +537,11 @@ process predicate), compiled in every configuration, and `OnRunLoopIter`
 pick a hook VA, per-process filters, when to trace instead of `LOG`, and how
 to add a device trace file.
 
-- `cerf/tracing/trace_manager.{h,cpp}`, `Trace` log channel.
+- `libCerfCore/src/tracing/trace_manager.{h,cpp}`, `Trace` log channel.
 
 ## Device-specific trace files
 
-`cerf/tracing/<bundle>/*.cpp` - one subdirectory per device bundle.
+`libCerfCore/src/tracing/<bundle>/*.cpp` - one subdirectory per device bundle.
 Each file is a small `Service` whose `OnReady` calls
 `TraceManager::RegisterForBundle(<expected_crc32>, register_fn)`. The
 closure runs if and only if the CRC32 of the live bundle matches. On a
@@ -546,12 +566,11 @@ concatenated `RomParserService::Loaded()[i].raw` bytes in load order. On
 the first boot of a new bundle, the log line `[TRACE] bundle CRC32 = 0xXXXX`
 gives you the value to paste into that header.
 
-`build.ps1 -Mode production` excludes the per-device trace files from the
-build with a `<ClCompile Remove="tracing\*\**\*.cpp">` rule in
-`cerf/cerf.vcxproj`. It then re-includes `tracing\*\nkdbg\*.cpp`, so the
-kernel-debug hooks stay in production builds. The framework
-(`cerf/tracing/trace_manager.{h,cpp}`) stays compiled. With no registered
-traces, every hook is a single empty-container check.
+`build.ps1 -Mode production` builds libCerfCore with
+`CERFCORE_DEVICE_TRACES` off. The build then excludes the per-device trace files
+and keeps `src/tracing/*/nkdbg/*.cpp`, so the kernel-debug hooks stay in
+production builds. The framework (`libCerfCore/src/tracing/trace_manager.{h,cpp}`)
+stays compiled.
 
 **CRC32 / bundle gating is diagnostics-only - never runtime behavior.**
 Production builds strip this per-device trace tree. Any emulation or board
@@ -572,14 +591,14 @@ also fail benignly: a CRC mismatch installs no hook, which costs only absent
 debug output, never a device that misbehaves. Anything that changes how the
 guest runs stays out of CRC gates.
 
-- `cerf/tracing/<bundle>/`
+- `libCerfCore/src/tracing/<bundle>/`
 
 ## Kernel debug output
 
-`KernelDebugSink` (`cerf/tracing/kernel_debug_sink.{h,cpp}`) is the single
+`KernelDebugSink` (`libCerfCore/src/tracing/kernel_debug_sink.{h,cpp}`) is the single
 funnel for guest OS debug text. Every producer routes finished lines to it:
 the TX of a live SoC/board UART or serial peripheral, and a hook on a nulled
-OEM debug sink (`cerf/tracing/<bundle>/nkdbg/`). It emits each line to the
+OEM debug sink (`libCerfCore/src/tracing/<bundle>/nkdbg/`). It emits each line to the
 `Nkdbg` log channel (`[NKDBG]`) and to the `HwScreen` debug console.
 
 - `EmitLine(line, source, to_screen)` - the output primitive. `source` is an
@@ -593,11 +612,11 @@ the sink. Register-access logging stays on its own SoC channel (for example
 `SocUart`) and is gated like any other channel. Only the assembled debug line
 is `Nkdbg`.
 
-- `cerf/tracing/kernel_debug_sink.{h,cpp}`, `Nkdbg` log channel
+- `libCerfCore/src/tracing/kernel_debug_sink.{h,cpp}`, `Nkdbg` log channel
 
 ## Byte order
 
-`cerf/core/byte_order.h` and the `cerfengine/byte_order.h` header of
+`libCerfCore/include/cerfcore/core/byte_order.h` and the `cerfengine/byte_order.h` header of
 libCerfEngine hold the only code that reads and writes multi-byte values in a
 byte buffer. Do not write a local shift-and-or or a local `Put32`.
 

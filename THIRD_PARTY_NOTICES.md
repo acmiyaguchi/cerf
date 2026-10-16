@@ -77,7 +77,7 @@ Foundation binary is entitled to relink the work against a modified version of e
 library. This is satisfied as follows:
 
 - **Corresponding library source.** The exact upstream releases used are pinned in the
-  table above (GLib 2.88.0, libiconv 1.18, gettext 0.25) and are built unmodified from
+  table above (GLib 2.88.0, libiconv 1.18, gettext 0.22.5) and are built unmodified from
   their upstream sources, linked in the table above. The unmodified source for each is
   available from its upstream project; a written request to the project maintainer will
   also be honored for the duration that a given release is distributed.
@@ -92,9 +92,9 @@ them at run time as process-private fonts. CERF does not install them on the hos
 
 | Face | File |
 | --- | --- |
-| IBM Plex Sans Regular | `cerf/assets/fonts/IBMPlexSans-Regular.ttf` |
-| IBM Plex Sans Bold | `cerf/assets/fonts/IBMPlexSans-Bold.ttf` |
-| IBM Plex Mono Bold | `cerf/assets/fonts/IBMPlexMono-Bold.ttf` |
+| IBM Plex Sans Regular | `cerf-win32/assets/fonts/IBMPlexSans-Regular.ttf` |
+| IBM Plex Sans Bold | `cerf-win32/assets/fonts/IBMPlexSans-Bold.ttf` |
+| IBM Plex Mono Bold | `cerf-win32/assets/fonts/IBMPlexMono-Bold.ttf` |
 
 The file [`licenses/OFL-1.1.txt`](licenses/OFL-1.1.txt) contains the full license text.
 

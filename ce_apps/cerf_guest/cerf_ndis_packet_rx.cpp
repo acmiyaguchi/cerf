@@ -4,8 +4,8 @@
 #include "cerf_ndis_slot.h"
 #include "cerf_debug_log.h"
 
-#include "../../cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
-#include "../../cerf/peripherals/cerf_virt/cerf_virt_nic_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_nic_regs.h"
 
 #define CERF_MP_RX_SLOT_BYTES (CerfVirt::kNicSlotSize - CerfVirt::kNicSlotPayloadOff)
 

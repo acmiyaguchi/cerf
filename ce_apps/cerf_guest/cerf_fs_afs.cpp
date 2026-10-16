@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <pkfuncs.h>
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 #define AFS_VERSION        0x00000004
 #define AFS_VERSION_LEGACY 0x00000003

@@ -7,7 +7,7 @@
 #include "cerf_process_spawn.h"
 #include "cerf_task_manager_pump.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 #define CERF_TM_CMD_GEN       0x00u
 #define CERF_TM_CMD_CODE      0x04u

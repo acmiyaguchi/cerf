@@ -4,7 +4,7 @@
 #include "cerf_resize_pump.h"
 #include "main.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 #define CERF_RSZ_WANT_W       0x00u
 #define CERF_RSZ_WANT_H       0x04u

@@ -4,8 +4,8 @@
 #include <pkfuncs.h>
 #include <winddi.h>
 #include "include/cerf_gpe.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_blt_descriptor.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_line_descriptor.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_blt_descriptor.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_line_descriptor.h"
 
 struct CerfStageWb { BOOL active; ULONG dst_va; void* arena_ptr; ULONG span; };
 

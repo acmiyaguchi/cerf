@@ -12,7 +12,7 @@ DB_FILENAME = "db.json"
 
 def _db_path() -> Optional[Path]:
     candidates = [install_root() / DB_FILENAME,
-                  Path(os.path.abspath(__file__)).parent.parent / "bundled"
+                  Path(os.path.abspath(__file__)).parent.parent / "libCerfCore"
                   / DB_FILENAME]
     for path in candidates:
         if path.is_file():

@@ -9,9 +9,9 @@
 #include "cerf_eng_callbacks.h"
 #include "cerf_gradient.h"
 #include "main.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_grad_descriptor.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_gpe_cmd.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_grad_descriptor.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_gpe_cmd.h"
 
 #ifndef BLACKONWHITE
 #define BLACKONWHITE 1

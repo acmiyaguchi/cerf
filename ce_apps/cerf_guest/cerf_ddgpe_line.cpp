@@ -2,7 +2,7 @@
 #include "cerf_dma_arena.h"
 #include "main.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 static void CerfLineYExtent(const GPELineParms* p, int* ymin, int* ymax) {
     static const signed char kDirDy[8][2] = {

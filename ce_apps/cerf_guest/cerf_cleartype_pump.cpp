@@ -4,8 +4,8 @@
 #include "cerf_regs_map.h"
 #include "cerf_shell_watch.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_fb_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_fb_regs.h"
 
 #ifndef SPI_SETFONTSMOOTHING
 #define SPI_SETFONTSMOOTHING 0x004B

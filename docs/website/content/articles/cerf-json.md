@@ -19,16 +19,11 @@ then exits.
 
 ## Layer 1 - the global `cerf.json`
 
-One file next to `cerf.exe`, shared by every device instance on the installation. CERF folds its
-values into each device's configuration before it reads that device's own file.
+One file next to `cerf.exe`, shared by every device instance on the installation.
 
 ```json
 {
   "device": "jornada720",
-  "video_driver_names_for_guest_additions": [
-    "ddi.dll",
-    "s3c2410disp.dll"
-  ],
   "bundle_repositories": [
     { "url": "https://example.com/bundles", "enabled": true }
   ],
@@ -41,18 +36,11 @@ values into each device's configuration before it reads that device's own file.
 | Key | Type | Meaning |
 | --- | --- | --- |
 | `device` | string | The device directory to boot when the command line has no `--device=`. When this key and `--device=` are both empty, CERF exits with an error. |
-| `video_driver_names_for_guest_additions` | array of strings | The ROM display-driver module names that [Guest Additions](guest-additions.md) can replace with the CERF driver. |
 | `bundle_repositories` | array of `{ url, enabled }` | The [ROM bundle repositories](bundle-repositories.md) that the launcher installs and updates from. Launcher only - `cerf.exe` does not read it. |
 | `last_save_state_mode` | boolean | The default state of **Save the state** in the shutdown dialog. |
 | `update_channel` | string | Which CERF builds the launcher offers you: `disabled`, `stable`, or `unstable`. Launcher only - `cerf.exe` does not read it. |
 | `discord_rich_presence` | boolean | Publish the device that you run to Discord. Read by both the launcher and `cerf.exe`. |
 | `host_key` | integer, or array of integers | The host key: one virtual-key code, or up to eight of them that you press together. Absent, the host key is Right Ctrl (`163`). |
-
-!!! tip "Adding your own display driver name"
-
-    `video_driver_names_for_guest_additions` lists the ROM modules that Guest Additions can replace.
-    It carries the driver names that CERF knows. If your own dump has a display driver under another
-    name, Guest Additions finds nothing to replace and stays off. Add that module name to the list.
 
 `last_save_state_mode` is the one key that CERF writes back. When you tick **Remember choice** in
 the shutdown dialog, CERF stores your answer here. When you upgrade CERF, the installer merges the

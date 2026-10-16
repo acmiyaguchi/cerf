@@ -6,10 +6,10 @@ on:
     paths:
       - "docs/website/**"
       - "docs/changelog.yml"
-      - "bundled/db.json"
+      - "libCerfCore"
       - "compile_readme.py"
       - "tools/build_site.py"
-      - "cerf/version.h"
+      - "libCerfFrontend/include/cerffrontend/version.h"
       - ".github/workflows/site.yml"
   workflow_dispatch:
 
@@ -26,6 +26,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fetch libCerfCore
+        run: git submodule update --init --depth 1 libCerfCore
 
       - uses: actions/setup-python@v5
         with:

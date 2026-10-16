@@ -13,7 +13,7 @@ The subagent's full operating manual lives in `.claude/VERIFY_INSTRUCTION.md`. T
 
 - The user types `/verify <anything>`. The argument is freeform. Examples:
   - `/verify your last claim about "<quoted claim>"`
-  - `/verify the weird code in cerf/memory/shared_mem_pool.cpp`
+  - `/verify the weird code in libCerfCore/src/cpu/emulated_memory.cpp`
   - `/verify current diff for hacks`
   - `/verify my fix for the tray bug`
 - The main agent wants an independent check. This happens after non-trivial code, after a refactor, or before it hands back a long-form explanation as authoritative.

@@ -5,8 +5,8 @@
 #include "cerf_debug_log.h"
 #include "cerf_regs_map.h"
 
-#include "../../cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
-#include "../../cerf/peripherals/cerf_virt/cerf_virt_nic_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_nic_regs.h"
 
 typedef struct {
     UCHAR  MajorNdisVersion;

@@ -7,3 +7,6 @@
 [submodule "libCerfEngine"]
 	path = libCerfEngine
 	url = https://github.com/gweslab/libCerfEngine.git
+[submodule "libCerfCore"]
+	path = libCerfCore
+	url = https://github.com/gweslab/libCerfCore.git

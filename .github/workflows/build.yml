@@ -33,7 +33,7 @@ jobs:
           submodules: false
 
       - name: Fetch core libraries
-        run: git submodule update --init libservicelocator libCerfEngine
+        run: git submodule update --init libservicelocator libCerfEngine libCerfCore
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -85,7 +85,7 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $vh   = Get-Content cerf/version.h -Raw
+          $vh   = Get-Content libCerfFrontend/include/cerffrontend/version.h -Raw
           $maj  = [regex]::Match($vh, 'CERF_VERSION_MAJOR\s+(\d+)').Groups[1].Value
           $min  = [regex]::Match($vh, 'CERF_VERSION_MINOR\s+(\d+)').Groups[1].Value
           $pat  = [regex]::Match($vh, 'CERF_VERSION_PATCH\s+(\d+)').Groups[1].Value
@@ -98,7 +98,7 @@ jobs:
           $vh = $vh -replace '(?m)^#define\s+CERF_VERSION_BUILD_WORD\s+\d+', "#define CERF_VERSION_BUILD_WORD $word"
           $vh = $vh -replace '(?m)^#define\s+CERF_VERSION_DATE\s+.*$',       "#define CERF_VERSION_DATE       `"$ts`""
           $vh = $vh -replace '(?m)^#define\s+CERF_VERSION_SHA\s+.*$',        "#define CERF_VERSION_SHA        `"$sha`""
-          Set-Content cerf/version.h -Value $vh -Encoding utf8 -NoNewline
+          Set-Content libCerfFrontend/include/cerffrontend/version.h -Value $vh -Encoding utf8 -NoNewline
           "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "sha=$sha"     | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           Write-Host "Stamped: $maj.$min build $run (word $word), $ts, $sha"

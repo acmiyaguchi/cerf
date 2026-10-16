@@ -23,19 +23,16 @@ CONTENT   = os.path.join(SITE, 'content')
 OUT       = os.path.join(ROOT, 'build', 'site')
 ICONS_SRC = os.path.join(ROOT, 'launcher', 'assets', 'icons')
 
-ICONS_SVG = os.path.join(ROOT, 'cerf', 'assets', 'icons_sources')
+ICONS_SVG = os.path.join(ROOT, 'cerf-win32', 'assets', 'icons_sources')
 
 IMAGES = [
-    (os.path.join('cerf', 'assets', 'cerf.ico'),         'cerf.ico'),
-    (os.path.join('cerf', 'assets', 'icons_sources', 'cerf.svg'), 'cerf.svg'),
-    (os.path.join('cerf', 'assets', 'icons_sources', 'cerf-light.svg'), 'cerf-light.svg'),
+    (os.path.join('cerf-win32', 'assets', 'cerf.ico'),         'cerf.ico'),
+    (os.path.join('cerf-win32', 'assets', 'icons_sources', 'cerf.svg'), 'cerf.svg'),
+    (os.path.join('cerf-win32', 'assets', 'icons_sources', 'cerf-light.svg'), 'cerf-light.svg'),
 ]
 
 
 def sync_assets():
-    # The boards table references CPU-arch badge PNGs (launcher/assets/icons)
-    # and feature/board icon SVGs (cerf/assets/icons_sources); the render hook
-    # rewrites both to /assets/icons, so stage both source trees into one dir.
     icons = os.path.join(CONTENT, 'assets', 'icons')
     if os.path.isdir(icons):
         shutil.rmtree(icons)
@@ -78,7 +75,7 @@ def main():
                '--livereload',
                '-f', config,
                '-w', SITE,
-               '-w', os.path.join(ROOT, 'bundled', 'db.json'),
+               '-w', os.path.join(ROOT, 'libCerfCore', 'db.json'),
                '-w', os.path.join(ROOT, 'docs', 'changelog.yml')]
         if args.port is not None:
             cmd += ['-a', f'127.0.0.1:{args.port}']

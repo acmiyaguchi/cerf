@@ -27,12 +27,8 @@ STATE_USER      = "User device"
 # hibernation .img cerf.exe writes/reads in each device directory.
 STATE_IMAGE_FILENAME = "state.img"
 
-# Saved-state preview PNG cerf.exe writes beside state.img on a successful
-# hibernation save (cerf/state/hibernation.cpp Hibernation::Save).
 SAVED_STATE_SCREENSHOT_FILENAME = "saved_state.png"
 
-# Live preview PNG cerf.exe refreshes periodically while running
-# (cerf/host/live_screenshot_reporter.cpp).
 LIVE_STATE_SCREENSHOT_FILENAME = "live_state.png"
 
 

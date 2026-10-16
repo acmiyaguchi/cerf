@@ -5,7 +5,7 @@
 #include "cerf_gwes_ready.h"
 #include "cerf_input_pump.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 #define CERF_PTR_X            0x00u
 #define CERF_PTR_Y            0x04u

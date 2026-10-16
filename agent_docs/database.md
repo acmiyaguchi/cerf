@@ -1,4 +1,4 @@
-# The board database - `bundled/db.json`
+# The board database - `libCerfCore/db.json`
 
 `db.json` holds the board and SoC facts that CERF components share.
 
@@ -76,14 +76,14 @@ next to the parameters that it relates to.
 Declare each id constant once, in its own header, next to the thing that it
 names:
 
-- `cerf/boards/<family>/<family_id>_family_id.h` declares
+- `libCerfCore/src/boards/<family>/<family_id>_family_id.h` declares
   `namespace BoardFamilyId { inline constexpr std::string_view <Name> = "<id>"; }`
-- `cerf/boards/<family>/<board_id>_id.h` declares the same in
+- `libCerfCore/src/boards/<family>/<board_id>_id.h` declares the same in
   `namespace BoardId`. This header exists only when a gate must name one
   member.
-- `cerf/socs/<chip>/<soc_id>_id.h` declares the same in `namespace SocId`.
+- `libCerfCore/src/socs/<chip>/<soc_id>_id.h` declares the same in `namespace SocId`.
   A SoC whose only tree is its core strategy keeps the header under
-  `cerf/cpu/<core>/`.
+  `libCerfCore/src/cpu/<core>/`.
 
 The constant name is the PascalCase of the id:
 `"nec_mobilepro_900_series"` becomes `NecMobilepro900Series`.

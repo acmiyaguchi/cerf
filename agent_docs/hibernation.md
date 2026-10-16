@@ -9,10 +9,10 @@ A skipped rule does not produce a smaller feature. It produces a broken restore
 (dead display, frozen scheduler, missed interrupts) that appears hours later on a
 different device.
 
-Host-side implementation: `cerf/state/` (`hibernation.{h,cpp}`,
-`state_stream.h`, `state_image_format.h`, `state_boot_gate.cpp`,
-`emulation_freeze.h`, `shutdown_dialog.cpp`). The JIT pause lives in
-`cerf/execution/jit_runner.{h,cpp}`.
+The host-side implementation is in `libCerfCore/src/state/`, and its public
+headers are in `libCerfCore/include/cerfcore/state/`. The Win32 shutdown dialog is
+`cerf-win32/host/shutdown_dialog.cpp`. The JIT pause lives in
+`libCerfCore/include/cerfcore/execution/jit_runner.h`, `libCerfCore/src/execution/jit_runner.cpp`.
 
 ## What it is
 
@@ -129,7 +129,7 @@ state, and a pause of one does NOT pause the other:
 
 2. **Peripheral worker threads.** A peripheral that owns a `std::thread` continues
    to mutate guest-visible state, whatever the JIT pause does. **`EmulationFreeze`**
-   (`cerf/state/emulation_freeze.h`) freezes them:
+   (`libCerfCore/include/cerfcore/state/emulation_freeze.h`) freezes them:
    - A worker holds `WorkerSection()` (a `shared_lock`) **around the part of each
      iteration that reads or writes guest state**.
    - Hibernation holds `SnapshotSection()` (a `unique_lock`) across the whole

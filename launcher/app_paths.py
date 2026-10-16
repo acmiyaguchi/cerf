@@ -46,7 +46,7 @@ def resolve_icon(name: str = "cerf.ico") -> Optional[Path]:
     candidate = exe_dir() / name
     if candidate.is_file():
         return candidate
-    repo_candidate = exe_dir() / ".." / "cerf" / "assets" / name
+    repo_candidate = exe_dir() / ".." / "cerf-win32" / "assets" / name
     if repo_candidate.is_file():
         return Path(os.path.abspath(str(repo_candidate)))
     return None
@@ -72,7 +72,7 @@ def resolve_asset(name: str) -> Optional[Path]:
         candidates.append(Path(meipass) / "assets" / name)
     candidates.append(exe_dir() / "assets" / name)
     candidates.append(_HERE / "assets" / name)
-    candidates.append(_HERE.parent / "cerf" / "assets" / name)
+    candidates.append(_HERE.parent / "cerf-win32" / "assets" / name)
     for path in candidates:
         if path.is_file():
             return path
@@ -85,7 +85,8 @@ def _version_header_text() -> str:
     if meipass:
         candidates.append(Path(meipass) / "version.h")
     candidates.append(exe_dir() / "version.h")
-    candidates.append(exe_dir() / ".." / "cerf" / "version.h")
+    candidates.append(exe_dir() / ".." / "libCerfFrontend" / "include" / "cerffrontend"
+                      / "version.h")
     for path in candidates:
         if path.is_file():
             return path.read_text(encoding="utf-8", errors="ignore")

@@ -74,7 +74,7 @@ treats identically.
 
 - **Flat XIP** - the bootable image is one contiguous XIP (kernel + ROM
   modules + ROM files), small enough to place in DRAM and execute.
-  `RomParserService` (`cerf/boot/rom_parser_service.cpp`) handles it. The vast
+  `RomParserService` (`libCerfCore/src/boot/rom_parser_service.cpp`) handles it. The vast
   majority of boards.
 - **Whole storage** - the dump is an entire flash / NAND / disk (often multiple
   GB). The bootable image is a region *inside* it that the device's own boot
@@ -85,7 +85,7 @@ treats identically.
 
 ## The flat-XIP pipeline (`RomParserService`)
 
-`RomParserService::ParseOne` (`cerf/boot/rom_parser_service.cpp`) is the funnel.
+`RomParserService::ParseOne` (`libCerfCore/src/boot/rom_parser_service.cpp`) is the funnel.
 For each declared / auto-detected ROM file:
 
 1. **Read the whole file** into `rom.raw`.
@@ -116,7 +116,7 @@ shared.
 Mirror the existing ones - they share a shape:
 
 - A signature constant + a `*LocateOsXip` resolver in
-  `cerf/boot/rom_image_parse.{h,cpp}` that returns the XIP's `data_off`,
+  `libCerfCore/src/boot/rom_image_parse.{h,cpp}` that returns the XIP's `data_off`,
   `flat_size`, and `base_va`. When the container does not store the base VA, the
   resolver recovers it: it verifies the candidate ROMHDR against the container's
   own invariants (NOSAJ verifies `physlast - physfirst == span`, ARNOLD verifies
@@ -135,9 +135,9 @@ heuristics (`agent_docs/rules.md` § "Per-device facts come from the ROM").
 For multi-GB dumps CERF does not extract the bootable image to a flat span - the
 guest's own storage stack reads it. Ford SYNC 2:
 
-- **`SecFlash`** (`cerf/boot/sec_flash.{h,cpp}`) owns the `.sec` NAND image as a
+- **`SecFlash`** (`libCerfCore/src/boot/sec_flash.{h,cpp}`) owns the `.sec` NAND image as a
   `MappedFile` (CERF never maps the ~2 GiB file whole) and a parsed
-  `SecContainer` (`cerf/boot/sec_container.{h,cpp}`) that de-chunks the package
+  `SecContainer` (`libCerfCore/src/boot/sec_container.{h,cpp}`) that de-chunks the package
   (chunked payload + PKCS#7 catalog, `SecHeader` magic `0x400D400D`). It
   registers only when the device dir holds a `.sec`. Consumers `TryGet` and
   tolerate absence.

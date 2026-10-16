@@ -5,8 +5,8 @@
 #include "cerf_process_spawn.h"
 #include "cerf_shell_watch.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_autorun_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_autorun_regs.h"
 
 static void CerfAutorunReadEntry(const volatile ULONG* regs, ULONG idx, WCHAR* out) {
     const volatile ULONG* words =

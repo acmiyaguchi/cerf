@@ -124,7 +124,7 @@ fact gets a source.
   the vendor built on this platform: rebadges, regional models, revisions, and
   panel and size variants. Save each page that you cite under
   `references/board_families/<vendor>/`. Then read the `board_families` and
-  `boards` tables in `bundled/db.json`, and list `cerf/boards/` and
+  `boards` tables in `libCerfCore/db.json`, and list `libCerfCore/src/boards/` and
   `bundled/devices/`. Match the B2 identity to one result: family present, board
   present, or absent. A new family gets a row. Every known member gets a board
   row with its `support_level` and its `internal__spec_divergences`. This
@@ -136,10 +136,10 @@ fact gets a source.
   via the internet (datasheet / Linux `arch/arm/mach-*` or `arch/mips/`, QEMU,
   device specs) - not the user's word.
 - **B5 - SoC implemented in CERF? Reusable SoC?** Read the `socs` table in
-  `bundled/db.json`; list
-  `cerf/socs/` + `cerf/cpu/`. Is this SoC present? Does `cpu_configs` in
-  `bundled/db.json` have a row for it, and is the core's strategy set under
-  `cerf/cpu/<core>/` - `ArmCoprocProvider` on ARM; `MipsCp0Model`,
+  `libCerfCore/db.json`; list
+  `libCerfCore/src/socs/` + `libCerfCore/src/cpu/`. Is this SoC present? Does `cpu_configs` in
+  `libCerfCore/db.json` have a row for it, and is the core's strategy set under
+  `libCerfCore/src/cpu/<core>/` - `ArmCoprocProvider` on ARM; `MipsCp0Model`,
   `MipsTlbModel` and `MipsExceptionModel` on MIPS? If
   absent, is there a close relative sharing silicon/core? Reuse is the
   difference between a short and a long bring-up - name it.
@@ -162,7 +162,7 @@ work/unconfirmed · ❌ missing/blocker).
 | 3 | Board identity                 | <declared board.id> confirmed by <tells>  | ✅/⚠️  |
 | 4 | Board already in CERF          | <db.json row exists | absent>             | ✅/❌  |
 | 5 | SoC / CPU family               | <SoC>, <core>, <CpuArch + isa level>      | ✅/⚠️  |
-| 6 | SoC implemented in CERF        | <cerf/socs/<x> present | absent>           | ✅/❌  |
+| 6 | SoC implemented in CERF        | <libCerfCore/src/socs/<x> present | absent>           | ✅/❌  |
 | 7 | Reusable / similar SoC or core | <what reuses what | none - from scratch>  | ✅/⚠️  |
 ```
 
@@ -225,12 +225,12 @@ Pick the entry point from the table, then run § The bring-up loop:
 
 - **New SoC/core (rows 6-7 ❌)** → start at the CPU/JIT strategy set for the
   board's `CpuArch`: write the `cpu_configs` row of the SoC in
-  `bundled/db.json`, the core clock (`ArmCoreClock` or `MipsCoreClock`), and the
+  `libCerfCore/db.json`, the core clock (`ArmCoreClock` or `MipsCoreClock`), and the
   `ArmCoprocProvider` or the `MipsCp0Model`, `MipsTlbModel` and
   `MipsExceptionModel` concretes, from the CPU architecture reference
   manual + the core TRM (downloaded to `references/<soc>/` first), then the
   `PageTableBuilder` / memory map, then the peripheral loop.
-- **SoC supported (rows 6-7 ✅)** → start at the `bundled/db.json` rows of the
+- **SoC supported (rows 6-7 ✅)** → start at the `libCerfCore/db.json` rows of the
   family and the board, and at the `<family_id>_family_id.h` of the family. Then
   write the `BoardContext` concrete that returns that family id. Set `board.id`
   and `rom.primary` in the cerf.json of the bundle. Then write the

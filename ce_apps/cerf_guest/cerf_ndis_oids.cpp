@@ -2,8 +2,8 @@
 #include "cerf_ndis_miniport.h"
 #include "cerf_debug_log.h"
 
-#include "../../cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
-#include "../../cerf/peripherals/cerf_virt/cerf_virt_nic_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_nic_regs.h"
 
 #define OID_GEN_SUPPORTED_LIST          0x00010101
 #define OID_GEN_HARDWARE_STATUS         0x00010102

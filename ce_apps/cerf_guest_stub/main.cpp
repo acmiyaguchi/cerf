@@ -3,7 +3,7 @@
 #include "cerf_regs_map.h"
 #include "cerf_debug_log.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 #define CERF_ORDINAL_FLAG   0x80000000u
 

@@ -10,36 +10,35 @@ The peripheral or board service that owns the LED registers also implements
 `HostWidget`. It registers itself with `HostWidgetRegistry` in `OnReady`, and
 `Group()` returns `WidgetGroup::Indicator`.
 
-- **Draw anti-aliased.** `HostGdiPlus::FillCircleAA(dc, cx, cy, r, fill, rim)`
-  draws the dot. The fill carries lit or dark. The rim carries a second bit,
-  usually blink mode.
+- **Describe the LED, never draw it.** `Icon()` returns a `LedIcon`. The fill
+  carries lit or dark. The rim carries a second bit, usually blink mode.
 - **Repaint through `PollDirty`.** An LED carries no data path, so `MarkRx`
   and `MarkTx` never fire for it. Keep the drawn appearance in members that
   only the UI thread touches.
-- **Compute the blink phase in `PollDirty`.** Count its own ticks, or read
-  `GetTickCount()`.
-- **Read the state under the lock.** Then draw from that copy, outside the
-  lock. The guest writes the registers on the JIT thread, and the UI thread
+- **Compute the blink phase in `PollDirty`.** Count ticks in the widget, or read
+  `HostSteadyMicros()`.
+- **Read the state under the lock.** Then build the icon from that copy,
+  outside the lock. The guest writes the registers on the JIT thread, and the UI thread
   reads them.
 - **Serialize the registers only.** The blink tick and the last-drawn members
   belong to the UI thread.
 
 ## Variants
 
-- **On-chip LED unit.** `cerf/socs/vr41xx/vr41xx_led_impl.h` - the VR41xx unit
+- **On-chip LED unit.** `libCerfCore/src/socs/vr41xx/vr41xx_led_impl.h` - the VR41xx unit
   blinks in hardware, so the registers hold the on-time and the off-time.
   `PollDirty` converts those units into its own ticks.
-- **LED behind a companion MCU.** `cerf/boards/hp_jornada_700/hp_jornada_700_led.h` -
+- **LED behind a companion MCU.** `libCerfCore/src/boards/hp_jornada_700/hp_jornada_700_led.h` -
   the LED has no MMIO of its own. The class is a plain `Service`, and the MCU
   command handler calls `SetState()` from the JIT thread.
 - **One block that drives more than an LED.**
-  `cerf/boards/samsung_smdk2410/samsung_smdk2410_nled.cpp` - two channels, where the
-  second one is a vibrator. One widget draws both: the dot for the LED, and
-  chevrons beside it for the vibrator.
+  `libCerfCore/src/boards/samsung_smdk2410/samsung_smdk2410_nled.cpp` - two channels, where the
+  second one is a vibrator. One `LedIcon` carries both: the LED, and the
+  vibrator as its `vibrate` flag.
 - **A row of LEDs.**
-  `cerf/boards/odo/odo_hkeep_fpga.cpp` - one widget holds eight
-  discrete debug LEDs, as a 4x2 grid of `Rectangle` cells. The tooltip carries
-  the four-character alpha display of the same block. Combine the LEDs of one
+  `libCerfCore/src/boards/odo/odo_hkeep_fpga.cpp` - one widget holds eight
+  discrete debug LEDs in one `LedGridIcon`. The tooltip carries the
+  four-character alpha display of the same block. Combine the LEDs of one
   block into one widget.
 
 ## Pressable LED buttons

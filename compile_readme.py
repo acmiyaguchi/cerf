@@ -4,13 +4,13 @@ import sys
 import datetime
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-VERSION_H = os.path.join(ROOT, 'cerf', 'version.h')
+VERSION_H = os.path.join(ROOT, 'libCerfFrontend', 'include', 'cerffrontend', 'version.h')
 SOURCE    = os.path.join(ROOT, 'README_SOURCE.md')
 OUTPUT    = os.path.join(ROOT, 'README.md')
 CHANGELOG_LINK = 'https://cerf.cx/changelog/'
 CHANGELOG_RECENT = 2
 ICONS_DIR = 'launcher/assets/icons'          # CPU-arch badge PNGs
-SVG_DIR   = 'cerf/assets/icons_sources'       # feature / board icon SVG sources
+SVG_DIR   = 'cerf-win32/assets/icons_sources'
 FUNDING = os.path.join(ROOT, '.github', 'FUNDING.yml')
 
 # FUNDING.yml platform key -> shields.io badge (label, hex, logo, logo color)

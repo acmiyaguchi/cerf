@@ -5,8 +5,8 @@ stock display driver of the board with the universal `cerf_guest` driver. CERF
 then starts a set of host-integration features on top of that driver:
 host-framebuffer rendering, host-accelerated blitting, a mouse-pointer cursor,
 keyboard injection, dynamic screen resolution, shared host-folder storage, and
-a guest task manager. The subsystem spans host C++ under `cerf/boot/` +
-`cerf/peripherals/cerf_virt/` and guest CE code under `ce_apps/cerf_guest/` +
+a guest task manager. The subsystem spans host C++ under `libCerfCore/src/boot/` +
+`libCerfCore/src/peripherals/cerf_virt/` and guest CE code under `ce_apps/cerf_guest/` +
 `ce_apps/cerf_guest_stub/`.
 
 ## How cerf_guest is injected (the universal mechanism)
@@ -21,10 +21,10 @@ CE version. These pieces are common to all ROMs:
   at the stub. A tiny stub stays under the per-CE-version slot-size limits
   that the full body exceeds.
 - A `cerf_virt` MMIO channel
-  (`cerf/peripherals/cerf_virt/cerf_virt_guest_body.cpp`) delivers the **full
+  (`libCerfCore/src/peripherals/cerf_virt/cerf_virt_guest_body.cpp`) delivers the **full
   cerf_guest body** separately. The stub and body are staged per guest
   architecture under `ce_apps/<arch>/`. `GuestAdditionsBinaries::ArchDir`
-  (`cerf/boot/guest_additions_binaries.{h,cpp}`) selects them from
+  (`libCerfCore/src/boot/guest_additions_binaries.{h,cpp}`) selects them from
   `GetCpuArch()` plus the CPU subtype of the ROM. The stub reads the body bytes
   and **manual-maps the PE itself**: VirtualAlloc + section copy + base reloc +
   coredll import bind + entry. The verified loader of the kernel therefore never
@@ -35,7 +35,7 @@ CE version. These pieces are common to all ROMs:
 
 Only **the placement of the stub into the ROM** differs by ROM class:
 
-- **XIP / MultiXIP** (`cerf/boot/guest_additions_injector.cpp`) - the ROM
+- **XIP / MultiXIP** (`libCerfCore/src/boot/guest_additions_injector.cpp`) - the ROM
   carries a TOC of XIP modules. The injector therefore overwrites the TOC entry
   of the victim module (its e32/o32/load offsets) to repoint it at the stub.
   The section bytes and e32/o32 records of the stub need one host span. The
@@ -50,7 +50,7 @@ Only **the placement of the stub into the ROM** differs by ROM class:
     The injector zeroes the span first. The `.bss` of the stub lies past its
     raw bytes, and an in-place load does not clear that `.bss`.
   - **Band, the fallback.** This host is a CERF-owned PA band in the
-    `cerf_virt` window (`cerf/boot/cerf_injection_region.{h,cpp}`). Its VA is
+    `cerf_virt` window (`libCerfCore/src/boot/cerf_injection_region.{h,cpp}`). Its VA is
     a static-window VA that the OAT of the board leaves unmapped. The MMU of
     the guest engine maps that VA to the band. Each victim that falls back
     takes its own span in the band. A board halts when its squat fails and
@@ -65,7 +65,7 @@ Only **the placement of the stub into the ROM** differs by ROM class:
 
   A hard reset replays the whole host span. CERF also restores an in-place host
   on every reset, because the writable data of the stub lives in it.
-- **IMGFS** (WM6+, `cerf/boot/imgfs_injector.cpp` + `ce_imgfs_patcher.{h,cpp}`)
+- **IMGFS** (WM6+, `libCerfCore/src/boot/imgfs_injector.cpp` + `ce_imgfs_patcher.{h,cpp}`)
   - IMGFS is a flash filesystem (an FTL over the NOR/NAND image), not an XIP
   TOC. There is therefore no slot to overwrite. The injector allocates fresh
   FTL flash pages and writes the logical-sector-map entry of each page, so
@@ -150,7 +150,7 @@ stream driver and calls `ActivateDevice` on it, so device.exe loads the same
 module and runs the FSD from `CDD_Init`. Guest side:
 `ce_apps/cerf_guest/cerf_fs_*.c` + `cerf_driver_in_driver.cpp`. Host transport:
 the `ServerPB` peripheral
-`cerf/peripherals/cerf_virt/cerf_virt_folder_share*` + `folder_share_*`.
+`libCerfCore/src/peripherals/cerf_virt/cerf_virt_folder_share*` + `folder_share_*`.
 
 ## The cross-process writable-state invariant
 
@@ -224,7 +224,7 @@ driver therefore runs unmodified across CE2.0 → CE7 and Windows Mobile 5/6.
 Each OS sees the shapes of its own generation. The driver always sees CE6
 shapes.
 
-It is the guest-side partner of the host `cerf/peripherals/cerf_virt/` virtual
+It is the guest-side partner of the host `libCerfCore/src/peripherals/cerf_virt/` virtual
 framebuffer and `gpe_cmd` accelerator channel. The driver routes blits over
 that channel, and the host performs them natively (`cerf_ddgpe_blt.cpp`
 `BltPrepare` routing, `main.cpp` channel ABI). It owns the universal display
@@ -323,7 +323,7 @@ on every CE version (CE 2.11 → CE 7). One guest binary therefore drives
 keyboard input on every guest OS, with no per-version code and no
 guest-installed driver.
 
-- Host channel: `cerf/peripherals/cerf_virt/cerf_virt_keyboard.{h,cpp}` +
+- Host channel: `libCerfCore/src/peripherals/cerf_virt/cerf_virt_keyboard.{h,cpp}` +
   `cerf_virt_keyboard_regs.h`. Keys are edges (down/up) that must arrive once
   and in order. The channel is therefore a ring buffer, not the level /
   last-value-wins registers of the pointer. The host appends one entry per
@@ -336,7 +336,7 @@ guest-installed driver.
   WM_KEYDOWN / WM_KEYUP + WM_CHAR.
 
 The guest-additions keyboard registers as one source in the host
-`KeyboardRouter` (`cerf/host/keyboard_router.{h,cpp}`) with the highest source
+`KeyboardRouter` (`libCerfCore/include/cerfcore/host/keyboard_router.h`, `libCerfCore/src/host/keyboard_router.cpp`) with the highest source
 priority. It becomes the active source only after it reports `SourceReady`.
 The router is board-agnostic host input and is not itself part of guest
 additions - see `subsystems.md`.
@@ -357,7 +357,7 @@ because the driver stays loaded. The liveness is hibernation state and
 round-trips through `CerfVirtGuestBody`.
 
 The guest-additions mouse registers the same way: one source in the host
-`PointerRouter` (`cerf/host/pointer_router.{h,cpp}`) at the highest source
+`PointerRouter` (`libCerfCore/include/cerfcore/host/pointer_router.h`, `libCerfCore/src/host/pointer_router.cpp`) at the highest source
 priority, gated by the same readiness. The `PointerWidget` switches it for the
 stock pointer or pointers of the board. That switch is necessary because some
 apps (for example calibrators) read the stock touch/mouse stream directly. On a
@@ -372,15 +372,16 @@ The guest task manager (Guest Additions status-bar widget → non-modal host
 window) lists, kills, and switches to guest processes. It also runs guest
 executables. It has three pieces:
 
-- the MMIO command/response channel
-  `cerf/peripherals/cerf_virt/cerf_virt_task_manager.{h,cpp}` plus the
+- The MMIO command/response channel
+  `libCerfCore/include/cerfcore/peripherals/cerf_virt/cerf_virt_task_manager.h`, `libCerfCore/src/peripherals/cerf_virt/cerf_virt_task_manager.cpp` plus the
   `_regs.h` contract. The host publishes one command at a time through a gen
   bump. The guest answers with response regs plus a kick. LIST rows stream
   guest→host one record at a time through a register window.
-- the host window and widget (`cerf/host/task_manager_window.{h,cpp}`, widget
-  merged into `cerf/host/host_auto_resize.{h,cpp}`, pinned in the terminal
-  range of the status bar).
-- the guest-side pump `ce_apps/cerf_guest/cerf_task_manager_pump.cpp`.
+- The host window (`cerf-win32/host/task_manager_window.{h,cpp}`), which
+  implements the `TaskManagerView` seam. The Guest Additions widget
+  (`libCerfCore/src/host/guest_additions_widget.{h,cpp}`, pinned in the terminal
+  range of the status bar) opens it.
+- The guest-side pump `ce_apps/cerf_guest/cerf_task_manager_pump.cpp`.
 
 Channel-design rules that bind every future `cerf_virt` channel:
 

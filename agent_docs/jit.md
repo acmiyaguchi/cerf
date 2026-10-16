@@ -11,14 +11,14 @@ board runs exactly one of them, chosen by `BoardContext::GetCpuArch()`.
 |---|---|
 | `libCerfEngine/include/cerfengine/engine.h`, `engine_setup.h`, `*_host.h` | the engine, the setup that the host fills, the host interfaces and hooks, and the host functions that the engine declares |
 | `libCerfEngine/include/cerfengine/guest_engine.h` | the ISA-neutral engine interface `JitRunner` drives |
-| `cerf/execution/*engine_bridge*` | the CERF owner of the engine |
-| `cerf/execution/jit_runner.{h,cpp}` | the host thread that owns the dispatch loop |
+| `libCerfCore/src/execution/*engine_bridge*` | the CERF owner of the engine |
+| `libCerfCore/include/cerfcore/execution/jit_runner.h`, `libCerfCore/src/execution/jit_runner.cpp` | the host thread that owns the dispatch loop |
 | `libCerfEngine/src/jit_code_arena.{h,cpp}` | the executable-memory allocator |
 | `libCerfEngine/include/cerfengine/isa_block_space.h`, `jit_block_index.h` | the translation index and jump cache |
 | `libCerfEngine/src/x86_emit*.h` | host x86 encoding helpers, from Intel SDM Vol. 2 |
 | `libCerfEngine/src/arm/`, `libCerfEngine/src/mips/` | the two engines |
 | `libCerfEngine/src/arm/place/`, `libCerfEngine/src/mips/place/` | one file per emitted guest instruction |
-| `cerf/cpu/arm/`, `cerf/cpu/mips/`, `cerf/cpu/<core>/` | the page-walk, coprocessor, TLB and exception models that CERF gives the engine, for each ISA and for each core |
+| `libCerfCore/src/cpu/arm/`, `libCerfCore/src/cpu/mips/`, `libCerfCore/src/cpu/<core>/` | the page-walk, coprocessor, TLB and exception models that CERF gives the engine, for each ISA and for each core |
 
 ## The `GuestEngine` seam
 
@@ -55,8 +55,10 @@ the fix is not in the JIT.
 
 ## Errors
 
-`Engine::Start` returns a setup error to its caller. The x86 backend
-builds only for MSVC x86. On every other host, `Start` refuses.
+`Engine::Start` returns a setup error to its caller. Only an MSVC x86 build
+executes guest code. In every other build, `Start` refuses. A consumer that
+names engine classes links only on an x86-32 or x86-64 build, because only
+that build compiles the whole engine.
 
 `Engine::Halt` stops a run on a guest condition that the engine does not
 model. It unwinds to the wrapper around block execution or block

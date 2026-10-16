@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 #define CERF_LOG_MAX_PROC 8
 typedef struct { DWORD pid; volatile UCHAR* va; } CerfLogSlot;

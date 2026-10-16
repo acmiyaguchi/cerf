@@ -13,9 +13,9 @@ from branding import PRODUCT_NAME
 from tcl_data_filter import drop_unused_tcl_data
 from PyInstaller.utils.hooks import collect_data_files
 
-ASSETS       = REPO_ROOT / "cerf" / "assets"
+ASSETS       = REPO_ROOT / "cerf-win32" / "assets"
 ICON_PATH    = str(ASSETS / "cerf_setup.ico")
-VERSION_PATH = str(REPO_ROOT / "cerf" / "version.h")
+VERSION_PATH = str(REPO_ROOT / "libCerfFrontend" / "include" / "cerffrontend" / "version.h")
 
 NAME = "cerf_installer"
 

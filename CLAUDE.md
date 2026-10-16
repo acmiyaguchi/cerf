@@ -64,11 +64,11 @@ The following pages are authoritative project knowledge; their full contents are
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-Output: `build/Release/Win32/cerf.exe`. Pre-commit hook rejects .cpp/.h files over 500 lines (see `.githooks/pre-commit`). The `.vcxproj` uses `**\*.cpp` glob - new .cpp files are automatically included in the build. No manual project file edits needed.
+Output: `build/Release/Win32/cerf.exe`. Pre-commit hook rejects .cpp/.h files over 500 lines (see `.githooks/pre-commit`). The libraries build with CMake globs, and `cerf-win32/cerf.vcxproj` uses a `**\*.cpp` glob. New .cpp files are therefore in the build automatically. You do not edit a project file by hand.
 
 - Build might take 5-10 minutes to complete on an already-set-up machine.
 - `build.ps1` waits until no run holds a `.cerf_lock.N` slot, and holds `.build_lock` until the build ends. Each script refreshes its own lock while it works, so a lock expires only after its owner process dies.
-- **First build on a fresh machine takes 1+ hour** because vcpkg compiles dependencies from source before cerf links. This is automatic - msbuild restores them via manifest mode; no separate vcpkg command needed. Cached in `vcpkg_installed/` after; later builds are fast again. Do not cancel the first build assuming it's hung.
+- **First build on a fresh machine takes 1+ hour** because vcpkg compiles dependencies from source before cerf links. `build.ps1` runs the vcpkg manifest install before it builds the libraries, so you need no separate vcpkg command. Cached in `vcpkg_installed/` after; later builds are fast again. Do not cancel the first build assuming it's hung.
 - Prerequisite (once per machine): `vcpkg integrate install` from the VS-bundled vcpkg at `<VS install>\VC\vcpkg\vcpkg.exe`. `build.ps1` fails fast with a clear error if this is missing.
 - You can run it as a background task with GNU timeout in command itself in case if either you have parallel work to do or user insisted on this.
 

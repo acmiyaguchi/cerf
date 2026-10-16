@@ -20,6 +20,13 @@ function Test-GitRepo {
     return $true
 }
 
+function Get-CoreLibrarySubmodules {
+    if (-not (Test-Path '.gitmodules')) { return @() }
+    $paths = git config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>$null |
+             ForEach-Object { ($_ -split '\s+', 2)[1] }
+    return @($paths | Where-Object { $_ -notmatch '/' -and (Test-Path (Join-Path $_ '.git')) })
+}
+
 function Test-GitHooks {
     if (-not (Test-Path '.githooks/pre-commit')) {
         Report 'FAIL' 'git-hooks' '.githooks/pre-commit is missing from the working tree'
@@ -32,6 +39,14 @@ function Test-GitHooks {
         Report 'FAIL' 'git-hooks' 'core.hooksPath is unset -- git hooks never run in this clone'
     } else {
         Report 'FAIL' 'git-hooks' "core.hooksPath = $path (expected .githooks)"
+    }
+    foreach ($lib in Get-CoreLibrarySubmodules) {
+        $libPath = (git -C $lib config --get core.hooksPath 2>$null)
+        if ($libPath -eq '../.githooks') {
+            Report 'OK' "git-hooks $lib" 'core.hooksPath = ../.githooks'
+        } else {
+            Report 'FAIL' "git-hooks $lib" "core.hooksPath = '$libPath' (expected ../.githooks) -- commits in $lib skip the pre-commit checks"
+        }
     }
 }
 
@@ -194,6 +209,11 @@ foreach ($m in $missingSubmodules) {
 }
 if ($missingSubmodules.Count -eq 0) {
     Write-Host "  skip  submodules already initialised (left untouched)" -ForegroundColor DarkGray
+}
+
+foreach ($lib in Get-CoreLibrarySubmodules) {
+    git -C $lib config core.hooksPath ../.githooks
+    Write-Host "  set   $lib core.hooksPath = ../.githooks" -ForegroundColor Green
 }
 
 Write-Host ""

@@ -1,9 +1,9 @@
 """MkDocs hook: fills the placeholders whose content lives outside the site.
 
-{version}         cerf/version.h
-{boards_table}    bundled/db.json (via compile_readme.py)
+{version}         libCerfFrontend/include/cerffrontend/version.h
+{boards_table}    libCerfCore/db.json (via compile_readme.py)
 {changelog_table} docs/changelog.yml (via changelog.py)
-{stats}           board / SoC / CPU counts, from bundled/db.json
+{stats}           board / SoC / CPU counts, from libCerfCore/db.json
 {devices}         the front-page device row, from docs/website/devices.yml
 {features}        the front-page feature cards, from docs/website/features.yml
 {articles}        the front-page article cards, from docs/website/articles.yml
@@ -53,7 +53,7 @@ from board_info import running_boards
 
 def _boards_table():
     table = compile_readme.build_supported_devices()
-    return (table.replace('cerf/assets/icons_sources', '/assets/icons')
+    return (table.replace('cerf-win32/assets/icons_sources', '/assets/icons')
                  .replace('launcher/assets/icons', '/assets/icons'))
 
 

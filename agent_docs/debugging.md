@@ -116,7 +116,7 @@ branch is named.
    likelihood - list everything.**
 
 3. **Install one TraceManager `OnPc` hook per candidate** in a
-   trace file under `cerf/tracing/<bundle>/` (see § TraceManager
+   trace file under `libCerfCore/src/tracing/<bundle>/` (see § TraceManager
    below). `tm.OnPc(addr, handler)` per function entry. Tag names
    must be unique and grep-friendly. Capture R0..R3, LR, SP at
    minimum - the input arguments and the caller. **Hook the WHOLE
@@ -447,7 +447,7 @@ Investigation:
 ## Crash shape #4 - kernel debug serial says something useful
 
 The OAL writes diagnostic strings to a UART, or - when the OEM nulls
-the debug path - to a sink hooked by a `cerf/tracing/<bundle>/nkdbg/`
+the debug path - to a sink hooked by a `libCerfCore/src/tracing/<bundle>/nkdbg/`
 file. CERF routes all such guest debug text through `KernelDebugSink`
 to the `Nkdbg` channel. Search `cerf.log` for `[NKDBG]` to
 find the kernel's own boot trace, which often names the function that
@@ -484,7 +484,7 @@ When your fix crashes:
 
 Permanent `LOG()` sites are for low-frequency state observation across
 the codebase. Bug-specific diagnostics belong in **device-specific trace
-files** under `cerf/tracing/<bundle>/`, not in permanent code.
+files** under `libCerfCore/src/tracing/<bundle>/`, not in permanent code.
 Bug-specific diagnostics are register dumps at one particular guest PC,
 value-change pollers, watches on one specific guest VA, one-shot startup
 audits, and function-entry fire-or-no-fire bisections.
@@ -571,8 +571,8 @@ at a given VA, so the match is unambiguous where a name lookup is not.
 
 ### Adding a trace file
 
-1. Pick a directory: `cerf/tracing/<bundle_human_name>/` (for example
-   `cerf/tracing/wm5_smdk2410_devemu/`). If it does not exist, create it.
+1. Pick a directory: `libCerfCore/src/tracing/<bundle_human_name>/` (for example
+   `libCerfCore/src/tracing/wm5_smdk2410_devemu/`). If it does not exist, create it.
 2. Add a `bundle.h` that declares
    `constexpr uint32_t k<Bundle>Crc32 = 0x<actual>;`. Put it in the
    bundle directory, where git ignores it. If this bundle ships a
@@ -604,11 +604,11 @@ at a given VA, so the match is unambiguous where a name lookup is not.
 4. `REGISTER_SERVICE(NkTrace);` at the bottom.
 5. Build with `build.ps1` (default `-Mode dev`). The build includes the
    trace file. `build.ps1 -Mode production` excludes the entire
-   `cerf/tracing/<bundle>/` subtree from the build.
+   `libCerfCore/src/tracing/<bundle>/` subtree from the build.
 
 Per-device trace files are gitignored - personal debugging
 scaffolding, not committed source. Git tracks only each
-`cerf/tracing/<bundle>/nkdbg/` directory - its hooks and its `bundle.h`
+`libCerfCore/src/tracing/<bundle>/nkdbg/` directory - its hooks and its `bundle.h`
 CRC header. The rest, every other CRC header included, stays on your
 disk. It persists across your local sessions, and never enters the
 repo. Verify your existing hooks before

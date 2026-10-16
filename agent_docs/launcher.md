@@ -212,7 +212,7 @@ The Properties sheet of a running device opens with every control disabled.
 
 ## Board data
 
-The launcher reads its board knowledge from `bundled/db.json`, which
+The launcher reads its board knowledge from `libCerfCore/db.json`, which
 `cerf.exe` reads too. Neither program keeps a second copy, so a board the
 launcher lists and a board CERF boots can never disagree.
 

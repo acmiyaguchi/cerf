@@ -13,7 +13,7 @@ When the user asks to bump the CERF version, follow § Bump mode instead.
 
 ## Bump mode
 
-1. **Read the version from `cerf/version.h`**: `CERF_VERSION_MAJOR`, `CERF_VERSION_MINOR`, `CERF_VERSION_PATCH`. The label is `v<major>.<minor>`, or `v<major>.<minor>.<patch>` when the patch is not 0. Do not edit `version.h`.
+1. **Read the version from `libCerfFrontend/include/cerffrontend/version.h`**: `CERF_VERSION_MAJOR`, `CERF_VERSION_MINOR`, `CERF_VERSION_PATCH`. The label is `v<major>.<minor>`, or `v<major>.<minor>.<patch>` when the patch is not 0. Do not edit `version.h`.
 2. **If the top entry of `docs/changelog.yml` already has that version, change nothing** and tell the user.
 3. **Otherwise insert a new top entry**, exactly in this shape:
 

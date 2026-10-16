@@ -160,12 +160,13 @@ function Get-LauncherInputSignature {
             $_.Extension -ne ".pyc" -and
             $_.Name -ne ".launcher_timestamps"
         }
-    foreach ($rel in @("cerf\assets\cerf.ico", "cerf\assets\cerf_error.ico",
-                       "cerf\assets\cerf_setup.ico", "cerf\version.h")) {
+    foreach ($rel in @("cerf-win32\assets\cerf.ico", "cerf-win32\assets\cerf_error.ico",
+                       "cerf-win32\assets\cerf_setup.ico",
+                       "libCerfFrontend\include\cerffrontend\version.h")) {
         $p = Join-Path $PSScriptRoot $rel
         if (Test-Path $p) { $inputs += Get-Item $p }
     }
-    $bands = Join-Path $PSScriptRoot "cerf\assets"
+    $bands = Join-Path $PSScriptRoot "cerf-win32\assets"
     $inputs += Get-ChildItem -Path $bands -Filter "about_band_*.png" -File -ErrorAction SilentlyContinue
     ($inputs |
         ForEach-Object { "$($_.FullName)|$($_.LastWriteTimeUtc.Ticks)" } |
@@ -216,17 +217,21 @@ function Get-SubmodulePin([string]$repo, [string]$path) {
     return $fields[1]
 }
 
-$engineDir  = Join-Path $PSScriptRoot "libCerfEngine"
-$locatorDir = Join-Path $PSScriptRoot "libservicelocator"
-$rootPin    = Get-SubmodulePin $PSScriptRoot "libservicelocator"
-$enginePin  = Get-SubmodulePin $engineDir "libservicelocator"
-if ($enginePin -and $enginePin -ne $rootPin) {
-    if ($Mode -eq "production") {
-        Write-Host "[BUILD] FAILED! libCerfEngine pins libservicelocator $enginePin, the root pins $rootPin."
-        Write-Host "[BUILD] Point both at the same commit before you build."
-        Stop-Build 1
+$nestedPins = @(
+    @{ Library = "libCerfEngine"; Dependency = "libservicelocator" },
+    @{ Library = "libCerfCore";   Dependency = "libCerfEngine" }
+)
+foreach ($nested in $nestedPins) {
+    $rootPin    = Get-SubmodulePin $PSScriptRoot $nested.Dependency
+    $libraryPin = Get-SubmodulePin (Join-Path $PSScriptRoot $nested.Library) $nested.Dependency
+    if ($libraryPin -and $libraryPin -ne $rootPin) {
+        if ($Mode -eq "production") {
+            Write-Host "[BUILD] FAILED! $($nested.Library) pins $($nested.Dependency) $libraryPin, the root pins $rootPin."
+            Write-Host "[BUILD] Point both at the same commit before you build."
+            Stop-Build 1
+        }
+        Write-Host "[BUILD] WARNING: $($nested.Library) pins $($nested.Dependency) $libraryPin, the root pins $rootPin. $($nested.Library) builds against the root checkout."
     }
-    Write-Host "[BUILD] WARNING: libCerfEngine pins libservicelocator $enginePin, the root pins $rootPin. The engine builds against the root checkout."
 }
 
 $cmake = Join-Path $vsRoot 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
@@ -236,23 +241,57 @@ if (-not (Test-Path $cmake)) {
 }
 $vsVersion  = [version](& $vswhere -latest -prerelease -property installationVersion | Select-Object -First 1)
 $vsYear     = & $vswhere -latest -prerelease -property catalog_productLineVersion | Select-Object -First 1
-$engineOut  = Join-Path $PSScriptRoot "build\cerfengine"
-if ($Rebuild -and (Test-Path $engineOut)) { Remove-Item $engineOut -Recurse -Force }
 
-Write-Host "[ENGINE] libCerfEngine ($Config)"
-& $cmake -S $engineDir -B $engineOut -G "Visual Studio $($vsVersion.Major) $vsYear" -A Win32 `
+$vcpkgProps     = Get-Content "$env:LOCALAPPDATA\vcpkg\vcpkg.user.props" -Raw
+$vcpkgMatch     = [regex]::Match($vcpkgProps, 'Project="([^"]+)\\scripts\\buildsystems\\msbuild\\vcpkg\.props"')
+if (-not $vcpkgMatch.Success) {
+    Write-Host "[BUILD] FAILED! vcpkg.user.props names no vcpkg root. Run 'vcpkg integrate install' again."
+    Stop-Build 1
+}
+$vcpkgRoot      = $vcpkgMatch.Groups[1].Value
+$vcpkgExe       = Join-Path $vcpkgRoot 'vcpkg.exe'
+$vcpkgTriplet   = 'x86-windows-static'
+$vcpkgInstalled = Join-Path $PSScriptRoot "vcpkg_installed\$vcpkgTriplet"
+$vcpkgStamp     = Join-Path $vcpkgInstalled ".msbuildstamp-$vcpkgTriplet.stamp"
+$vcpkgInputs    = @("vcpkg.json", "vcpkg-configuration.json") | ForEach-Object { Get-Item (Join-Path $PSScriptRoot $_) }
+$vcpkgCurrent   = (Test-Path $vcpkgStamp) -and
+                  -not ($vcpkgInputs | Where-Object { $_.LastWriteTimeUtc -gt (Get-Item $vcpkgStamp).LastWriteTimeUtc })
+if (-not $vcpkgCurrent) {
+    Write-Host "[VCPKG] Installing the manifest dependencies ($vcpkgTriplet)"
+    $savedPath = $env:PATH
+    $env:PATH  = "$(Split-Path $cmake -Parent);$savedPath"
+    & $vcpkgExe install --x-wait-for-lock --triplet $vcpkgTriplet --vcpkg-root $vcpkgRoot `
+        "--x-manifest-root=$PSScriptRoot" "--x-install-root=$vcpkgInstalled"
+    $vcpkgExit = $LASTEXITCODE
+    $env:PATH  = $savedPath
+    Update-CerfLockStamp $buildLock
+    if ($vcpkgExit -ne 0) {
+        Write-Host "[BUILD] vcpkg install FAILED (exit=$vcpkgExit)"
+        Stop-Build 1
+    }
+    New-Item -ItemType File -Path $vcpkgStamp -Force | Out-Null
+}
+
+$libsOut    = Join-Path $PSScriptRoot "build\cerflibs"
+$coreDevMode = if ($Mode -eq "production") { "OFF" } else { "ON" }
+if ($Rebuild -and (Test-Path $libsOut)) { Remove-Item $libsOut -Recurse -Force }
+
+Write-Host "[LIBS] libCerfEngine, libCerfCore, libCerfFrontend ($Config)"
+& $cmake -S $PSScriptRoot -B $libsOut -G "Visual Studio $($vsVersion.Major) $vsYear" -A Win32 `
     -T "version=$toolsVersion" "-DCMAKE_GENERATOR_INSTANCE=$vsRoot" `
     '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>' `
     "-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded" `
-    "-DCERFENGINE_SERVICELOCATOR_DIR=$locatorDir" "-DCERFENGINE_BUILD_TESTS=OFF"
-$engineExit = $LASTEXITCODE
-if ($engineExit -eq 0) {
-    & $cmake --build $engineOut --config $Config --parallel -- /v:minimal /nologo /nodeReuse:false
-    $engineExit = $LASTEXITCODE
+    "-DCMAKE_PREFIX_PATH=$vcpkgInstalled\$vcpkgTriplet" `
+    "-DCERFCORE_DEV_MODE=$coreDevMode" `
+    "-DCERFCORE_DEVICE_TRACES=$coreDevMode"
+$libsExit = $LASTEXITCODE
+if ($libsExit -eq 0) {
+    & $cmake --build $libsOut --config $Config --parallel -- /v:minimal /nologo /nodeReuse:false
+    $libsExit = $LASTEXITCODE
 }
 Update-CerfLockStamp $buildLock
-if ($engineExit -ne 0) {
-    Write-Host "[BUILD] libCerfEngine FAILED (exit=$engineExit)"
+if ($libsExit -ne 0) {
+    Write-Host "[BUILD] CERF libraries FAILED (exit=$libsExit)"
     Stop-Build 1
 }
 

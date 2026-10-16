@@ -9,9 +9,9 @@
 #define GCAPS_GRAY16 0x01000000u
 #endif
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_color_scheme_regs.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_fb_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_color_scheme_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_fb_regs.h"
 #include "cerf_allow_unsigned_apps.h"
 #include "cerf_autorun.h"
 #include "cerf_dma_arena.h"

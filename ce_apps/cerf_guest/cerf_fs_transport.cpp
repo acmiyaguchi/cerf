@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 static volatile CerfFsChannel* g_chan = NULL;
 

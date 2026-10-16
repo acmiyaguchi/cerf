@@ -10,11 +10,12 @@ CERF only halts the CPU and drives the wake.
 **This is not hibernation.** See § "Suspend/resume is not hibernation" - a
 conflation of the two is the most common mistake in this subsystem.
 
-Host implementation: `cerf/host/guest_deep_sleep.{h,cpp}`,
-`cerf/state/shutdown_dialog.{h,cpp}`. CPU halt/wake: `libCerfEngine/src/arm/arm_jit.cpp`
-(`EnterDeepSleep`, `SetResetPending`, delivery), `cerf/execution/jit_runner.cpp` (the
+Host implementation: `libCerfCore/include/cerfcore/host/guest_deep_sleep.h`, `libCerfCore/src/host/guest_deep_sleep.cpp`,
+`libCerfCore/include/cerfcore/host/shutdown_host.h`, `cerf-win32/host/win32_shutdown_host.cpp`,
+`cerf-win32/host/shutdown_dialog.{h,cpp}`. CPU halt/wake: `libCerfEngine/src/arm/arm_jit.cpp`
+(`EnterDeepSleep`, `SetResetPending`, delivery), `libCerfCore/src/execution/jit_runner.cpp` (the
 park), `libCerfEngine/src/arm/arm_cpu.cpp` (`RaiseResetException`). Reset cause + reset
-line: `cerf/socs/guest_cpu_reset.{h,cpp}`.
+line: `libCerfCore/include/cerfcore/socs/guest_cpu_reset.h`, `libCerfCore/src/socs/guest_cpu_reset.cpp`.
 
 ## The halt model
 
@@ -25,9 +26,10 @@ delivered reset clears `deep_sleep` and releases the park. No guest
 instructions run while the thread is parked, so no peripheral IRQ reaches the
 sleeping CPU.
 
-`GuestDeepSleep::Enter()` (JIT thread) banners the sleep, halts the CPU, and posts
-`Recover()` to the UI thread. `Recover()` shows `ShutdownDialog::Show(...)`: Cancel
-wakes (`DeliverWake`), OK exits (with an optional save). The recovery dialog is
+`GuestDeepSleep::Enter()` (JIT thread) prints the sleep banner, halts the CPU, and
+gives `Recover()` to `ShutdownHost::RunPromptJob`, which runs it on the UI thread of
+the frontend. `Recover()` calls `ShutdownHost::Ask(ShutdownTrigger::DeepSleep)`.
+Cancel wakes (`DeliverWake`), OK exits (with an optional save). The recovery dialog is
 **no-timeout** by design - a countdown can auto-exit and discard live guest RAM
 while the user is away.
 
@@ -222,7 +224,7 @@ Two different mechanisms. A conflation of them causes real bugs:
 - **Suspend/resume (this page)** is GUEST-driven: the guest powered itself down at
   runtime, RAM is live, and the guest's own resume code runs on wake. CERF halts
   the CPU and drives the wake. No machine state is serialized.
-- **Hibernation** (`agent_docs/hibernation.md`, `cerf/state/hibernation.cpp`) is
+- **Hibernation** (`agent_docs/hibernation.md`, `libCerfCore/src/state/hibernation.cpp`) is
   HOST-driven: CERF serializes the whole machine to a `.img` file and restores it
   later. The per-peripheral `SaveState` / `RestoreState` / `PostRestore` contract
   in `hibernation.md` belongs to hibernation. It does not apply to suspend/resume,
@@ -238,5 +240,5 @@ wake, no dialog). Consequences:
 - **A restore-into-deep-sleep IS the suspend/resume path**, and it runs the same
   `DeliverWake` - not a separate hibernation defect to chase.
 
-- `cerf/host/guest_deep_sleep.{h,cpp}`, `cerf/socs/guest_cpu_reset.{h,cpp}`,
-`cerf/state/shutdown_dialog.{h,cpp}`; CPU halt/wake under `libCerfEngine/`.
+- `libCerfCore/include/cerfcore/host/guest_deep_sleep.h`, `libCerfCore/src/host/guest_deep_sleep.cpp`, `libCerfCore/include/cerfcore/socs/guest_cpu_reset.h`, `libCerfCore/src/socs/guest_cpu_reset.cpp`,
+`cerf-win32/host/shutdown_dialog.{h,cpp}`; CPU halt/wake under `libCerfEngine/`.

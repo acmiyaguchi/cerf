@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Generate every icon asset CERF ships, from one set of SVG sources.
 
-  sources : cerf/assets/icons_sources/*.svg   (authored 16x16, vector-scalable)
+  sources : cerf-win32/assets/icons_sources/*.svg   (authored 16x16, vector-scalable)
   targets :
-    ico       cerf/assets/<name>.ico               16/20/24/32/48/64/256, 32-bit alpha
-    ce_ico    cerf/assets/<stem>_ce.ico            16/32, 32bpp BMP frames
-    ce2_ico   cerf/assets/<stem>_ce2.ico           16/32, 4bpp system-palette frames
+    ico       cerf-win32/assets/<name>.ico               16/20/24/32/48/64/256, 32-bit alpha
+    ce_ico    cerf-win32/assets/<stem>_ce.ico            16/32, 32bpp BMP frames
+    ce2_ico   cerf-win32/assets/<stem>_ce2.ico           16/32, 4bpp system-palette frames
               (from the flat *_vga.svg sources, not the gradient ones)
     launcher  launcher/assets/icons/<stem>.png     32x32 RGBA
     wizard    launcher/assets/icons/<stem>.png     64x64 RGBA (New-device wizard pivots)
     toolbar   launcher/assets/icons/<stem>.png     48x48 RGBA (main-window toolbar buttons)
     dialog    launcher/assets/icons/<stem>_<px>.png  branded-dialog icons, per DPI scale
     badges    launcher/assets/icons/badge_<key>.png  CPU-arch badges (no SVG source)
-    band      cerf/assets/about_band_<pct>.png     branded-dialog band, per DPI scale
-    logo      cerf/assets/cerf_1024.png            app mark, cerf.exe
+    band      cerf-win32/assets/about_band_<pct>.png     branded-dialog band, per DPI scale
+    logo      cerf-win32/assets/cerf_1024.png            app mark, cerf.exe
 
 Each .ico carries every size as its own resvg-rendered frame (vector rendered
 natively at each pixel size, not one bitmap downscaled), so small sizes stay
@@ -23,7 +23,7 @@ LoadIconWithScaleDown (see HostIconCache).
 The launcher renders icons with tk.PhotoImage, which reads PNG but not SVG, and
 its two shipped builds run on CPython 3.15 and 3.7-x86 (Vista), for which a
 runtime SVG rasterizer has no reliable wheels - so the launcher loads only the
-PNGs emitted here. Its stem set is FEATURE_SPECS, built from bundled/db.json.
+PNGs emitted here. Its stem set is FEATURE_SPECS, built from libCerfCore/db.json.
 The README and website reference the SVGs directly and need no target here.
 
 Renderer: resvg (resvg-py) - faithful SVG including filters/gradients, no system
@@ -56,8 +56,8 @@ DIALOG_STEMS = ("cerf_error", "cerf", "cerf_setup")
 LAUNCHER_ONLY_STEMS = WIZARD_STEMS + TOOLBAR_STEMS
 
 REPO = Path(__file__).resolve().parent.parent
-SRC_DIR = REPO / "cerf" / "assets" / "icons_sources"
-ICO_DIR = REPO / "cerf" / "assets"
+SRC_DIR = REPO / "cerf-win32" / "assets" / "icons_sources"
+ICO_DIR = REPO / "cerf-win32" / "assets"
 LAUNCHER_DIR = REPO / "launcher" / "assets" / "icons"
 
 CE_ICO_STEMS = ("cerf",)

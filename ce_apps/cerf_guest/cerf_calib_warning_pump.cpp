@@ -5,7 +5,7 @@
 #include "cerf_window_owner.h"
 #include "cerf_calib_warning_pump.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
 
 #define CERF_CW_EVENT         0x00u
 #define CERF_CW_APPEARED      1u

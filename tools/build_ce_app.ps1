@@ -125,7 +125,8 @@ foreach ($p in @($CL, $LINK, $SdkInc, $LIB)) {
 $IncDirs = @()
 foreach ($i in $ExtraIncludes) { $IncDirs += (Resolve-Path $i).Path }
 $IncDirs += $SdkInc
-$IncDirs += $RepoRoot
+$CoreInclude = Join-Path $RepoRoot "libCerfCore/include"
+$IncDirs += $CoreInclude
 
 $Subsystem = "windowsce,$SubsystemVersion"
 $WceDef    = "_WIN32_WCE=$WceVersion"
@@ -177,8 +178,9 @@ if ($cachedMode -ne $buildKey) {
 # object predates the newest header in its directory is recompiled too - a shared
 # struct change otherwise ships as mismatched object layouts.
 $srcDirs = @($Sources | ForEach-Object { Split-Path (Resolve-Path $_).Path -Parent } | Sort-Object -Unique)
+$hdrDirs = $srcDirs + @(Join-Path $CoreInclude "cerfcore/peripherals/cerf_virt")
 $newestHdr = $null
-foreach ($d in $srcDirs) {
+foreach ($d in $hdrDirs) {
     $h = Get-ChildItem -Path $d -Filter *.h -ErrorAction SilentlyContinue |
          Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($h -and (($null -eq $newestHdr) -or ($h.LastWriteTime -gt $newestHdr))) {

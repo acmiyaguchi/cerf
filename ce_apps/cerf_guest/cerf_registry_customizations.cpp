@@ -6,9 +6,9 @@
 #include "cerf_sync2_shell_replace.h"
 #include "main.h"
 
-#include "cerf/peripherals/cerf_virt/cerf_virt_addr_map.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_color_scheme_regs.h"
-#include "cerf/peripherals/cerf_virt/cerf_virt_fb_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_addr_map.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_color_scheme_regs.h"
+#include "cerfcore/peripherals/cerf_virt/cerf_virt_fb_regs.h"
 
 typedef LONG (WINAPI *PFN_RegFlushKey)(HKEY);
 

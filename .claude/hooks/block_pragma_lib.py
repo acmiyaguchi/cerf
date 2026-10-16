@@ -33,7 +33,9 @@ def main() -> int:
         if PRAGMA_LIB_RE.search(blob):
             reason = (
                 "BLOCKED: Source files must not contain '#pragma comment(lib, "
-                "...)'. Add the library to cerf/cerf.vcxproj."
+                "...)'. Add the library to target_link_libraries in the "
+                "CMakeLists.txt of the library that needs it, or to "
+                "cerf-win32/cerf.vcxproj for the Win32 frontend."
             )
             out = {
                 "hookSpecificOutput": {

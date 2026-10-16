@@ -84,13 +84,10 @@ if (-not (Test-Path $exe)) {
     exit 1
 }
 
-# Refuse to profile a stale binary: if any cerf/**/*.cpp or .h is newer than
-# the exe, the user is about to measure code that isn't in the binary. This
-# turned a previous profile run into "baseline numbers dressed up as TLB
-# numbers" — wasted a full sample + symbol-resolution cycle before we noticed.
 $exeTime = (Get-Item $exe).LastWriteTime
-$cerfDir = Join-Path $repoRoot "cerf"
-$newer   = Get-ChildItem -Path $cerfDir -Recurse -Include *.cpp,*.h `
+$srcDirs = @("libCerfEngine", "libCerfCore", "libCerfFrontend", "cerf-win32") |
+           ForEach-Object { Join-Path $repoRoot $_ }
+$newer   = Get-ChildItem -Path $srcDirs -Recurse -Include *.cpp,*.h `
               -ErrorAction SilentlyContinue |
            Where-Object { $_.LastWriteTime -gt $exeTime } |
            Select-Object -First 5

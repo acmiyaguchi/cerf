@@ -53,7 +53,7 @@ When a trigger fires:
 
 ## Hard prohibitions - the UNGROUNDED edit, not the edit
 
-The fragile files - `libCerfEngine/**`, `cerf/cpu/*/*coproc_provider*`, `cerf/cpu/*/processor_config*`, `cerf/cpu/arm/arm_page_walker*`, `cerf/socs/*/<peripheral>*.cpp`, `cerf/boards/**` - are where a wrong edit is silent and costs weeks. They are also **where the work is.** Most sessions on this project ARE edits to these files. An edit to them is never the forbidden thing. An order to edit them while the user is frustrated does not change that.
+The fragile files - `libCerfEngine/**`, `libCerfCore/src/cpu/*/*coproc_provider*`, `libCerfCore/src/cpu/*/processor_config*`, `libCerfCore/src/cpu/arm/arm_page_walker*`, `libCerfCore/src/socs/*/<peripheral>*.cpp`, `libCerfCore/src/boards/**` - are where a wrong edit is silent and costs weeks. They are also **where the work is.** Most sessions on this project ARE edits to these files. An edit to them is never the forbidden thing. An order to edit them while the user is frustrated does not change that.
 
 The forbidden thing is the **ungrounded edit**: a change to one of these files without a verified model for the *specific* change. Its canonical shape is the panic-pivot - "the task got hard, let me just change something that looks related and see." An edit you cannot state as a falsifiable claim grounded in a reference passage, a hook-fire, a decompile, or research you actually did. THAT edit is forbidden - always, mood-independent.
 
@@ -80,7 +80,7 @@ The grounding gate above governs a BEHAVIOR CHANGE. It does NOT apply to OBSERVA
 
 So a question to the user - *"should I add this DEV-MODE log to the MMU walker / the JIT?"* - is a bailout, the same shape as *"should I continue?"*. **The file's fragility is irrelevant to whether you can LOOK.** The STOP trigger is a BEHAVIOR change you cannot ground. It is never the decision to instrument. When you catch yourself about to ask leave to add a diagnostic, that catch IS the bailout, and it just fired: add it, build, run, read the fire.
 
-The ONLY legitimate concern for a diagnostic is hot-path cost (a per-instruction / per-access `LOG` that floods the log or shifts guest timing). The fix for THAT is to GATE it - `#if CERF_DEV_MODE`, one-shot, throttle, or move it into a `cerf/tracing/<bundle>/` file - never to ask permission. Gate and proceed.
+The ONLY legitimate concern for a diagnostic is hot-path cost (a per-instruction / per-access `LOG` that floods the log or shifts guest timing). The fix for THAT is to GATE it - `#if CERF_DEV_MODE`, one-shot, throttle, or move it into a `libCerfCore/src/tracing/<bundle>/` file - never to ask permission. Gate and proceed.
 
 "This is the most fragile file" is a reason to be careful with LOGIC and zero reason to withhold a LOG. To debug the fragile core IS the work. To instrument it is how you do that work. When you root-cause a fault to a specific site, add the DEV-MODE dump at that site. Do not spend a turn on a request for leave to look at the exact thing you are paid to look at.
 
