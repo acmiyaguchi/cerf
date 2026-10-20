@@ -103,6 +103,8 @@ AI-assisted contributions are welcome. That's a nice thing to have in 2026 - you
 
 The vibe code is banned. Please read [Contribution Guidelines](.github/CONTRIBUTING.md). Do not turn this into an AI slop. We put an effort here and we maintain a quality level.
 
+Vibecoding non complex modules is fine but you will most likely violate the [Contribution Guidelines](.github/CONTRIBUTING.md) by producing shitcode.
+
 ## Claude Development Environment
 
 The environment includes several controversial things you need to know before using it.
