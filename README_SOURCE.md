@@ -1,8 +1,9 @@
 <img src="docs/github_band.svg" width="100%"/>
-
 <div align="center">
-  <b>CE Runtime Foundation</b> (aka <i>CERF</I>) - <b>Universal Windows CE emulator</b><br/>
-  <b><a href="https://cerf.cx">cerf.cx</a></b> - read more information about the project  
+  <b>Universal Windows CE emulator</b><br/> 
+  <b><a href="https://cerf.cx">cerf.cx</a></b> - read more information about the project<br/>
+  <a href="https://github.com/gweslab/libCerfEngine">libCerfEngine</a> - JIT repository;
+    <a href="https://github.com/gweslab/libCerfCore">libCerfCore</a> - Emulator repository
 </div><br/>
 
 <div align="center">
@@ -12,38 +13,26 @@
 <br/>
 
 > [!WARNING]
-> **Beta stage.** CERF is a hobby project, developed in spare time
+> **Beta stage.** It is a hobby project, developed in spare time
 > and can't be a called production-grade/exceptionally stable project.
-> **Expect bugs, crashes, and breaking changes.** 🙃
->
-> For the same reason - be careful if you are going to use CERF is a reference for
-> hardware level behaviour. The code works but CERF is not an official chip datasheet.
+> **Expect bugs, crashes, and breaking changes.** CERF stays beta permanently.
 >
 > **This document covers development and contribution aspects**. Visit [cerf.cx](https://cerf.cx)
 > for user-oriented documentation.
 
-## [Contribution Guidelines](.github/CONTRIBUTING.md)
-
 ## Downloads
 
-To use the newest features, download the WIP build ({version}) from the artifacts [![build](https://github.com/gweslab/cerf/actions/workflows/build.yml/badge.svg)](https://github.com/gweslab/cerf/actions/workflows/build.yml). For a stable version, go to the [latest release](https://github.com/gweslab/cerf/releases/latest).
+Visit [the website](https://cerf.cx/download) to learn how to download a stable or an unstable build.
 
-If you need any additional help, e.g. what to run and how to use the emulator - visit [cerf.cx](https://cerf.cx/articles).
+{version} [![build](https://github.com/gweslab/cerf/actions/workflows/build.yml/badge.svg)](https://github.com/gweslab/cerf/actions/workflows/build.yml)
 
-See `cerf.exe` command line usage at [cerf.cx/articles/command-line](https://cerf.cx/articles/command-line/). Might be stale - prefer running `cerf.exe --help` manually instead.
+## [Contribution Guidelines](.github/CONTRIBUTING.md)
 
-## Running your own ROM
-
-**The board is on the supported list.** The [articles](https://cerf.cx/articles/own-rom/) show how to boot your own dump.
-
-**The board is not on the supported list.** A new board needs a code contribution. You need to write your own code. Visit [Contribution Guidelines](.github/CONTRIBUTING.md) before doing that.
-
-> [!IMPORTANT]
-> **CERF does not accept ROM submissions or requests for new boards.** If you want a new board - your only choice is to build a support yourself and send a contribution.
+Please read [these](.github/CONTRIBUTING.md) if you are planning on contributing.
 
 ## Building
 
-CERF requires Visual Studio 2026 with the C++ desktop development workload.
+On Windows the project requires modern Visual Studio with the C++ desktop development workload.
 
 > [!NOTE]
 > **The first build on a new machine takes more than one hour.** vcpkg compiles the dependencies from source before CERF links. This occurs one time on each machine. Later builds use the cached `vcpkg_installed/` tree and are complete in a few minutes. Do not stop the first build.
@@ -81,9 +70,6 @@ The script will:
 - build the emulator itself (and will pick appropriate SDK/toolchain from your installations)
 - build all the bundled Windows CE apps (at `ce_apps/`)
 
-> [!NOTE]
-> The script is primarily designed for Claude. It should still work if you invoke it manually.
-
 ### Building the CE-side binaries (optional)
 
 `ce_apps/` holds various Windows CE applications CERF is bundled with including the Guest Additions driver.
@@ -106,12 +92,13 @@ This repository includes [cerf.cx](https://cerf.cx) source code at `docs/website
 ## AI Usage / Vibecode Notice
 
 AI-assisted contributions are welcome. That's a nice thing to have in 2026 - you have access to tons of resources right in your pocket. Let me show generic use cases on this project:
+
 - study emulators, study JIT, study assembly on various archs, study every piece that affects your code that you don't understand how it works yet
 - learn and use AI to reverse engineer; use AI to reach for more correct architecture calls when you stall
 - use AI to find projects/resources with compatible license to learn/borrow something complex
 - use it to find manuals and papers for devices you target, SoCs/peripherals you target and to extract quotes from them
 - use it to work with and explain complex data structures and non trivial algorithms
-- use it to review your code and to criticize it 
+- use it to review your code and to criticize it
 - the AI is an instrument to convert plain thoughts into a code - that's a replacement for typing code in order to get the same code you wanted but faster
 
 The vibe code is banned. Please read [Contribution Guidelines](.github/CONTRIBUTING.md). Do not turn this into an AI slop. We put an effort here and we maintain a quality level.
@@ -136,13 +123,10 @@ Run the environment:
 run_claude.cmd
 ```
 
-## Supported boards
+## More
 
-{supported_devices}
-
-## Changelog
-
-{changelog}
+- [Supported Devices](https://cerf.cx/devices)
+- [Changelog](https://cerf.cx/changelog)
 
 ---
 
