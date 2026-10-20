@@ -121,6 +121,9 @@ The file [`licenses/OFL-1.1.txt`](licenses/OFL-1.1.txt) contains the full licens
 - **[Das U-Boot](https://github.com/u-boot/u-boot)**
 - **[handhelds.org bootldr](https://ftp.gwdg.de/pub/linux/handhelds/feeds/bootldr/)**
 - **[CMake](https://cmake.org/)**
+- **[LuaJIT](https://luajit.org/)**
+- **[dynarmic](https://github.com/azahar-emu/dynarmic)**
+- **[FEX](https://github.com/FEX-Emu/FEX)**
 
 ## Trademarks
 

@@ -11,7 +11,7 @@ namespace cerffrontend {
 REGISTER_SERVICE(CliUsage);
 
 void CliUsage::Print(const char* prog) {
-    printf("CE Runtime Foundation (CERF) - Universal Windows CE Emulator\n\n");
+    printf("CE Runtime Foundation - Universal Windows CE Emulator\n\n");
     printf("Usage: %s [options]\n\n", prog);
     printf("Options:\n");
     printf("  --device=NAME            Bundle to boot (default from cerf.json)\n");

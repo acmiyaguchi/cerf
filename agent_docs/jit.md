@@ -16,8 +16,14 @@ board runs exactly one of them, chosen by `BoardContext::GetCpuArch()`.
 | `libCerfEngine/src/jit_code_arena.{h,cpp}` | the executable-memory allocator |
 | `libCerfEngine/include/cerfengine/isa_block_space.h`, `jit_block_index.h` | the translation index and jump cache |
 | `libCerfEngine/src/x86_emit*.h` | host x86 encoding helpers, from Intel SDM Vol. 2 |
+| `libCerfEngine/src/host_fp_env.h` | the file that selects the host code for floating-point exception flags |
 | `libCerfEngine/src/arm/`, `libCerfEngine/src/mips/` | the two engines |
-| `libCerfEngine/src/arm/place/`, `libCerfEngine/src/mips/place/` | one file per emitted guest instruction |
+| `libCerfEngine/include/cerfengine/arm/arm_insn_kind.h`, `include/cerfengine/mips/mips_insn_kind.h` | the instruction kinds that the decoders produce |
+| `libCerfEngine/src/cerfir/` | CerfIR, the guest-neutral block IR |
+| `libCerfEngine/src/cerfir/cerfir_guest_model.h` | the guest data that a lowering reads |
+| `libCerfEngine/src/cerfir/cerfir_host_lowering.h` | the file that selects the host lowering |
+| `libCerfEngine/src/cerfir/x86/` | the x86-32 lowering of CerfIR |
+| `libCerfEngine/src/arm/cerfir/`, `libCerfEngine/src/mips/cerfir/` | the ARM and MIPS frontends of CerfIR |
 | `libCerfCore/src/cpu/arm/`, `libCerfCore/src/cpu/mips/`, `libCerfCore/src/cpu/<core>/` | the page-walk, coprocessor, TLB and exception models that CERF gives the engine, for each ISA and for each core |
 
 ## The `GuestEngine` seam
@@ -82,8 +88,8 @@ span:
 - a failed translate
 
 The engine then allocates one arena slab and places the block record
-at the slab head. It emits host code for each decoded instruction in
-turn, then returns the unused tail to the arena.
+at the slab head. It builds the CerfIR of the block, lowers it into
+host code, then returns the unused tail to the arena.
 
 A block that outgrows its slab evicts itself. It flushes the arena and
 the block index, then compiles once more.
@@ -93,9 +99,21 @@ the next block through the jump cache. The guest PC must be live in
 CPU state before that exit, because the dispatcher reads the next PC
 from there.
 
-The ARM engine chains a direct branch back to the start of the block
-that contains it. That block jumps to its own entry and does not
-return.
+Both engines chain a direct branch whose target lies in the same page
+as the block. A branch to the start of its own block jumps to that
+entry and does not return. An exit to another page goes through the
+jump cache in emitted code.
+
+A block whose code continues on another page is never a chain target.
+When the mapping of that page changes, the engine must not enter the
+old translation again. The MIPS dispatcher examines that page each time
+it enters such a block. On ARM, a TLB invalidation of that page removes
+the block from the jump cache. The compiler also examines the page
+before it reuses the block. A chained jump does neither.
+
+An ARM block continues on another page only when its first instruction
+is a wide Thumb instruction that crosses into a new 4 KB page. A core
+with Thumb-2 has no 1 KB pages.
 
 A chained block never reaches the dispatcher, so it observes nothing
 that the dispatcher delivers. Emitted code polls two things in CPU
@@ -107,33 +125,50 @@ block therefore owns a bit in that word. Every timer event is a cycle
 count that the deadline carries - see
 [agent_docs/timers_clocks.md](timers_clocks.md).
 
-## The `place_fn` contract
+## The frontend contract
 
-Both engines share this convention. The decoder fills a
-decoded-instruction record and assigns a function pointer. The emit
-phase then runs that function once per guest instruction. Each one
-writes host machine code at a cursor and returns the advanced cursor.
+The decoder fills a decoded-instruction record and assigns an
+instruction kind. Each kind maps to a CerfIR translator, which adds
+the IR ops of that one instruction to the block.
 
-Place fns live one per file. To add a guest instruction, add a decoder
-mapping and add a `place/<name>.cpp`. No build-script edit is
+No translation code is specific to both one guest and one host. A
+frontend belongs to one guest and to no host. It reaches the host only
+through `cerfir_host_lowering.h`. A lowering belongs to one host and to
+no guest. The guest-specific part of a lowering is data from
+`cerfir_guest_model.h`. The slow-path entries that this data names are
+host-independent C++.
+
+Frontend and guest-model code keep a host address at the width of a
+pointer. Only a lowering puts a host address into host code.
+
+An instruction with more than one memory access uses the generic memory
+ops of the IR. No guest instruction gets a lowering of its own.
+
+To add an instruction, add these items:
+
+- An instruction kind
+- A decoder mapping
+- A CerfIR translator, and its entry in the translator table
+
+The build fails when a kind has no translator. No build-script edit is
 necessary, because the CMake build of the engine globs `src/*.cpp`.
 
-A place fn reaches per-instance state only through its block context.
+A translator reaches per-instance state only through its block
+context.
 
-**The decode contract**: a decoder that returns success supplies a
-place fn that is either implemented or born-fatal. A decoder that
-returns failure means the encoding is architecturally UNDEFINED or
-UNPREDICTABLE, and the caller raises a guest Undefined-Instruction
-exception.
+When a decoder returns success, the translator either implements the
+instruction or halts on it. A decoder that returns failure means the
+encoding is architecturally UNDEFINED or UNPREDICTABLE, and the caller
+raises a guest Undefined-Instruction exception.
 
 ## Pinned-register dispatcher
 
 Every translated block runs with the guest CPU-state pointer pinned in
-`ESI`. ARM additionally pins the MMU-state pointer in `EBX`. Place fns
-address state fields off the pinned register and never recompute the
-base.
+`ESI`. ARM additionally pins the MMU-state pointer in `EBX`. Lowered
+code addresses state fields off the pinned register and never
+recomputes the base.
 
-**The assignment is invariant across every place fn and every JIT
+**The assignment is invariant across the whole lowering and every JIT
 helper.** Changing it requires an edit at every emit site.
 
 ## Invariants that span files
@@ -173,9 +208,9 @@ None of these is visible from any single file.
   jumps into garbage. The fixup helper fatals at emit time instead.
   The fix is the `rel32` form of that jump.
 - **A flush never reclaims a permanent arena allocation.** The
-  trampolines are permanent, because emitted blocks reach them through
-  a baked absolute address. If a flush reclaims those bytes, every
-  such block jumps into unrelated code.
+  soft-TLB miss routines are permanent, because emitted blocks call
+  them at a fixed address. If a flush reclaims those bytes, every such
+  block jumps into unrelated code.
 - **Emitted code reaches a coprocessor callback with `CALL`, so control
   RETURNS into the calling block.** A callback that frees the arena under
   that block returns into freed memory. An SCTLR write therefore pends its
@@ -230,10 +265,10 @@ serves both. When the gate passes, no access happens, and the channel
 sets the guest PC back to this instruction. Control then leaves the
 block.
 
-The guard takes two forms. Emitted code carries it at the peripheral
-branch of a translation, and clears the record itself. A load-store
-helper carries it at its own peripheral branch, and clears the record
-there. The helper form also applies only before the access moves any
+The guard takes two forms. The memory slow path carries it at the
+peripheral branch of a translation, and clears the record itself. A
+load-store helper carries it at its own peripheral branch, and clears
+the record there. The helper form also applies only before the access moves any
 bytes.
 
 The dispatcher then re-reads the line. When the line is still high,
@@ -252,7 +287,7 @@ at block boundaries.
 # MIPS engine
 
 `MipsJit` is structured in parallel to `ArmJit`: same arena, same block
-index, same place-fn contract. Each engine indexes each instruction set
+index, same frontend contract. Each engine indexes each instruction set
 in its own block space. The second set is Thumb on ARM and MIPS16 on
 MIPS.
 
@@ -265,13 +300,27 @@ The parts that differ from ARM:
   guest exception raised inside a helper unwinds to the dispatch loop
   through a customer-defined NTSTATUS, and resumes at the already-set
   vector PC.
-- **kseg fold.** `kseg0` and `kseg1` map directly, cached and uncached
-  respectively. Mapped segments walk the software TLB. The EntryHi
-  ASID distinguishes address spaces, and an ASID change flushes the VA
-  jump cache.
+- **kseg fold.** In Kernel mode, `kseg0` and `kseg1` map directly,
+  cached and uncached respectively. Mapped segments walk the software
+  TLB. The EntryHi ASID distinguishes address spaces, and an ASID change
+  flushes the VA jump cache.
+- **Blocks are keyed by processor mode.** The dispatcher reads the mode
+  from Status: Kernel, Supervisor or User. A block translates its fetches
+  and its memory accesses with the address rules of that mode. In
+  Supervisor and User mode, a CP0 instruction and CACHE first test
+  Status.CU0. After every write to Status, control returns to the
+  dispatcher before another block runs. As a result, the mode of a block
+  stays valid while the block runs.
 - **Wide operations go through helpers**, because they cannot emit
   inline on x86-32. These are the doubleword loads and stores, the
   unaligned merges, the 128-bit products, doubleword division, and the
   variable doubleword shifts.
-- **Unimplemented paths halt, never silent-UND.** A decoder reject or
-  a not-yet-built place fn halts the run with the opcode and the PC.
+- **Loads and stores call the memory helpers.** The MIPS memory model
+  has no inline TLB lookup.
+- **A write that can unmask an interrupt ends the block.** A write to
+  CP0 Status or Cause, and RFE, return to the dispatcher, which then
+  delivers a pending interrupt. A clock event that a memory helper
+  dispatches can set a Cause bit, so that helper also requests a chain
+  exit.
+- **Unimplemented paths halt, never silent-UND.** A decoder reject
+  halts the run with the opcode and the PC.
