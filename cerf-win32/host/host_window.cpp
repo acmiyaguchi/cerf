@@ -15,7 +15,6 @@
 #include "shutdown_dialog.h"
 #include <cerffrontend/guest_auto_resize.h>
 #include <cerfcore/host/frame_renderer.h>
-#include <cerfcore/host/guest_power_notifier.h>
 #include "host_canvas.h"
 #include "host_dark_mode.h"
 #include "host_focus_policy.h"
@@ -32,7 +31,6 @@ namespace {
 constexpr wchar_t  kWindowClass[]  = L"CerfHostWindow";
 constexpr UINT     kLcdResizeMsg   = WM_APP + 1;
 constexpr UINT     kGuestRemodeMsg = WM_APP + 2;
-constexpr UINT     kShowTabMsg     = WM_APP + 3;   /* wParam = HostCanvas::Tab, lParam = rearm */
 constexpr UINT     kRunJobMsg      = WM_APP + 4;   /* lParam = heap std::function */
 constexpr UINT     kShutdownMsg    = WM_APP + 5;   /* posted from WM_CLOSE */
 constexpr UINT_PTR kResizeDebounceTimer = 1;
@@ -75,9 +73,6 @@ void HostWindow::OnReady() {
     std::unique_lock<std::mutex> lk(ui_ready_mutex_);
     ui_ready_cv_.wait(lk, [&] { return ui_ready_.load(); });
     lk.unlock();
-
-    emu_.Get<cerfcore::GuestPowerNotifier>().RegisterRebootListener(
-        [this] { ShowStartupTab(true); });
 }
 
 void HostWindow::OnLcdEnabled() {
@@ -111,12 +106,6 @@ void HostWindow::FitToResolution(uint32_t sw, uint32_t sh) {
     if (!hwnd_ || sw == 0 || sh == 0) return;
     if (IsZoomed(hwnd_)) return;   /* maximized: keep window, canvas adapts */
     FitWindowToSurface(sw, sh);
-}
-
-void HostWindow::ShowStartupTab(bool rearm_framebuffer) {
-    if (hwnd_)
-        PostMessageW(hwnd_, kShowTabMsg, (WPARAM)emu_.Get<cerfcore::DeviceConfig>().start_tab,
-                     rearm_framebuffer ? 1 : 0);
 }
 
 void HostWindow::RunOnUiThread(std::function<void()> job) {
@@ -301,13 +290,6 @@ LRESULT HostWindow::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             emu_.Get<HostCanvas>().SetGuestSurfaceSize(w, h);
             if (follow_guest_) AutoResizeToGuest();
         }
-        return 0;
-    }
-
-    if (msg == kShowTabMsg) {
-        auto& canvas = emu_.Get<HostCanvas>();
-        canvas.SetTab((HostCanvas::Tab)wp, /*user_initiated=*/false);
-        if (lp) canvas.RearmFramebufferAutoSwitch();
         return 0;
     }
 

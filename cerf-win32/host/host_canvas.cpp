@@ -41,10 +41,6 @@ void HostCanvas::SetTab(Tab t, bool user_initiated) {
     if (canvas_.Hwnd()) InvalidateRect(canvas_.Hwnd(), nullptr, FALSE);
 }
 
-void HostCanvas::RearmFramebufferAutoSwitch() {
-    emu_.Get<cerffrontend::CanvasTabs>().RearmAutoSwitch();
-}
-
 void HostCanvas::OnPresentTick() {
     if (emu_.Get<cerffrontend::CanvasTabs>().OnPresentTick(canvas_.SourceHasFrame()))
         canvas_.SetFramebufferActive(true);

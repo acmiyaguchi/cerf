@@ -2,11 +2,13 @@
 
 #include <cerffrontend/boot_screen.h>
 #include <cerffrontend/canvas_input.h>
+#include <cerffrontend/frontend_window.h>
 #include <cerffrontend/hw_screen_renderer.h>
 
 #include <cerfcore/core/cerf_emulator.h>
 #include <cerfcore/host/emulation_pause.h>
 #include <cerfcore/host/guest_deep_sleep.h>
+#include <cerfcore/host/guest_power_notifier.h>
 
 namespace cerffrontend {
 
@@ -14,6 +16,12 @@ REGISTER_SERVICE(CanvasTabs);
 
 void CanvasTabs::OnReady() {
     tab_ = emu_.Get<cerfcore::DeviceConfig>().start_tab;
+    emu_.Get<cerfcore::GuestPowerNotifier>().RegisterRebootListener([this] {
+        emu_.Get<FrontendWindow>().RunOnUiThread([this] {
+            emu_.Get<FrontendWindow>().SetTab(emu_.Get<cerfcore::DeviceConfig>().start_tab, false);
+            RearmAutoSwitch();
+        });
+    });
 }
 
 bool CanvasTabs::Set(Tab tab, bool user_initiated) {

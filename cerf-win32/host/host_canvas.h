@@ -42,10 +42,6 @@ public:
     void SetViewportMode(ViewportMode m) { canvas_.SetViewportMode(m); }
     void SetIntegerScale(int factor)     { canvas_.SetIntegerScale(factor); }
 
-    /* UI thread. Re-arm the one-shot that auto-switches to Framebuffer on the
-       first frame, so a guest reboot returns to Framebuffer when video resumes. */
-    void RearmFramebufferAutoSwitch();
-
     bool Antialias() const     { return canvas_.Antialias(); }
     void SetAntialias(bool on) { canvas_.SetAntialias(on); }
 
