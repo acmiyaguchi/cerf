@@ -41,12 +41,11 @@ One file next to `cerf.exe`, shared by every device instance on the installation
 | `update_channel` | string | Which CERF builds the launcher offers you: `disabled`, `stable`, or `unstable`. Launcher only - `cerf.exe` does not read it. |
 | `discord_rich_presence` | boolean | Publish the device that you run to Discord. Read by both the launcher and `cerf.exe`. |
 | `host_key` | integer, or array of integers | The host key: one virtual-key code, or up to eight of them that you press together. Absent, the host key is Right Ctrl (`163`). |
-| `host_branch` | string | The host platform that this build of CERF is for, for example `win32-x86`. The build writes it. The launcher upgrades only to a build with the same value. When the key is absent on Windows, the value is `win32-x86`. |
 
 `last_save_state_mode` is the one key that CERF writes back. When you tick **Remember choice** in
 the shutdown dialog, CERF stores your answer here. When you upgrade CERF, the installer merges the
 new file into your existing one. It keeps every value that you already have, so your own edits
-survive. `host_branch` is the exception: it always comes from the new build.
+survive.
 
 ## Layer 2 - the device `cerf.json`
 
