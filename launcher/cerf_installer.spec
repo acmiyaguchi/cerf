@@ -32,7 +32,7 @@ block_cipher = None
 
 a = Analysis(
     [str(THIS_DIR / "cerf_installer.py")],
-    pathex=[str(THIS_DIR)],
+    pathex=[str(THIS_DIR), str(REPO_ROOT / "tools")],
     binaries=UCRT_BINARIES,
     datas=[(ICON_PATH, "."), (VERSION_PATH, ".")] + BAND_FILES + DIALOG_ICONS
           + collect_data_files("sv_ttk"),
@@ -68,7 +68,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=ICON_PATH,
-    version=exe_version.build(VERSION_PATH, NAME + ".exe", NAME,
-                              PRODUCT_NAME + " setup"),
+    icon=ICON_PATH if sys.platform == "win32" else None,
+    version=exe_version.build(VERSION_PATH, NAME + ".exe", NAME, PRODUCT_NAME + " setup")
+    if sys.platform == "win32" else None,
 )

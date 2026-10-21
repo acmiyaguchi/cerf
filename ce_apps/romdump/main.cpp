@@ -3,8 +3,6 @@
 
 #include "romdump.h"
 
-/* Preset table is CPU-arch specific (build_ce_app.ps1 defines MIPS for -Arch
-   mips, ARM/_ARM_ for -Arch arm). Custom (base/size by hand) is common. */
 const Preset kPresets[] = {
 #if defined(MIPS)
     { L"Universal MIPS Reset Vector 32MB", L"", 0x1E000000u, 32, 0 },

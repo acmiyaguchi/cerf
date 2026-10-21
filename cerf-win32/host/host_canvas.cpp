@@ -4,80 +4,67 @@
 
 #include <cerfcore/core/cerf_emulator.h>
 #include <cerfcore/core/log.h>
-#include <cerfcore/host/emulation_pause.h>
 #include <cerfcore/host/frame_renderer.h>
-#include <cerfcore/host/guest_deep_sleep.h>
 #include "host_canvas_input.h"
+#include "host_dpi.h"
 #include "host_focus_policy.h"
-#include "boot_screen.h"
-#include "hw_screen_renderer.h"
-#include "notification_overlay.h"
+#include "win32_painter.h"
 #include <cerfcore/host/refresh_rate_service.h>
+#include <cerffrontend/canvas_tabs.h>
+#include <cerffrontend/notification_overlay.h>
+
+#include <algorithm>
 
 REGISTER_SERVICE(HostCanvas);
 
 void HostCanvas::CreateOn(HWND parent, const RECT& rect,
                           uint32_t surf_w, uint32_t surf_h) {
-    tab_ = emu_.Get<cerfcore::DeviceConfig>().start_tab;
     canvas_.SetSource(emu_.TryGet<cerfcore::FrameRenderer>());
-    const int rate = emu_.Get<cerfcore::RefreshRateService>().GetRefreshRate();
-    const UINT interval = rate > 0 ? (UINT)(1000 / rate) : 16;
-    canvas_.CreateOn(parent, rect, surf_w, surf_h, interval < 1 ? 1 : interval);
+    const UINT interval =
+        static_cast<UINT>(emu_.Get<cerfcore::RefreshRateService>().FrameIntervalMs());
+    canvas_.CreateOn(parent, rect, surf_w, surf_h, interval);
     emu_.Get<HostFocusPolicy>().Focus(canvas_.Hwnd());
-    canvas_.SetFramebufferActive(tab_ == Tab::Framebuffer);
+    canvas_.SetFramebufferActive(CurrentTab() == Tab::Framebuffer);
 }
 
 void HostCanvas::Reposition(const RECT& r) {
     canvas_.Reposition(r);
 }
 
+HostCanvas::Tab HostCanvas::CurrentTab() const {
+    return emu_.Get<cerffrontend::CanvasTabs>().Current();
+}
+
 void HostCanvas::SetTab(Tab t, bool user_initiated) {
-    if (user_initiated) user_picked_view_ = true;
-    if (tab_ == t) return;
-    if (tab_ == Tab::Framebuffer) emu_.Get<HostCanvasInput>().ReleasePenIfDown();
-    tab_ = t;
-    canvas_.SetFramebufferActive(tab_ == Tab::Framebuffer);
+    if (!emu_.Get<cerffrontend::CanvasTabs>().Set(t, user_initiated)) return;
+    canvas_.SetFramebufferActive(t == Tab::Framebuffer);
     if (canvas_.Hwnd()) InvalidateRect(canvas_.Hwnd(), nullptr, FALSE);
 }
 
 void HostCanvas::RearmFramebufferAutoSwitch() {
-    /* A guest reboot returns to the Framebuffer when video resumes, so the
-       user's prior manual tab pick is stale - clear it too, else once the user
-       ever switches tabs the reboot auto-switch is suppressed forever. */
-    latched_once_     = false;
-    user_picked_view_ = false;
+    emu_.Get<cerffrontend::CanvasTabs>().RearmAutoSwitch();
 }
 
 void HostCanvas::OnPresentTick() {
-    const bool has_frame = canvas_.SourceHasFrame();
-    if (has_frame && !latched_once_) {
-        latched_once_ = true;
-        emu_.Get<BootScreen>().OnFramebufferLatched();
-        if (!user_picked_view_) {
-            tab_ = Tab::Framebuffer;
-            canvas_.SetFramebufferActive(true);
-        }
-    }
+    if (emu_.Get<cerffrontend::CanvasTabs>().OnPresentTick(canvas_.SourceHasFrame()))
+        canvas_.SetFramebufferActive(true);
 }
 
-bool HostCanvas::RenderAltContent(HDC dc, uint32_t* bits, int w, int h) {
-    if (tab_ == Tab::Framebuffer) return false;   /* canvas composes the frame */
-    if (tab_ == Tab::Boot) {
-        emu_.Get<BootScreen>().RenderInto(dc, bits, (uint32_t)w, (uint32_t)h);
-        return true;
-    }
-    emu_.Get<HwScreenRenderer>().RenderInto(dc, bits, (uint32_t)w, (uint32_t)h);
-    return true;
+bool HostCanvas::RenderAltContent(HDC, uint32_t* bits, int w, int h) {
+    return emu_.Get<cerffrontend::CanvasTabs>().RenderAlt(bits, w, h);
 }
 
 bool HostCanvas::ShouldDesaturatePresent() {
-    return tab_ == Tab::Framebuffer &&
-           (emu_.Get<cerfcore::EmulationPause>().IsPaused() ||
-            emu_.Get<cerfcore::GuestDeepSleep>().Asleep());
+    return emu_.Get<cerffrontend::CanvasTabs>().ShouldDesaturate();
 }
 
 void HostCanvas::RenderOverlay(HDC dc, int w, int h) {
-    emu_.Get<NotificationOverlay>().RenderInto(canvas_.Hwnd(), dc, w, h);
+    RECT client{};
+    GetClientRect(canvas_.Hwnd(), &client);
+    Win32Painter painter(emu_, dc);
+    emu_.Get<cerffrontend::NotificationOverlay>().Render(
+        painter, std::min(w, (int)client.right), std::min(h, (int)client.bottom),
+        (int)emu_.Get<HostDpi>().ForWindow(canvas_.Hwnd()));
 }
 
 bool HostCanvas::HandleInput(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp,

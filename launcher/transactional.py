@@ -8,7 +8,8 @@ from ctypes import wintypes
 from pathlib import Path
 from typing import List
 
-from app_paths import resolve_devices_dir, resolve_icon
+from app_paths import resolve_devices_dir
+from window_icon import apply_window_icon
 from device_state import write_cerf_json
 from screen_geometry import screen_work_area
 from text_context_menu import TextContextMenu
@@ -54,12 +55,7 @@ def _make_root() -> tk.Tk:
     theme.apply_theme(root)
     TextContextMenu(root)
     root.withdraw()
-    icon = resolve_icon()
-    if icon is not None:
-        try:
-            root.iconbitmap(default=str(icon))
-        except tk.TclError:
-            pass
+    apply_window_icon(root)
     wa_x, wa_y, wa_w, wa_h = screen_work_area(root)
     root.geometry("1x1+{}+{}".format(wa_x + wa_w // 2, wa_y + wa_h // 2))
     root.update_idletasks()

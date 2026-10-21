@@ -61,23 +61,23 @@ The following pages are authoritative project knowledge; their full contents are
 ## Build
 
 ```bash
-powershell -ExecutionPolicy Bypass -File build.ps1
+python build.py
 ```
 
 Output: `build/Release/Win32/cerf.exe`. Pre-commit hook rejects .cpp/.h files over 500 lines (see `.githooks/pre-commit`). The libraries build with CMake globs, and `cerf-win32/cerf.vcxproj` uses a `**\*.cpp` glob. New .cpp files are therefore in the build automatically. You do not edit a project file by hand.
 
 - Build might take 5-10 minutes to complete on an already-set-up machine.
-- `build.ps1` waits until no run holds a `.cerf_lock.N` slot, and holds `.build_lock` until the build ends. Each script refreshes its own lock while it works, so a lock expires only after its owner process dies.
-- **First build on a fresh machine takes 1+ hour** because vcpkg compiles dependencies from source before cerf links. `build.ps1` runs the vcpkg manifest install before it builds the libraries, so you need no separate vcpkg command. Cached in `vcpkg_installed/` after; later builds are fast again. Do not cancel the first build assuming it's hung.
-- Prerequisite (once per machine): `vcpkg integrate install` from the VS-bundled vcpkg at `<VS install>\VC\vcpkg\vcpkg.exe`. `build.ps1` fails fast with a clear error if this is missing.
+- `build.py` waits until no run holds a `.cerf_lock.N` slot, and holds `.build_lock` until the build ends. Each script refreshes its own lock while it works, so a lock expires only after its owner process dies.
+- **First build on a fresh machine takes 1+ hour** because vcpkg compiles dependencies from source before cerf links. `build.py` runs the vcpkg manifest install before it builds the libraries, so you need no separate vcpkg command. Cached in `vcpkg_installed/` after; later builds are fast again. Do not cancel the first build assuming it's hung.
+- Prerequisite (once per machine): `vcpkg integrate install` from the VS-bundled vcpkg at `<VS install>\VC\vcpkg\vcpkg.exe`. `build.py` fails fast with a clear error if this is missing.
 - You can run it as a background task with GNU timeout in command itself in case if either you have parallel work to do or user insisted on this.
 
 ## Run
 
-**`claude_cerf_runner.ps1` is the only way to start cerf.exe. Never run `cerf.exe` directly.**
+**`claude_cerf_runner.py` is the only way to start cerf.exe. Never run `cerf.exe` directly.**
 
 ```bash
-powershell -ExecutionPolicy Bypass -File claude_cerf_runner.ps1 --timeout=20 --log-file=/z/tmp/my_run.log --device=jornada720 [more cerf.exe args...]
+python claude_cerf_runner.py --timeout=20 --log-file=/z/tmp/my_run.log --device=jornada720 [more cerf.exe args...]
 ```
 
 The runner is the queue. It waits for `.build_lock`, so a run never starts during a build. It holds one `.cerf_lock.N` run slot while cerf.exe runs. More than one run can occur at the same time. When every slot is held, the next run waits for a free slot.

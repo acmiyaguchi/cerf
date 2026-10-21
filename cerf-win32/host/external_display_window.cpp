@@ -7,28 +7,18 @@
 #include <cerfcore/core/cerf_emulator.h>
 #include <cerfcore/core/log.h>
 #include <cerfcore/host/frame_source.h>
+#include <cerfcore/platform/wide_text_win32.h>
 #include "host_dark_mode.h"
 #include "host_dpi.h"
 #include "host_focus_policy.h"
-#include "host_key_binding.h"
-#include "host_screenshot.h"
 #include "host_window.h"
+#include <cerffrontend/host_key_binding.h>
+#include <cerffrontend/screenshots.h>
+#include <cerffrontend/viewport_menu.h>
 
 namespace {
 
 constexpr wchar_t kWindowClass[] = L"CerfExternalDisplay";
-
-/* View-menu command ids (local to this window). */
-constexpr int kIdVpOriginal = 110;
-constexpr int kIdVpAspect   = 111;
-constexpr int kIdVpStretch  = 112;
-constexpr int kIdVpInteger2 = 113;
-constexpr int kIdVpInteger3 = 114;
-constexpr int kIdVpInteger5 = 115;
-constexpr int kIdAliasing   = 120;
-constexpr int kIdFullscreen = 121;
-constexpr int kIdSaveShot   = 130;
-constexpr int kIdCopyShot   = 131;
 
 /* Cross-thread marshalling messages. */
 constexpr UINT kSetSurfaceMsg = WM_APP + 1;   /* wParam=w, lParam=h */
@@ -76,46 +66,37 @@ void ExternalDisplayWindow::SetTitle(std::wstring title) {
 }
 
 HMENU ExternalDisplayWindow::BuildMenu() {
-    HMENU bar  = CreateMenu();
-    HMENU view = CreatePopupMenu();
-    AppendMenuW(view, MF_STRING, kIdVpOriginal, L"Original view");
-    AppendMenuW(view, MF_STRING, kIdVpAspect,   L"Resize + match aspect ratio");
-    AppendMenuW(view, MF_STRING, kIdVpStretch,  L"Stretch");
-    AppendMenuW(view, MF_STRING, kIdVpInteger2, L"Integer scale 2x");
-    AppendMenuW(view, MF_STRING, kIdVpInteger3, L"Integer scale 3x");
-    AppendMenuW(view, MF_STRING, kIdVpInteger5, L"Integer scale 5x");
-    AppendMenuW(view, MF_STRING, kIdAliasing,   L"Apply aliasing");
-    AppendMenuW(view, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(view, MF_STRING, kIdFullscreen,
-                (L"Full screen\t" +
-                 emu_.Get<HostKeyBinding>().LabelWith(L"F")).c_str());
-    AppendMenuW(view, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(view, MF_STRING, kIdSaveShot,   L"Save screenshot");
-    AppendMenuW(view, MF_STRING, kIdCopyShot,   L"Copy screenshot");
-    AppendMenuW(bar, MF_POPUP, (UINT_PTR)view, L"View");
+    HMENU bar = CreateMenu();
+    AppendMenuW(bar, MF_POPUP, (UINT_PTR)CreatePopupMenu(), L"View");
     return bar;
 }
 
-void ExternalDisplayWindow::SyncMenuChecks() {
-    HMENU bar = GetMenu(hwnd_);
-    HMENU view = bar ? GetSubMenu(bar, 0) : nullptr;
-    if (!view) return;
-    int vp_id = kIdVpOriginal;
-    switch (canvas_.Mode()) {
-        case PresenterCanvas::ViewportMode::Original: vp_id = kIdVpOriginal; break;
-        case PresenterCanvas::ViewportMode::Aspect:   vp_id = kIdVpAspect;   break;
-        case PresenterCanvas::ViewportMode::Stretch:  vp_id = kIdVpStretch;  break;
-        case PresenterCanvas::ViewportMode::Integer:
-            if (canvas_.IntegerFactor() >= 5)      vp_id = kIdVpInteger5;
-            else if (canvas_.IntegerFactor() >= 3) vp_id = kIdVpInteger3;
-            else                                   vp_id = kIdVpInteger2;
-            break;
+void ExternalDisplayWindow::ToggleFullscreen() {
+    fullscreen_.Toggle(hwnd_, emu_.Get<HostFocusPolicy>().MayActivate());
+}
+
+void ExternalDisplayWindow::SaveScreenshot() {
+    std::vector<uint32_t> px;
+    uint32_t w = 0, h = 0;
+    if (!canvas_.CaptureSurface(px, w, h)) return;
+    std::wstring name;
+    {
+        std::lock_guard<std::mutex> lk(title_mutex_);
+        name = title_;
     }
-    CheckMenuRadioItem(view, kIdVpOriginal, kIdVpInteger5, vp_id, MF_BYCOMMAND);
-    CheckMenuItem(view, kIdAliasing,
-                  MF_BYCOMMAND | (canvas_.Antialias() ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(view, kIdFullscreen,
-                  MF_BYCOMMAND | (fullscreen_.IsActive() ? MF_CHECKED : MF_UNCHECKED));
+    emu_.Get<cerffrontend::Screenshots>().SavePixels(px, w, h, cerfcore::WideToUtf8(name));
+}
+
+void ExternalDisplayWindow::CopyScreenshot() {
+    std::vector<uint32_t> px;
+    uint32_t w = 0, h = 0;
+    if (canvas_.CaptureSurface(px, w, h))
+        emu_.Get<cerffrontend::Screenshots>().CopyPixels(px, w, h,
+                                                         reinterpret_cast<uintptr_t>(hwnd_));
+}
+
+void ExternalDisplayWindow::AfterModeChange(bool integer_scale) {
+    if (integer_scale) FitToSurface(canvas_.ContentWidth(), canvas_.ContentHeight());
 }
 
 void ExternalDisplayWindow::FitToSurface(uint32_t sw, uint32_t sh) {
@@ -204,8 +185,8 @@ void ExternalDisplayWindow::UiThreadMain(uint32_t surf_w, uint32_t surf_h) {
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
         if ((msg.message == WM_KEYDOWN || msg.message == WM_SYSKEYDOWN) &&
             msg.wParam == 'F' &&
-            emu_.Get<HostKeyBinding>().AllMembersDownNow()) {
-            fullscreen_.Toggle(hwnd_, emu_.Get<HostFocusPolicy>().MayActivate());
+            emu_.Get<cerffrontend::HostKeyBinding>().AllMembersDownNow()) {
+            ToggleFullscreen();
             continue;
         }
         TranslateMessage(&msg);
@@ -265,54 +246,18 @@ LRESULT ExternalDisplayWindow::WndProc(HWND hwnd, UINT msg,
             mmi->ptMinTrackSize.y = 120;
             return 0;
         }
-        case WM_INITMENUPOPUP:
-            SyncMenuChecks();
+        case WM_INITMENUPOPUP: {
+            HMENU bar = GetMenu(hwnd);
+            if (bar && (HMENU)wp == GetSubMenu(bar, 0)) {
+                std::vector<cerffrontend::MenuItem> items;
+                emu_.Get<cerffrontend::ViewportMenu>().Append(items, *this);
+                binder_.Populate((HMENU)wp, items);
+            }
             return 0;
+        }
         case WM_COMMAND:
             if (HIWORD(wp) == 0) {  /* menu item */
-                switch (LOWORD(wp)) {
-                    case kIdVpOriginal:
-                        canvas_.SetViewportMode(PresenterCanvas::ViewportMode::Original); break;
-                    case kIdVpAspect:
-                        canvas_.SetViewportMode(PresenterCanvas::ViewportMode::Aspect); break;
-                    case kIdVpStretch:
-                        canvas_.SetViewportMode(PresenterCanvas::ViewportMode::Stretch); break;
-                    case kIdVpInteger2:
-                        canvas_.SetIntegerScale(2);
-                        FitToSurface(canvas_.ContentWidth(), canvas_.ContentHeight());
-                        break;
-                    case kIdVpInteger3:
-                        canvas_.SetIntegerScale(3);
-                        FitToSurface(canvas_.ContentWidth(), canvas_.ContentHeight());
-                        break;
-                    case kIdVpInteger5:
-                        canvas_.SetIntegerScale(5);
-                        FitToSurface(canvas_.ContentWidth(), canvas_.ContentHeight());
-                        break;
-                    case kIdAliasing:
-                        canvas_.SetAntialias(!canvas_.Antialias()); break;
-                    case kIdFullscreen:
-                        fullscreen_.Toggle(hwnd, emu_.Get<HostFocusPolicy>().MayActivate());
-                        break;
-                    case kIdSaveShot: {
-                        std::vector<uint32_t> px;
-                        uint32_t w = 0, h = 0;
-                        if (canvas_.CaptureSurface(px, w, h)) {
-                            std::wstring name;
-                            { std::lock_guard<std::mutex> lk(title_mutex_);
-                              name = title_; }
-                            emu_.Get<HostScreenshot>().SavePixels(px, w, h, name);
-                        }
-                        break;
-                    }
-                    case kIdCopyShot: {
-                        std::vector<uint32_t> px;
-                        uint32_t w = 0, h = 0;
-                        if (canvas_.CaptureSurface(px, w, h))
-                            emu_.Get<HostScreenshot>().CopyPixels(px, w, h, hwnd);
-                        break;
-                    }
-                }
+                if (binder_.OwnsCommand(LOWORD(wp))) binder_.Dispatch(LOWORD(wp));
                 return 0;
             }
             break;

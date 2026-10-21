@@ -1,37 +1,28 @@
 #pragma once
 
 #include <cerfcore/core/service.h>
+#include <cerffrontend/canvas_input.h>
 
 #define NOMINMAX
 #include <windows.h>
 
-#include <cstdint>
-
-class HostCanvasInput : public cerfcore::Service {
+class HostCanvasInput : public cerfcore::Service, public cerffrontend::CanvasInputHost {
 public:
     using cerfcore::Service::Service;
 
-    /* Returns true (with `out` set) when the message is consumed; `out` is
-       the WndProc result HostCanvas returns. */
+    void OnReady() override;
+
     bool Handle(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT& out);
 
-    /* HostCanvas calls this when leaving the framebuffer tab so a captured
-       touch pen doesn't dangle across the tab switch. */
-    void ReleasePenIfDown();
+    void SetMouseCapture(bool on) override;
+    bool HasMouseCapture() const override;
+    void FocusCanvas() override;
+    void SetPointerHidden(bool hidden) override;
+    void WarpPointerTo(int x, int y) override;
+    void ClientSize(int& width, int& height) const override;
+    bool HostToGuest(int x, int y, int& sx, int& sy) const override;
+    void ClampGuest(int& sx, int& sy) const override;
 
 private:
-    bool RoutePointerInput(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
-    bool RouteNotificationInput(HWND hwnd, UINT msg, LPARAM lp, LRESULT& out);
-
-    /* Warp the cursor back to centre each move so motion reads as relative
-       deltas (RelativeMouseInput); without the warp it drifts to an edge and
-       stops generating motion. */
-    bool RouteCapturedMouse(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, LRESULT& out);
-    void WarpToCentre(HWND hwnd);
-    void ShowLockHintOnce();
-
-    bool pen_down_            = false;
-    bool mouse_locked_active_ = false;
-    bool lock_hint_shown_     = false;
-    uint32_t notification_click_mask_ = 0;
+    bool SetCursorFor(HWND hwnd, LRESULT& out);
 };

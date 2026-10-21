@@ -15,6 +15,16 @@ hide:
     
     **Minimal requirements:** Windows Vista. Windows XP is partially supported without UI components. This is best effort support, might break or get removed at any time.
 
+## Linux
+
+Linux has no installer. Download the `Release-linux-qt-amd64` zip from the [latest release](https://github.com/gweslab/cerf/releases/latest). Extract it, then run `launcher.sh`.
+
+The build is for x86-64, and it uses the Qt 6.10 libraries of your system. On Ubuntu 26.04, install these packages first:
+
+```
+sudo apt install libqt6widgets6 libqt6dbus6 libqt6svg6 qt6-qpa-plugins libslirp0 libasound2t64
+```
+
 ## Unstable builds
 
 If you would like to use unstable builds, built directly from the tree which are pending release - you can:

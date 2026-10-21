@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import host_branch
 from bundle_repositories import (CONFIG_KEY, merge_repositories,
                                  strip_manifest_from_repos)
 
@@ -48,5 +49,7 @@ def migrate_cerf_json(new_path: Path, installed_path: Path) -> None:
         merged[CONFIG_KEY] = merge_repositories(
             strip_manifest_from_repos(old.get(CONFIG_KEY)),
             new.get(CONFIG_KEY))
+        if host_branch.KEY in new:
+            merged[host_branch.KEY] = new[host_branch.KEY]
     installed_path.write_text(json.dumps(merged, indent=2) + "\n",
                               encoding="utf-8")

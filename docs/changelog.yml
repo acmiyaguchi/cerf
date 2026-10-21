@@ -1,7 +1,9 @@
 - version: v8.0
   date: TBA
-  changes: |
-    -
+  emulator:
+    new: |
+      Added x64 hosts support
+      Added Linux support
 - version: v7.0
   date: 14 Oct 2026
   devices:

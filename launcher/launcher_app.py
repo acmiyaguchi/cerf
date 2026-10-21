@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import ctypes
 import queue
-import sys
 import threading
 import tkinter as tk
 from concurrent.futures import Future
-from ctypes import wintypes
 from pathlib import Path
 from tkinter import ttk
 from typing import Callable, List, Optional, Tuple
 
-from app_paths import resolve_icon, resolve_icons_dir, resolve_version
+from app_paths import resolve_icons_dir, resolve_version
+from window_icon import apply_window_icon
 from device_card_list import DeviceCardList
 from device_state import (DeviceBundle, SAVED_STATE_SCREENSHOT_FILENAME,
                           STATE_IMAGE_FILENAME, running_status, saved_state_info)
@@ -25,6 +23,7 @@ from launcher_spawn import SpawnMixin
 from launcher_operations import OperationsMixin
 from launcher_properties import PropertiesMixin
 from launcher_refresh import RefreshMixin
+from launcher_theme_follow import ThemeFollowMixin
 from saved_state_warning import SavedStateEditWarning
 from sash_grip import SashGrip
 from new_device_wizard import NewDeviceWizard
@@ -45,12 +44,8 @@ from update_check import UpdateCheck
 import ui_theme as theme
 
 
-_WM_SETTINGCHANGE = 0x001A
-_GWLP_WNDPROC = -4
-
-
 class LauncherApp(OperationsMixin, RefreshMixin, SpawnMixin, PropertiesMixin,
-                  tk.Tk):
+                  ThemeFollowMixin, tk.Tk):
     def __init__(self, manager: BundleManager, cerf_exe: Optional[Path],
                  upgraded: bool = False):
         super().__init__()
@@ -70,12 +65,7 @@ class LauncherApp(OperationsMixin, RefreshMixin, SpawnMixin, PropertiesMixin,
         self._scale = max(1.0, dpi / 96.0)
         self.minsize(int(500 * self._scale), int(300 * self._scale))
 
-        icon = resolve_icon()
-        if icon is not None:
-            try:
-                self.iconbitmap(default=str(icon))
-            except tk.TclError:
-                pass
+        apply_window_icon(self)
 
         theme.apply_theme(self)
 
@@ -260,41 +250,6 @@ class LauncherApp(OperationsMixin, RefreshMixin, SpawnMixin, PropertiesMixin,
         self.preview.refresh()
         self._refresh_selection_state()
         self.after(2500, self._poll_runtime)
-
-    def _install_theme_listener(self) -> None:
-        self._old_wndproc = None
-        if sys.platform != "win32":
-            return
-        try:
-            user32 = ctypes.windll.user32
-            hwnd = theme.window_hwnd(self)
-            self._theme_hwnd = hwnd
-            lresult = ctypes.c_ssize_t
-            self._wndproc_type = ctypes.WINFUNCTYPE(
-                lresult, wintypes.HWND, wintypes.UINT,
-                ctypes.c_size_t, ctypes.c_ssize_t)
-            self._wndproc = self._wndproc_type(self._theme_wndproc)
-            self._call_wndproc = user32.CallWindowProcW
-            self._call_wndproc.restype = lresult
-            self._call_wndproc.argtypes = [
-                ctypes.c_void_p, wintypes.HWND, wintypes.UINT,
-                ctypes.c_size_t, ctypes.c_ssize_t]
-            self._old_wndproc = theme.set_window_long(
-                hwnd, _GWLP_WNDPROC,
-                ctypes.cast(self._wndproc, ctypes.c_void_p))
-        except (OSError, AttributeError):
-            self._old_wndproc = None
-
-    def _theme_wndproc(self, hwnd, msg, wparam, lparam):
-        if msg == _WM_SETTINGCHANGE:
-            self.after_idle(self._maybe_retheme)
-        if not self._old_wndproc:
-            return ctypes.windll.user32.DefWindowProcW(hwnd, msg, wparam, lparam)
-        return self._call_wndproc(self._old_wndproc, hwnd, msg, wparam, lparam)
-
-    def _maybe_retheme(self) -> None:
-        if theme.refresh_palette():
-            self._retheme()
 
     def _retheme(self) -> None:
         theme.apply_theme(self)
@@ -487,13 +442,7 @@ class LauncherApp(OperationsMixin, RefreshMixin, SpawnMixin, PropertiesMixin,
         self.split.set_enabled(d is not None and self.cerf_exe is not None)
 
     def _on_close(self) -> None:
-        old = getattr(self, "_old_wndproc", None)
-        if old and sys.platform == "win32":
-            try:
-                theme.set_window_long(self._theme_hwnd, _GWLP_WNDPROC, old)
-                self._old_wndproc = None
-            except (OSError, AttributeError):
-                pass
+        self._remove_theme_listener()
         self.cancel_event.set()
         self.manager.shutdown()
         self.destroy()

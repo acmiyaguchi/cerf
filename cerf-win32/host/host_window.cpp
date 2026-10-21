@@ -6,26 +6,26 @@
 
 #include <cerfcore/core/cerf_emulator.h>
 #include <cerfcore/core/device_config.h>
+#include <cerfcore/core/fatal.h>
 #include <cerfcore/core/log.h>
 #include <cerfcore/platform/wide_text_win32.h>
-#include <cerfcore/execution/jit_runner.h>
 #include <cerfcore/peripherals/cerf_virt/cerf_virt_framebuffer.h>
-#include <cerfcore/state/shutdown_action.h>
+#include <cerffrontend/shutdown_prompt.h>
+#include <cerffrontend/shutdown_teardown.h>
 #include "shutdown_dialog.h"
-#include "host_auto_resize.h"
+#include <cerffrontend/guest_auto_resize.h>
 #include <cerfcore/host/frame_renderer.h>
 #include <cerfcore/host/guest_power_notifier.h>
 #include "host_canvas.h"
 #include "host_dark_mode.h"
-#include "host_dpi.h"
 #include "host_focus_policy.h"
 #include "host_input_capture.h"
 #include "host_menu.h"
 #include "host_status_bar.h"
-#include "widget_menu_binder.h"
+#include "host_window_geometry.h"
 #include <cerffrontend/window_title.h>
 
-REGISTER_SERVICE(HostWindow);
+REGISTER_SERVICE_AS(HostWindow, cerffrontend::FrontendWindow);
 
 namespace {
 
@@ -36,10 +36,7 @@ constexpr UINT     kShowTabMsg     = WM_APP + 3;   /* wParam = HostCanvas::Tab, 
 constexpr UINT     kRunJobMsg      = WM_APP + 4;   /* lParam = heap std::function */
 constexpr UINT     kShutdownMsg    = WM_APP + 5;   /* posted from WM_CLOSE */
 constexpr UINT_PTR kResizeDebounceTimer = 1;
-constexpr UINT     kResizeDebounceMs    = 200;
 constexpr UINT_PTR kCloseWatchdogTimer  = 2;
-constexpr UINT     kClosePollMs         = 100;
-constexpr ULONGLONG kCloseGraceMs       = 5000;
 
 }  /* namespace */
 
@@ -84,13 +81,19 @@ void HostWindow::OnReady() {
 }
 
 void HostWindow::OnLcdEnabled() {
-    if (emu_.Get<cerfcore::DeviceConfig>().guest_additions) {
-        LOG(Lcd, "HostWindow::OnLcdEnabled: guest additions on, the panel "
-            "layer does not size the host surface\n");
-        return;
-    }
-
     if (hwnd_) PostMessageW(hwnd_, kLcdResizeMsg, 0, 0);
+}
+
+uint32_t HostWindow::GuestSurfaceWidth() const {
+    return emu_.Get<HostCanvas>().GuestSurfaceWidth();
+}
+
+uint32_t HostWindow::GuestSurfaceHeight() const {
+    return emu_.Get<HostCanvas>().GuestSurfaceHeight();
+}
+
+void HostWindow::SetGuestSurfaceSize(uint32_t w, uint32_t h) {
+    emu_.Get<HostCanvas>().SetGuestSurfaceSize(w, h);
 }
 
 void HostWindow::NotifyGuestRemoded(uint32_t guest_w, uint32_t guest_h) {
@@ -123,73 +126,52 @@ void HostWindow::RunOnUiThread(std::function<void()> job) {
         delete heap;
 }
 
+bool HostWindow::RunOnUiThreadAfter(uint32_t delay_ms, std::function<void()> job) {
+    if (!job || !hwnd_) return false;
+    if (std::this_thread::get_id() != ui_thread_.get_id())
+        emu_.Get<cerfcore::Fatal>().Die("HostWindow::RunOnUiThreadAfter off the UI thread");
+    const UINT_PTR id = next_delayed_id_;
+    next_delayed_id_  = id == kDelayedJobLast ? kDelayedJobFirst : id + 1;
+    if (SetTimer(hwnd_, id, delay_ms, nullptr) == 0) {
+        LOG(Caution, "HostWindow: SetTimer failed (gle=%lu)\n", GetLastError());
+        return false;
+    }
+    delayed_jobs_[id] = std::move(job);
+    return true;
+}
+
+HostWindow::Tab HostWindow::CurrentTab() const { return emu_.Get<HostCanvas>().CurrentTab(); }
+
+void HostWindow::SetTab(Tab tab, bool user_initiated) {
+    emu_.Get<HostCanvas>().SetTab(tab, user_initiated);
+}
+
+cerffrontend::ViewportMode HostWindow::Mode() const { return emu_.Get<HostCanvas>().Mode(); }
+
+int HostWindow::IntegerFactor() const { return emu_.Get<HostCanvas>().IntegerFactor(); }
+
+bool HostWindow::Antialias() const { return emu_.Get<HostCanvas>().Antialias(); }
+
+void HostWindow::SetViewportMode(cerffrontend::ViewportMode m) {
+    emu_.Get<HostCanvas>().SetViewportMode(m);
+}
+
+void HostWindow::SetIntegerScale(int factor) { emu_.Get<HostCanvas>().SetIntegerScale(factor); }
+
+void HostWindow::SetAntialias(bool on) { emu_.Get<HostCanvas>().SetAntialias(on); }
+
+bool HostWindow::CaptureGuestSurface(std::vector<uint32_t>& out, uint32_t& w, uint32_t& h) {
+    return emu_.Get<HostCanvas>().CaptureGuestSurface(out, w, h);
+}
+
 void HostWindow::MatchGuestSize() {
     follow_guest_ = true;
     AutoResizeToGuest();
 }
 
-void HostWindow::WindowChromeExtent(UINT dpi, int& extra_w, int& extra_h) const {
-    const DWORD style = (DWORD)GetWindowLongW(hwnd_, GWL_STYLE);
-    const DWORD ex    = (DWORD)GetWindowLongW(hwnd_, GWL_EXSTYLE);
-    RECT r = { 0, 0, 0, 0 };
-    emu_.Get<HostDpi>().AdjustForDpi(r, style, /*bMenu=*/TRUE, ex, dpi);
-    extra_w = (int)(r.right - r.left);                 /* left/top are <= 0 */
-    extra_h = (int)(r.bottom - r.top)
-            + (int)emu_.Get<HostStatusBar>().Height();
-}
-
-void HostWindow::AdoptResolutionToWindowMonitor() {
-    if (!hwnd_) return;
-    auto& dc = emu_.Get<cerfcore::DeviceConfig>();
-    if (!dc.guest_additions ||
-        !dc.adopt_guest_additions_resolution_for_host_screen)
-        return;
-
-    MONITORINFO mi = { sizeof(mi) };
-    if (!GetMonitorInfoW(MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST), &mi))
-        return;
-    const int work_w = (int)(mi.rcWork.right  - mi.rcWork.left);
-    const int work_h = (int)(mi.rcWork.bottom - mi.rcWork.top);
-
-    int ex_w = 0, ex_h = 0;
-    WindowChromeExtent(emu_.Get<HostDpi>().ForWindow(hwnd_), ex_w, ex_h);
-    const int surf_w = work_w - ex_w;
-    const int surf_h = work_h - ex_h;
-    if (surf_w < 1 || surf_h < 1) return;
-
-    emu_.Get<cerfcore::CerfVirtFramebuffer>().ApplyGuestMode((uint32_t)surf_w, (uint32_t)surf_h);
-    initial_surface_w_ = (uint32_t)surf_w;
-    initial_surface_h_ = (uint32_t)surf_h;
-    LOG(Lcd, "HostWindow: adopt fit monitor work=%dx%d -> guest surface %dx%d\n",
-        work_w, work_h, surf_w, surf_h);
-}
-
 void HostWindow::FitWindowToSurface(uint32_t sw, uint32_t sh) {
     if (!hwnd_ || sw == 0 || sh == 0 || fullscreen_.IsActive()) return;
-
-    int ex_w = 0, ex_h = 0;
-    WindowChromeExtent(emu_.Get<HostDpi>().ForWindow(hwnd_), ex_w, ex_h);
-    int outer_w = (int)sw + ex_w;
-    int outer_h = (int)sh + ex_h;
-
-    int x = 0, y = 0;
-    bool move = false;
-    MONITORINFO mi = { sizeof(mi) };
-    if (GetMonitorInfoW(MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST), &mi)) {
-        const RECT wa = mi.rcWork;
-        const int wa_w = (int)(wa.right - wa.left);
-        const int wa_h = (int)(wa.bottom - wa.top);
-        if (outer_w > wa_w) outer_w = wa_w;
-        if (outer_h > wa_h) outer_h = wa_h;
-
-        x = (int)wa.left + (wa_w - outer_w) / 2;
-        y = (int)wa.top  + (wa_h - outer_h) / 2;
-        move = true;
-    }
-
-    if (IsZoomed(hwnd_)) ShowWindow(hwnd_, SW_SHOWNOACTIVATE);
-    SetWindowPos(hwnd_, nullptr, x, y, outer_w, outer_h,
-                 SWP_NOZORDER | SWP_NOACTIVATE | (move ? 0u : SWP_NOMOVE));
+    emu_.Get<HostWindowGeometry>().FitToSurface(hwnd_, sw, sh);
 }
 
 void HostWindow::ToggleFullscreen() {
@@ -210,20 +192,12 @@ void HostWindow::RefitIfFollowingGuest() {
 }
 
 void HostWindow::RunShutdownPrompt() {
-    const cerfcore::ShutdownChoice c = emu_.Get<ShutdownDialog>().Show();
-    if (c != cerfcore::ShutdownChoice::Exit && c != cerfcore::ShutdownChoice::ExitSave)
-        shutdown_pending_ = false;
-    emu_.Get<cerfcore::ShutdownAction>().Perform(c);
+    emu_.Get<cerffrontend::ShutdownPrompt>().FinishCloseRequest(emu_.Get<ShutdownDialog>().Show());
 }
 
 void HostWindow::BeginShutdownTeardown() {
-    if (closing_) return;
-    /* Stop the CPU cooperatively first - destroying the window with the JIT
-       still grinding ARM code orphans cerf.exe; the watchdog destroys it once parked. */
-    closing_ = true;
-    if (auto* jit = emu_.TryGet<cerfcore::JitRunner>()) jit->RequestStop();
-    close_start_tick_ = GetTickCount64();
-    SetTimer(hwnd_, kCloseWatchdogTimer, kClosePollMs, nullptr);
+    if (!emu_.Get<cerffrontend::ShutdownTeardown>().Begin()) return;
+    SetTimer(hwnd_, kCloseWatchdogTimer, cerffrontend::ShutdownTeardown::kPollMs, nullptr);
 }
 
 void HostWindow::UiThreadMain() {
@@ -264,16 +238,10 @@ void HostWindow::UiThreadMain() {
         cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
     }
 
-    emu_.Get<HostDarkMode>().ApplyToWindow(hwnd_);  /* dark title bar + theme */
+    emu_.Get<HostDarkMode>().ApplyToWindow(hwnd_);
 
-    /* The window now has a monitor, so the guest surface can be fitted to it
-       before the canvas is built and before the guest reads its framebuffer
-       dims (no re-mode needed). No-op unless adopt-resolution is enabled. */
-    AdoptResolutionToWindowMonitor();
-
-    /* Must run before the canvas is built - the canvas takes the window
-       client size, and an unclamped oversized surface would size it
-       off-screen with no scrollbars engaged. */
+    emu_.Get<HostWindowGeometry>().AdoptSurfaceForMonitor(hwnd_, initial_surface_w_,
+                                                          initial_surface_h_);
     FitWindowToSurface(initial_surface_w_, initial_surface_h_);
 
     RECT rc;
@@ -376,9 +344,10 @@ LRESULT HostWindow::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             }
             /* Coalesce the WM_SIZE storm: one re-mode per intermediate size
                floods gwes with PDEV re-enables and crashes at high resolution. */
-            if (auto* ar = emu_.TryGet<HostAutoResize>();
+            if (auto* ar = emu_.TryGet<cerffrontend::GuestAutoResize>();
                 wp != SIZE_MINIMIZED && ar && ar->Enabled())
-                SetTimer(hwnd, kResizeDebounceTimer, kResizeDebounceMs, nullptr);
+                SetTimer(hwnd, kResizeDebounceTimer, cerffrontend::GuestAutoResize::kDebounceMs,
+                         nullptr);
             return 0;
         }
 
@@ -414,29 +383,33 @@ LRESULT HostWindow::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
 
         case WM_TIMER:
+            if (auto job = delayed_jobs_.find(wp); job != delayed_jobs_.end()) {
+                KillTimer(hwnd, wp);
+                std::function<void()> run = std::move(job->second);
+                delayed_jobs_.erase(job);
+                run();
+                return 0;
+            }
             if (wp == kCloseWatchdogTimer) {
-                auto* jit = emu_.TryGet<cerfcore::JitRunner>();
-                if (!jit || jit->Stopped()) {
-                    KillTimer(hwnd, kCloseWatchdogTimer);
-                    DestroyWindow(hwnd);
-                } else if (GetTickCount64() - close_start_tick_ >= kCloseGraceMs) {
-                    /* The JIT thread didn't observe the cooperative stop within
-                       the grace period - wedged in a guest spin or host wait, it
-                       will never exit on its own. Force the process down so
-                       cerf.exe doesn't survive with a running JIT thread. */
-                    LOG(Caution, "HostWindow: JIT did not stop within %llums of "
-                        "close; forcing process exit\n",
-                        (unsigned long long)kCloseGraceMs);
-                    KillTimer(hwnd, kCloseWatchdogTimer);
-                    cerfcore::Log::Close();
-                    TerminateProcess(GetCurrentProcess(),
-                                     cerfcore::CERF_FATAL_RUNTIME_ERROR);
+                switch (emu_.Get<cerffrontend::ShutdownTeardown>().Poll()) {
+                    case cerffrontend::ShutdownTeardown::Step::kWaiting:
+                        break;
+                    case cerffrontend::ShutdownTeardown::Step::kStopped:
+                        KillTimer(hwnd, kCloseWatchdogTimer);
+                        DestroyWindow(hwnd);
+                        break;
+                    case cerffrontend::ShutdownTeardown::Step::kWedged:
+                        KillTimer(hwnd, kCloseWatchdogTimer);
+                        cerfcore::Log::Close();
+                        TerminateProcess(GetCurrentProcess(),
+                                         cerfcore::CERF_FATAL_RUNTIME_ERROR);
+                        break;
                 }
                 return 0;
             }
             if (wp == kResizeDebounceTimer) {
                 KillTimer(hwnd, kResizeDebounceTimer);
-                if (auto* ar = emu_.TryGet<HostAutoResize>()) {
+                if (auto* ar = emu_.TryGet<cerffrontend::GuestAutoResize>()) {
                     RECT rc;
                     GetClientRect(hwnd, &rc);
                     const LONG sbh = fullscreen_.IsActive() ? 0 : (LONG)emu_.Get<HostStatusBar>().Height();
@@ -460,21 +433,14 @@ LRESULT HostWindow::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_COMMAND:
             if (HIWORD(wp) == 0) {  /* menu item */
-                const int id = LOWORD(wp);
-                auto& binder = emu_.Get<WidgetMenuBinder>();
-                if (binder.OwnsCommand(id)) binder.Dispatch(id);
-                else                     emu_.Get<HostMenu>().HandleCommand(id);
+                emu_.Get<HostMenu>().Dispatch(LOWORD(wp));
                 return 0;
             }
             break;
 
         case WM_CLOSE:
-            /* Never block/pump in the window proc: post and return so the UI
-               loop keeps running; prompt + async save run from kShutdownMsg. */
-            if (!closing_ && !shutdown_pending_) {
-                shutdown_pending_ = true;
+            if (emu_.Get<cerffrontend::ShutdownPrompt>().BeginCloseRequest())
                 PostMessageW(hwnd, kShutdownMsg, 0, 0);
-            }
             return 0;
 
         case WM_DESTROY:

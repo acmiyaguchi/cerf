@@ -1,19 +1,43 @@
 #define NOMINMAX
 
-#include "host_balloon_hint.h"
+#include <cerffrontend/balloon_hint.h>
 
 #include <cerfcore/core/cerf_emulator.h>
+#include <cerfcore/platform/wide_text_win32.h>
 #include "host_canvas.h"
 #include "host_status_bar.h"
 
+#include <windows.h>
 #include <commctrl.h>
 
-REGISTER_SERVICE(HostBalloonHint);
+#include <string>
 
 namespace {
-constexpr wchar_t kClass[]        = L"CerfBalloonHintHost";
+
+constexpr wchar_t  kClass[]       = L"CerfBalloonHintHost";
 constexpr UINT_PTR kDismissTimer  = 0xC1;
-}
+
+class HostBalloonHint : public cerffrontend::BalloonHint {
+public:
+    using cerffrontend::BalloonHint::BalloonHint;
+
+    void OnReady() override;
+    void OnShutdown() override;
+
+    void ShowUnderWidget(const cerfcore::HostWidget* anchor, const std::string& text,
+                         uint32_t hold_ms) override;
+    void ShowUnderCaptureWidget(const std::string& text, uint32_t hold_ms) override;
+
+private:
+    static LRESULT CALLBACK WndProcStatic(HWND, UINT, WPARAM, LPARAM);
+
+    void Show(const RECT* anchor, const std::string& text, UINT hold_ms);
+    void Dismiss();
+
+    HWND host_ = nullptr;
+    HWND tip_  = nullptr;
+    std::wstring shown_text_;
+};
 
 void HostBalloonHint::OnReady() {
     WNDCLASSEXW wc = {};
@@ -53,7 +77,7 @@ void HostBalloonHint::Dismiss() {
 }
 
 void HostBalloonHint::ShowUnderWidget(const cerfcore::HostWidget* anchor,
-                                      const wchar_t* text, UINT hold_ms) {
+                                      const std::string& text, uint32_t hold_ms) {
     RECT rc;
     if (emu_.Get<HostStatusBar>().WidgetScreenRect(anchor, rc))
         Show(&rc, text, hold_ms);
@@ -61,7 +85,7 @@ void HostBalloonHint::ShowUnderWidget(const cerfcore::HostWidget* anchor,
         Show(nullptr, text, hold_ms);
 }
 
-void HostBalloonHint::ShowUnderCaptureWidget(const wchar_t* text, UINT hold_ms) {
+void HostBalloonHint::ShowUnderCaptureWidget(const std::string& text, uint32_t hold_ms) {
     RECT rc;
     if (emu_.Get<HostStatusBar>().CaptureWidgetScreenRect(rc))
         Show(&rc, text, hold_ms);
@@ -69,7 +93,7 @@ void HostBalloonHint::ShowUnderCaptureWidget(const wchar_t* text, UINT hold_ms) 
         Show(nullptr, text, hold_ms);
 }
 
-void HostBalloonHint::Show(const RECT* anchor, const wchar_t* text,
+void HostBalloonHint::Show(const RECT* anchor, const std::string& text,
                            UINT hold_ms) {
     HWND canvas = emu_.Get<HostCanvas>().Hwnd();
     if (!canvas) return;
@@ -88,14 +112,11 @@ void HostBalloonHint::Show(const RECT* anchor, const wchar_t* text,
         canvas, nullptr, GetModuleHandleW(nullptr), nullptr);
     if (!tip_) return;
 
-    /* cbSize is the backward-compatible TTTOOLINFOW_V1_SIZE - accepted by every
-       comctl32 (v5 and the manifest's v6); the larger modern sizeof(TTTOOLINFOW)
-       is rejected by older comctl32 from TTM_ADDTOOL (see HostStatusBar). */
     TTTOOLINFOW ti = { TTTOOLINFOW_V1_SIZE };
     ti.uFlags   = TTF_TRACK | TTF_IDISHWND;
     ti.hwnd     = canvas;
     ti.uId      = reinterpret_cast<UINT_PTR>(canvas);
-    shown_text_ = text ? text : L"";
+    shown_text_ = cerfcore::Utf8ToWide(text.c_str());
     ti.lpszText = const_cast<wchar_t*>(shown_text_.c_str());
     SendMessageW(tip_, TTM_ADDTOOLW, 0, reinterpret_cast<LPARAM>(&ti));
 
@@ -106,10 +127,14 @@ void HostBalloonHint::Show(const RECT* anchor, const wchar_t* text,
     } else {
         RECT rc;
         GetClientRect(canvas, &rc);
-        p = { (rc.right - rc.left) / 2, rc.bottom - 20 };
+        p = { (rc.right - rc.left) / 2, rc.bottom - kCanvasBottomGap };
         ClientToScreen(canvas, &p);
     }
     SendMessageW(tip_, TTM_TRACKPOSITION, 0, MAKELPARAM(p.x, p.y));
     SendMessageW(tip_, TTM_TRACKACTIVATE, TRUE, reinterpret_cast<LPARAM>(&ti));
     SetTimer(host_, kDismissTimer, hold_ms, nullptr);
 }
+
+}
+
+REGISTER_SERVICE_AS(HostBalloonHint, cerffrontend::BalloonHint);

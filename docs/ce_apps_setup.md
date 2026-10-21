@@ -37,7 +37,7 @@ Copies or symlinks both work; the build only reads the paths above.
 Verify the tree at any time:
 
 ```
-powershell -ExecutionPolicy Bypass -File setup.ps1 -Check
+python tools/dev_setup.py --check
 ```
 
 ---
@@ -77,21 +77,27 @@ third_party/evc4/COMMON/EVC/BIN/rc.exe
 ### 2.3 Run the unpacker
 
 ```
-powershell -ExecutionPolicy Bypass -File tools/unpack_evc4.ps1
+python tools/unpack_evc4.py
 ```
 
 It expands `STANDARD_SDK.msi` via an **administrative install** (`msiexec /a`) - the MSI's
 file tree is extracted without installing the product, touching the registry, or running
 the IDE's setup - then lays the toolchain and SDK out as § 1 requires and verifies the
-result. Pass `-Force` to rebuild an existing `third_party/wince/`.
+result. Pass `--force` to rebuild an existing `third_party/wince/`.
 
 Then build the CE binaries:
 
 ```
-powershell -ExecutionPolicy Bypass -File build.ps1
+python build.py
 ```
 
-which walks every `ce_apps/*/build.ps1` after `cerf.exe` links.
+which runs every `ce_apps/*/build.py` after `cerf.exe` links.
+
+### 2.4 Linux
+
+On Linux, `build.py` runs the same tools through Wine. Install Wine first (on Ubuntu:
+`sudo apt install wine`). `tools/unpack_evc4.py` needs `msiexec`, which runs on Windows only.
+Run it on Windows. Then copy `third_party/wince/` to the Linux checkout.
 
 ---
 

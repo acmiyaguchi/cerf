@@ -602,8 +602,8 @@ at a given VA, so the match is unambiguous where a name lookup is not.
    `OnRunLoopIter` as the investigation requires. Read memory inside
    handlers via `c.ReadVa8/16/32(va)`.
 4. `REGISTER_SERVICE(NkTrace);` at the bottom.
-5. Build with `build.ps1` (default `-Mode dev`). The build includes the
-   trace file. `build.ps1 -Mode production` excludes the entire
+5. Build with `build.py` (default `--mode dev`). The build includes the
+   trace file. `build.py --mode production` excludes the entire
    `libCerfCore/src/tracing/<bundle>/` subtree from the build.
 
 Per-device trace files are gitignored - personal debugging

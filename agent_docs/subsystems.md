@@ -416,9 +416,11 @@ concretes (strategy pattern, selected by `BoardContext`).
   the bounded text-mode RX/TX line buffer for guest UART / OEM-debug output
   and for the notices of CERF itself (power events, save/restore progress).
   `AddLine` appends a line, and `Snapshot` copies the lines for a frontend.
-  The Win32 `HwScreenRenderer` draws the scrolled log over the `BootBar`.
+  `HwScreenRenderer` draws the scrolled log over the `BootBar` through the
+  `Painter` of the frontend.
   - `libCerfCore/include/cerfcore/host/hw_screen.h`, `libCerfCore/src/host/hw_screen.cpp`,
-    `cerf-win32/host/hw_screen_renderer.{h,cpp}`
+    `libCerfFrontend/include/cerffrontend/hw_screen_renderer.h`,
+    `libCerfFrontend/src/hw_screen_renderer.cpp`
 
 - **`NotificationStack`** is the card stack over every canvas tab, and it takes
   only notices that interrupt the user's workflow, never routine events.
@@ -427,7 +429,7 @@ concretes (strategy pattern, selected by `BoardContext`).
   plus the `BootBar`. The 60 Hz present loop drives it in time, with no
   thread. `Restart` (guest reboot / deep-sleep wake) and
   `OnFramebufferLatched` are its cross-thread control hooks.
-  - `cerf-win32/host/boot_screen.{h,cpp}`
+  - `libCerfFrontend/include/cerffrontend/boot_screen.h`, `libCerfFrontend/src/boot_screen.cpp`
 
 - **`BootBar`** - the bottom CPU-activity bar shared by the Boot Screen and
   Hardware Screen tabs. It is a strip that scrolls. The host animation clock
@@ -491,16 +493,21 @@ concretes (strategy pattern, selected by `BoardContext`).
   engages only while that source is active.
   - `libCerfCore/include/cerfcore/host/pointer_router.h`, `libCerfCore/src/host/pointer_router.cpp`, `libCerfCore/src/host/pointer_widget.cpp`
 
-- **`HostInputCapture`** - the low-level keyboard hook and capture toggle, so
-  the guest receives the keys that the host shell normally takes. It forwards
-  to `KeyboardInput` and synthesizes Ctrl-Alt-Del. Installation and removal
-  happen on the UI thread. - `cerf-win32/host/host_input_capture.{h,cpp}`
+- **`InputCapture`** - the capture toggle, so the guest receives the keys
+  that the host shell normally takes. It forwards to `KeyboardInput` and
+  synthesizes Ctrl-Alt-Del. Each frontend feeds it host keys. The Win32
+  `HostInputCapture` takes them from a low-level keyboard hook, and it
+  installs and removes that hook on the UI thread.
+  - `libCerfFrontend/include/cerffrontend/input_capture.h`,
+    `libCerfFrontend/src/input_capture.cpp`, `cerf-win32/host/host_input_capture.{h,cpp}`
 
-- **`HostStatusBar`** - the bottom status bar. It renders the ordered widget
-  set of `HostWidgetRegistry` (icons and per-icon tooltips), and it sends
-  each mouse click to its widget. The capture/lock
-  indicator is itself one such host-owned widget.
-  - `cerf-win32/host/host_status_bar.{h,cpp}`
+- **`StatusBar`** - the bottom status bar. It lays out and paints the ordered
+  widget set of `HostWidgetRegistry` (icons and per-icon tooltips), and it
+  sends each mouse click to its widget. The capture/lock indicator is itself
+  one such host-owned widget. The window, the tooltips and the timer of the
+  bar belong to the frontend.
+  - `libCerfFrontend/include/cerffrontend/status_bar.h`, `libCerfFrontend/src/status_bar.cpp`,
+    `cerf-win32/host/host_status_bar.{h,cpp}`, `cerf-qt/qt_status_bar.{h,cpp}`
 
 - **`HostWidget` / `HostWidgetRegistry`** - the live configuration surface of
   a peripheral or a board feature. `HostWidget` is an abstract,
@@ -517,9 +524,11 @@ concretes (strategy pattern, selected by `BoardContext`).
   enabled/disabled) or a configuration/toggle surface.
   - `libCerfCore/include/cerfcore/host/host_widget*.h`, `libCerfCore/src/host/host_widget_registry.cpp`
 
-- **`HostScreenshot`** - screenshot + clipboard capture of the live guest
-  surface (via `HostCanvas::CaptureGuestSurface`, 1:1).
-  - `cerf-win32/host/host_screenshot.{h,cpp}`
+- **`Screenshots`** - screenshot + clipboard capture of the live guest
+  surface (via `FrontendWindow::CaptureGuestSurface`, 1:1). The
+  `ImageExporter` seam of the frontend writes the PNG and fills the
+  clipboard.
+  - `libCerfFrontend/include/cerffrontend/screenshots.h`, `libCerfFrontend/src/screenshots.cpp`
 
 ## TraceManager
 
@@ -566,7 +575,7 @@ concatenated `RomParserService::Loaded()[i].raw` bytes in load order. On
 the first boot of a new bundle, the log line `[TRACE] bundle CRC32 = 0xXXXX`
 gives you the value to paste into that header.
 
-`build.ps1 -Mode production` builds libCerfCore with
+`build.py --mode production` builds libCerfCore with
 `CERFCORE_DEVICE_TRACES` off. The build then excludes the per-device trace files
 and keeps `src/tracing/*/nkdbg/*.cpp`, so the kernel-debug hooks stay in
 production builds. The framework (`libCerfCore/src/tracing/trace_manager.{h,cpp}`)
@@ -643,7 +652,6 @@ installs selected bundles.
 
 Git ignores the downloaded bundle directories and the local `manifest.json`.
 Only those are copied to the release directory. Users run `launcher` locally.
-Never run `launcher` on your own.
 
 For IDA debugging, `tools/extract_bundles.py` decomposes the same `.nb0` /
 `.bin` offline into `references/extracted-roms/<dev>/<rom>/`. The script runs
@@ -652,8 +660,10 @@ PDBs. That tree is gitignored. CERF does not consume it at runtime. It serves
 IDA / static analysis only - see `agent_docs/debugging.md` § IDA discipline.
 
 The `CopyBundledFiles` MSBuild target mirrors `bundled/**/*` into
-`build/<config>/Win32/**` at build time. The copy is incremental and never
-deletes destination files that are absent from the source set.
+`build/<config>/Win32/**` at build time. The `cerf-qt-bundled` CMake target
+does the same into `build/<config>/linux-qt-amd64/**`. Each copy is
+incremental and never deletes destination files that are absent from the
+source set.
 
 CERF uses `bundled/devices` locally, because the build syncs it into
 `build\release\win32\devices`. Regular users have the launcher inside the
@@ -661,12 +671,12 @@ build directory and sync the devices folder there.
 
 ## CE Apps - CERF-built CE binaries
 
-The `ce_apps/<name>/` directories build small Windows CE EXEs and DLLs
-against the per-CE-era SDKs in `references/WindowsCE-Build-Tools/`
-(`ce3-oak` … `ce7-oak`), per guest architecture. Each
-directory has a `main.c` and a one-line `build.ps1` that delegates to
-`tools/build_ce_app.ps1`. After msbuild succeeds, the top-level `build.ps1`
-walks every `ce_apps/*/build.ps1`. Outputs land at
-`build/<Config>/Win32/ce_apps/<arch>/`. This tree hosts the `cerf_guest`
+The `ce_apps/<name>/` directories build small Windows CE EXEs and DLLs with
+the eMbedded Visual C++ 4.0 toolchain and SDK in `third_party/wince`
+(`docs/ce_apps_setup.md`), per guest architecture. A directory joins the build
+when it has a `build.py`. Outputs land in `ce_apps/<arch>/` of the build output
+directory of the host. This tree hosts the `cerf_guest`
 guest-additions display driver next to sample binaries. It is the home
 for any CERF-built CE binary.
+
+On Linux the build runs the same toolchain through Wine.

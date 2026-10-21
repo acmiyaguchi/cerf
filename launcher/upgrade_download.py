@@ -53,9 +53,10 @@ def download_upgrade(release: AvailableUpdate, install_dir: Path,
 
     _wipe(zip_path)
 
-    if not launcher_exe_in(upgrade_dir).is_file():
+    launcher = launcher_exe_in(upgrade_dir)
+    if not launcher.is_file():
         raise UpgradeError(
-            f"{release.asset_name} contains no launcher.exe")
+            f"{release.asset_name} contains no {launcher.relative_to(upgrade_dir).as_posix()}")
 
     log(f"Staged the new build in {upgrade_dir}")
     return upgrade_dir

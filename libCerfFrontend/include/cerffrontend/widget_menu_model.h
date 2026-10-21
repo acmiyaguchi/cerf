@@ -10,6 +10,7 @@ struct MenuItem {
     std::string           label;
     bool                  enabled = true;
     bool                  checked = false;
+    bool                  radio   = false;
     std::function<void()> on_click;
     std::vector<MenuItem> submenu;
 };

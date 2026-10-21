@@ -27,9 +27,11 @@ void FrontendLaunch::OpenLog() {
     LOG(Cerf, "compiled at: %s %s\n", __DATE__, __TIME__);
 }
 
-int FrontendLaunch::RunEmulator(const cerfcore::CerfConfig& cfg, int argc, char** argv) {
+int FrontendLaunch::RunEmulator(const cerfcore::CerfConfig& cfg, int argc, char** argv,
+                                const UiLoop& ui_loop) {
     cerfcore::CerfEmulator emu(cfg, argc, argv);
     emu.Boot();
+    if (ui_loop) ui_loop(emu);
     emu.WaitForExit();
     cerfcore::Log::Close();
     return 0;

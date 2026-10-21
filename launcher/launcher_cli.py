@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 import threading
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from app_paths import resolve_cerf_exe
+from app_paths import FRONTEND_NAME, LAUNCHER_DIR_NAME, resolve_cerf_exe
+from child_process import spawn_detached
 from bundles import BundleError, package_category_label
 from device_source_text import source_credit
 from device_state import DeviceBundle, format_size
@@ -50,16 +50,14 @@ def _print_source_notice(device: DeviceBundle) -> None:
 def _run_in_cerf(bundle: str) -> None:
     cerf = resolve_cerf_exe()
     if cerf is None:
-        print("ERROR: cerf.exe not found next to launcher.exe; cannot "
-              "run-in-cerf.", file=sys.stderr)
+        print(f"ERROR: {FRONTEND_NAME} not found next to the {LAUNCHER_DIR_NAME} folder; "
+              "cannot run-in-cerf.", file=sys.stderr)
         return
     try:
-        subprocess.Popen([str(cerf), f"--device={bundle}"],
-                         cwd=str(cerf.parent),
-                         creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
-        print(f"Launching cerf.exe for {bundle}...")
+        spawn_detached([str(cerf), f"--device={bundle}"], cerf.parent)
+        print(f"Launching {FRONTEND_NAME} for {bundle}...")
     except OSError as exc:
-        print(f"ERROR: failed to launch cerf.exe: {exc}", file=sys.stderr)
+        print(f"ERROR: failed to launch {FRONTEND_NAME}: {exc}", file=sys.stderr)
 
 
 def _parse_package_ref(ref: str) -> Tuple[str, str]:
@@ -113,7 +111,7 @@ def _install_device(manager: BundleManager, device: DeviceBundle,
 
 
 def run_cli(devices_dir: Path, argv: List[str]) -> int:
-    parser = argparse.ArgumentParser(prog="launcher.exe sync")
+    parser = argparse.ArgumentParser(prog="launcher sync")
     parser.add_argument("command", choices=(
         "list", "download", "update", "delete", "update-all",
         "packages", "download-package", "delete-package",
@@ -124,7 +122,7 @@ def run_cli(devices_dir: Path, argv: List[str]) -> int:
                              "e.g. pdbs/pdbs")
     parser.add_argument("--run-in-cerf", action="store_true",
                         help="after a successful download/update, launch "
-                             "cerf.exe --device=<bundle> and exit")
+                             f"{FRONTEND_NAME} --device=<bundle> and exit")
     args = parser.parse_args(argv)
 
     manager = BundleManager(devices_dir)

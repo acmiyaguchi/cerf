@@ -1,28 +1,20 @@
 #pragma once
 
 #include <cerfcore/core/service.h>
+#include "win32_menu_binder.h"
 
 #define NOMINMAX
 #include <windows.h>
 
-/* The host window's menu bar: builds it, keeps its check/radio state in
-   sync, and dispatches its WM_COMMAND ids. UI thread only. */
 class HostMenu : public cerfcore::Service {
 public:
     using cerfcore::Service::Service;
 
-    /* Build the bar. Called once by HostWindow before CreateWindowExW;
-       the bar's lifetime is tied to the window that adopts it. */
     HMENU Build();
-
-    /* WM_INITMENUPOPUP: sync check state; rebuild the Actions popup. */
-    void OnInitMenuPopup(HMENU popup);
-
-    /* Menu WM_COMMAND ids not owned by HostWidgetRegistry. */
-    void HandleCommand(int id);
+    void  OnInitMenuPopup(HMENU popup);
+    bool  Dispatch(int id);
 
 private:
-    void Sync();
-
-    HMENU bar_ = nullptr;
+    HMENU           bar_ = nullptr;
+    Win32MenuBinder binder_;
 };

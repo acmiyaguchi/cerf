@@ -3,6 +3,8 @@
 #include <cerffrontend/link_opener.h>
 
 #include <cerfcore/core/cerf_emulator.h>
+#include <cerfcore/host/host_widget.h>
+#include <cerfcore/host/host_widget_registry.h>
 
 #include <type_traits>
 #include <utility>
@@ -38,6 +40,29 @@ std::vector<MenuItem> WidgetMenuBuilder::Build(
     std::vector<MenuItem> out;
     Append(out, controls);
     Trim(out);
+    return out;
+}
+
+std::vector<MenuItem> WidgetMenuBuilder::BuildAllWidgets() {
+    std::vector<MenuItem> out;
+    const auto            ordered = emu_.Get<cerfcore::HostWidgetRegistry>().Ordered();
+    for (auto it = ordered.rbegin(); it != ordered.rend(); ++it) {
+        cerfcore::HostWidget* w     = *it;
+        std::vector<MenuItem> items = Build(w->Controls());
+        if (items.empty()) {
+            MenuItem name;
+            name.label   = w->WidgetName();
+            name.enabled = false;
+            out.push_back(std::move(name));
+        } else if (items.size() == 1 && items[0].submenu.empty()) {
+            out.push_back(std::move(items[0]));
+        } else {
+            MenuItem group;
+            group.label   = w->WidgetName();
+            group.submenu = std::move(items);
+            out.push_back(std::move(group));
+        }
+    }
     return out;
 }
 

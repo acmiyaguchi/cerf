@@ -257,7 +257,7 @@ None of these behaviors are honesty - they are laziness dressed as rigor.
 
 ## Parallel Work
 
-Sometimes you will notice that other people/agents work in parallel in the code tree. Most likely you will hit locked cerf.exe, or msbuild log files stuff - in this case it is safe to retry the build. The build.ps1 you use detects whether another build or cerf.exe currently runs, and it waits for that one to finish gracefully before it runs your build, so it can take some time. It does whatever it can to not corrupt other people's work.
+Sometimes you will notice that other people/agents work in parallel in the code tree. Most likely you will hit locked cerf.exe, or msbuild log files stuff - in this case it is safe to retry the build. The build.py you use detects whether another build or cerf.exe currently runs, and it waits for that one to finish gracefully before it runs your build, so it can take some time. It does whatever it can to not corrupt other people's work.
 
 If you built and an error appeared in code that is not yours, the best thing you can do:
 - inform user that code has error
@@ -269,6 +269,6 @@ If you built and an error appeared in code that is not yours, the best thing you
 
 Always use something like cerf.exe --log-file=repo_path/tmp/this_session_unique_name.log to prevent a collision with other log files. User usually runs cerf.exe and writes cerf.log in parallel. Other devs/agents always respect this rule and write into own unique .log file. It must always be the repo dir, not the system's temp, because logs can draw GBs of disk space, and in a localized directory it is easy to delete stale ones.
 
-The main developer dev env runs inside VBox VM, and the repo disk is a shared directory to host repo. The dev can run cerf.exe on host, which build.ps1 and the system process list will not see - you will most likely hit a locked files error, and the case is the same as this entire section.
+The main developer dev env runs inside VBox VM, and the repo disk is a shared directory to host repo. The dev can run cerf.exe on host, which build.py and the system process list will not see - you will most likely hit a locked files error, and the case is the same as this entire section.
 
 This section exists for autonomous work continuation. A question to the user - "do you allow me to setup 2 minutes timer" - kills the purpose of this section, which is to prevent a stop of work without a reason

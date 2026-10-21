@@ -15,7 +15,12 @@ void HostIconCache::DrawCentered(HDC dc, const RECT& box,
                                  const std::string& res_name) {
     const int bw = box.right - box.left;
     const int bh = box.bottom - box.top;
-    int px = (bw < bh ? bw : bh) - 4;   /* small padding inside the slot box */
+    DrawSized(dc, box, res_name, (bw < bh ? bw : bh) - 4);
+}
+
+void HostIconCache::DrawSized(HDC dc, const RECT& box, const std::string& res_name, int px) {
+    const int bw = box.right - box.left;
+    const int bh = box.bottom - box.top;
 
     HICON h = Resolve(res_name, px);
     if (!h) {

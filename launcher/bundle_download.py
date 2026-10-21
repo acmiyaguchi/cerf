@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 import threading
 import urllib.request
 import zipfile
@@ -19,6 +20,8 @@ from bundles import (
 )
 
 ProgressFn = Callable[[str, int, Optional[int]], None]
+
+_ZIP_HOST_UNIX = 3
 
 
 class CancelledError(BundleError):
@@ -81,6 +84,17 @@ def safe_extract(zip_path: Path, destination: Path) -> None:
                     f"unsafe path in archive: {member.filename}"
                 ) from exc
         archive.extractall(destination)
+        if sys.platform != "win32":
+            _restore_unix_modes(archive, destination)
+
+
+def _restore_unix_modes(archive: zipfile.ZipFile, destination: Path) -> None:
+    for member in archive.infolist():
+        if member.create_system != _ZIP_HOST_UNIX:
+            continue
+        mode = (member.external_attr >> 16) & 0o777
+        if mode:
+            os.chmod(str(destination / member.filename), mode)
 
 
 def prepared_bundle_root(extract_dir: Path) -> Path:

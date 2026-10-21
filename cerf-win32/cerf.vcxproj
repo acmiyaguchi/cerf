@@ -174,7 +174,7 @@
        host indexer — retry a few times before giving up on a single file. -->
   <Target Name="CopyBundledFiles" AfterTargets="Build">
     <ItemGroup>
-      <BundledAllFiles Include="$(ProjectDir)..\bundled\**\*" Exclude="$(ProjectDir)..\bundled\**\.git;$(ProjectDir)..\bundled\**\*.i64;$(ProjectDir)..\bundled\**\*.id0;$(ProjectDir)..\bundled\**\*.id1;$(ProjectDir)..\bundled\**\*.id2;$(ProjectDir)..\bundled\**\*.nam;$(ProjectDir)..\bundled\**\*.til" />
+      <BundledAllFiles Include="$(ProjectDir)..\bundled\**\*" Exclude="$(ProjectDir)..\bundled\**\.git;$(ProjectDir)..\bundled\**\*.i64;$(ProjectDir)..\bundled\**\*.id0;$(ProjectDir)..\bundled\**\*.id1;$(ProjectDir)..\bundled\**\*.id2;$(ProjectDir)..\bundled\**\*.nam;$(ProjectDir)..\bundled\**\*.til;$(ProjectDir)..\bundled\**\*.sh" />
       <BundledFiles Include="@(BundledAllFiles)" Exclude="$(ProjectDir)..\bundled\**\.gitkeep" />
     </ItemGroup>
     <MakeDir Directories="@(BundledAllFiles->'$(OutDir)%(RecursiveDir)')" />

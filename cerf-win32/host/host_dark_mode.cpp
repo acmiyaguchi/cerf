@@ -3,6 +3,7 @@
 #include "host_dark_mode.h"
 
 #include <cerfcore/core/cerf_emulator.h>
+#include <cerffrontend/theme_colors.h>
 
 #include <commctrl.h>
 #include <dwmapi.h>
@@ -25,14 +26,16 @@ struct UAHMENU      { HMENU hmenu; HDC hdc; DWORD dwFlags; };
 struct UAHMENUITEM  { int iPosition; UAHMENUITEMMETRICS umim; UAHMENUPOPUPMETRICS umpm; };
 struct UAHDRAWMENUITEM { DRAWITEMSTRUCT dis; UAHMENU um; UAHMENUITEM umi; };
 
-constexpr COLORREF kClrBar      = RGB(32, 32, 32);
-constexpr COLORREF kClrHot      = RGB(60, 60, 60);
-constexpr COLORREF kClrSel      = RGB(70, 70, 70);
-constexpr COLORREF kClrText     = RGB(230, 230, 230);
-constexpr COLORREF kClrDisabled = RGB(120, 120, 120);
-constexpr COLORREF kClrDlg      = RGB(32, 32, 32);   /* dialog client background */
-constexpr COLORREF kClrEdit     = RGB(45, 45, 45);   /* edit/list field background */
-constexpr COLORREF kClrLink     = RGB(96, 170, 255);
+constexpr COLORREF Colorref(cerffrontend::Rgb c) { return RGB(c.r, c.g, c.b); }
+
+constexpr COLORREF kClrBar      = Colorref(cerffrontend::theme::kDarkBar);
+constexpr COLORREF kClrHot      = Colorref(cerffrontend::theme::kDarkHot);
+constexpr COLORREF kClrSel      = Colorref(cerffrontend::theme::kDarkSelected);
+constexpr COLORREF kClrText     = Colorref(cerffrontend::theme::kDarkText);
+constexpr COLORREF kClrDisabled = Colorref(cerffrontend::theme::kDarkDisabled);
+constexpr COLORREF kClrDlg      = Colorref(cerffrontend::theme::kDarkDialog);
+constexpr COLORREF kClrEdit     = Colorref(cerffrontend::theme::kDarkEdit);
+constexpr COLORREF kClrLink     = Colorref(cerffrontend::theme::kDarkLink);
 
 using RtlGetNtVersionNumbers_t        = void (WINAPI*)(LPDWORD, LPDWORD, LPDWORD);
 using SetPreferredAppMode_t           = int  (WINAPI*)(int);

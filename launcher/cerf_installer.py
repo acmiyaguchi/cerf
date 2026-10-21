@@ -11,8 +11,11 @@ from typing import List
 _THIS_DIR = Path(os.path.abspath(__file__)).parent
 if str(_THIS_DIR) not in sys.path:
     sys.path.insert(0, str(_THIS_DIR))
+_TOOLS_DIR = _THIS_DIR.parent / "tools"
+if _TOOLS_DIR.is_dir() and str(_TOOLS_DIR) not in sys.path:
+    sys.path.append(str(_TOOLS_DIR))
 
-from app_paths import resolve_icon
+from window_icon import apply_window_icon
 from installer_window import SETUP_ICO_NAME, InstallerWindow
 from text_context_menu import TextContextMenu
 from ui_theme import apply_theme, enable_dpi_awareness
@@ -26,12 +29,7 @@ def main(argv: List[str]) -> int:
     root.withdraw()
     apply_theme(root)
     TextContextMenu(root)
-    icon = resolve_icon(SETUP_ICO_NAME)
-    if icon is not None:
-        try:
-            root.iconbitmap(default=str(icon))
-        except tk.TclError:
-            pass
+    apply_window_icon(root, SETUP_ICO_NAME)
 
     try:
         InstallerWindow(root)

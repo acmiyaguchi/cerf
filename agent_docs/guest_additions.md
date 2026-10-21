@@ -117,10 +117,10 @@ An indirect reference does not bind to the local definition. The ARM compiler
 emits the `__imp_` form for its division helpers. The linker then pulls the
 thunk for that name out of the generated import lib. That thunk collides with
 the local definition. Filter the name out of the import lib of that one target.
-`tools/build_ce_app.ps1` takes the per-target list through `-CoreDllDefLocal`.
+`tools/build_ce_app.py` takes the per-target list through `coredll_def_local`.
 
 **Never delete a name from `coredll_byname.def` to force a local definition.**
-Many `ce_apps/*/build.ps1` scripts share this file. The build makes
+Many `ce_apps/*/build.py` scripts share this file. The build makes
 `coredll.lib` from it, and puts that library before the SDK library. The CRT
 library of the SDK supplies none of these names. A deleted name is therefore an
 unresolved external in every other app that imports it.

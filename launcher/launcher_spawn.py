@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import subprocess
 from typing import List, Optional
 
 from about_window import AboutWindow
+from app_paths import FRONTEND_NAME, LAUNCHER_DIR_NAME
+from child_process import spawn_detached
 from device_state import DeviceBundle
 from running_state import show_running_window
 from ui_dialogs import show_error
@@ -16,7 +17,8 @@ class SpawnMixin:
         if d is None or self.busy:
             return
         if self.cerf_exe is None:
-            show_error(self, "Cannot launch", "cerf.exe not found next to launcher.exe.")
+            show_error(self, "Cannot launch",
+                       f"{FRONTEND_NAME} not found next to the {LAUNCHER_DIR_NAME} folder.")
             return
         if not d.is_installed:
             return
@@ -38,8 +40,7 @@ class SpawnMixin:
         tail.append(f"--boot={boot or 'resume'}")
         argv: List[str] = [str(self.cerf_exe)] + tail
         try:
-            subprocess.Popen(argv, cwd=str(self.cerf_exe.parent),
-                             creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
-            self.status_bar.set_status(f"Launched cerf.exe for {d.name}.")
+            spawn_detached(argv, self.cerf_exe.parent)
+            self.status_bar.set_status(f"Launched {FRONTEND_NAME} for {d.name}.")
         except OSError as exc:
             show_error(self, "Launch failed", str(exc))

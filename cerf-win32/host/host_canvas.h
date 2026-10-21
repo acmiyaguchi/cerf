@@ -35,7 +35,7 @@ public:
     }
 
     /* View state (UI thread). */
-    Tab          CurrentTab()    const { return tab_; }
+    Tab          CurrentTab()    const;
     ViewportMode Mode()          const { return canvas_.Mode(); }
     int          IntegerFactor() const { return canvas_.IntegerFactor(); }
     void SetTab(Tab t, bool user_initiated);
@@ -74,9 +74,5 @@ public:
     void RenderOverlay(HDC dc, int w, int h) override;
 
 private:
-    Tab  tab_  = Tab::Boot;   /* set from DeviceConfig.start_tab in CreateOn */
-    bool user_picked_view_ = false;
-    bool latched_once_     = false;
-
     PresenterCanvas canvas_{nullptr, this};
 };

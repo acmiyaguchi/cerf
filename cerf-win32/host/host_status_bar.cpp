@@ -4,103 +4,16 @@
 
 #include <cerfcore/core/cerf_emulator.h>
 #include <cerfcore/core/log.h>
+#include <cerfcore/host/host_widget.h>
 #include <cerfcore/platform/wide_text_win32.h>
 #include "host_dark_mode.h"
-#include <cerfcore/host/host_widget.h>
-#include <cerfcore/host/host_widget_registry.h>
-#include "widget_icon_painter.h"
-#include "widget_menu_binder.h"
-#include <cerffrontend/widget_menu_builder.h>
-
-#include <cstdint>
+#include "win32_painter.h"
 
 REGISTER_SERVICE(HostStatusBar);
 
 namespace {
-constexpr wchar_t  kStatusClass[]  = L"CerfHostStatusBar";
-constexpr int      kIconBoxW       = 26;
-constexpr UINT     kTickTimerId    = 1;
-constexpr UINT     kTickMs         = 100;
-constexpr COLORREF kClrBg          = RGB(32, 32, 32);
-constexpr COLORREF kClrSep         = RGB(60, 60, 60);
-constexpr COLORREF kClrBgLight     = RGB(240, 240, 240);
-constexpr COLORREF kClrSepLight    = RGB(200, 200, 200);
-constexpr int      kGlowTicks      = 3;
-constexpr COLORREF kRxColor        = RGB(229, 80, 80);
-constexpr COLORREF kTxColor        = RGB(78, 201, 90);
-constexpr int      kDotR           = 3;
-constexpr BYTE     kDisabledAlpha  = 150;
-
-void DimRect(HDC dc, const RECT& box, COLORREF bar_bg) {
-    HDC mdc = CreateCompatibleDC(dc);
-    if (!mdc) return;
-    BITMAPINFO bi = {};
-    bi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-    bi.bmiHeader.biWidth       = 1;
-    bi.bmiHeader.biHeight      = 1;
-    bi.bmiHeader.biPlanes      = 1;
-    bi.bmiHeader.biBitCount    = 32;
-    bi.bmiHeader.biCompression = BI_RGB;
-    void* bits = nullptr;
-    HBITMAP dib = CreateDIBSection(mdc, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
-    if (dib && bits) {
-        *static_cast<uint32_t*>(bits) = ((uint32_t)GetRValue(bar_bg) << 16) |
-                                        ((uint32_t)GetGValue(bar_bg) << 8) |
-                                        (uint32_t)GetBValue(bar_bg);
-        HGDIOBJ ob = SelectObject(mdc, dib);
-        BLENDFUNCTION bf = { AC_SRC_OVER, 0, kDisabledAlpha, 0 };
-        AlphaBlend(dc, box.left, box.top, box.right - box.left,
-                   box.bottom - box.top, mdc, 0, 0, 1, 1, bf);
-        SelectObject(mdc, ob);
-        DeleteObject(dib);
-    }
-    DeleteDC(mdc);
-}
-}  /* namespace */
-
-bool HostStatusBar::SampleActivity(cerfcore::HostWidget* w) {
-    Glow& g = glow_[w];
-    if (w->TakeRx())   g.rx = kGlowTicks;
-    else if (g.rx > 0) --g.rx;
-    if (w->TakeTx())   g.tx = kGlowTicks;
-    else if (g.tx > 0) --g.tx;
-
-    const bool now     = (g.rx > 0) || (g.tx > 0);
-    const bool repaint = now || g.was_active;
-    g.was_active = now;
-    return repaint;
-}
-
-void HostStatusBar::DrawComposited(HDC dc, cerfcore::HostWidget* w, const RECT& box,
-                                   COLORREF bar_bg) {
-    emu_.Get<WidgetIconPainter>().Paint(dc, box, w->Icon());
-
-    if (!w->IsEnabled()) {
-        DimRect(dc, box, bar_bg);
-        return;
-    }
-
-    auto dot = [&](COLORREF c, int cx, int cy) {
-        HBRUSH  br = CreateSolidBrush(c);
-        HPEN    pn = CreatePen(PS_SOLID, 1, RGB(20, 20, 20));
-        HGDIOBJ ob = SelectObject(dc, br);
-        HGDIOBJ op = SelectObject(dc, pn);
-        Ellipse(dc, cx - kDotR, cy - kDotR, cx + kDotR + 1, cy + kDotR + 1);
-        SelectObject(dc, ob);
-        SelectObject(dc, op);
-        DeleteObject(br);
-        DeleteObject(pn);
-    };
-    const Glow& g = glow_[w];
-    if (g.rx > 0) dot(kRxColor, box.left  + kDotR + 1, box.bottom - kDotR - 2);
-    if (g.tx > 0) dot(kTxColor, box.right - kDotR - 2, box.bottom - kDotR - 2);
-}
-
-HostStatusBar::~HostStatusBar() {
-    if (bg_brush_)       DeleteObject(bg_brush_);
-    if (sep_pen_)        DeleteObject(sep_pen_);
-    if (bg_brush_light_) DeleteObject(bg_brush_light_);
-    if (sep_pen_light_)  DeleteObject(sep_pen_light_);
+constexpr wchar_t kStatusClass[] = L"CerfHostStatusBar";
+constexpr UINT    kTickTimerId   = 1;
 }
 
 void HostStatusBar::OnReady() {
@@ -119,10 +32,6 @@ void HostStatusBar::OnReady() {
             cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
         }
     }
-    bg_brush_       = CreateSolidBrush(kClrBg);
-    sep_pen_        = CreatePen(PS_SOLID, 1, kClrSep);
-    bg_brush_light_ = CreateSolidBrush(kClrBgLight);
-    sep_pen_light_  = CreatePen(PS_SOLID, 1, kClrSepLight);
 }
 
 void HostStatusBar::CreateOn(HWND parent, const RECT& rect) {
@@ -137,65 +46,18 @@ void HostStatusBar::CreateOn(HWND parent, const RECT& rect) {
         cerfcore::CerfFatalExit(cerfcore::CERF_FATAL_RUNTIME_ERROR);
     }
 
-    /* The tooltip window class lives in ICC_BAR_CLASSES, NOT ICC_STANDARD_CLASSES
-       - without it CreateWindowExW(TOOLTIPS_CLASSW) yields a dead control and no
-       tip ever shows. */
     INITCOMMONCONTROLSEX icc = { sizeof(icc), ICC_BAR_CLASSES | ICC_STANDARD_CLASSES };
     InitCommonControlsEx(&icc);
     tip_hwnd_ = CreateWindowExW(0, TOOLTIPS_CLASSW, nullptr,
                                 WS_POPUP | TTS_ALWAYSTIP, 0, 0, 0, 0,
                                 hwnd_, nullptr, GetModuleHandleW(nullptr), nullptr);
     RebuildTooltips();
-    SetTimer(hwnd_, kTickTimerId, kTickMs, nullptr);
+    SetTimer(hwnd_, kTickTimerId, cerffrontend::StatusBar::kTickMs, nullptr);
 }
 
 void HostStatusBar::Reposition(const RECT& r) {
     if (hwnd_) MoveWindow(hwnd_, r.left, r.top,
                           r.right - r.left, r.bottom - r.top, TRUE);
-}
-
-bool HostStatusBar::Relayout(const std::vector<cerfcore::HostWidget*>& ordered) {
-    if (!hwnd_) return false;
-    RECT rc;
-    GetClientRect(hwnd_, &rc);
-    const int total_slots = rc.right > 0 ? rc.right / kIconBoxW : 0;
-
-    /* ordered is sorted by (Group, Name); the GuestAdditions..InputCapture
-       range is the tail. They pin to the right and always show; device widgets
-       fill the rest and drop the leftmost on overflow. */
-    int term_count = 0;
-    for (auto* w : ordered)
-        if (w->Group() >= cerfcore::WidgetGroup::GuestAdditions) ++term_count;
-    const int dev_count = (int)ordered.size() - term_count;
-
-    const int term_show = term_count < total_slots ? term_count : total_slots;
-    const int dev_slots = total_slots - term_show > 0 ? total_slots - term_show : 0;
-    const int dev_show  = dev_count < dev_slots ? dev_count : dev_slots;
-
-    std::vector<cerfcore::HostWidget*> vis;
-    vis.reserve((size_t)(dev_show + term_show));
-    for (int i = 0; i < dev_show; ++i) vis.push_back(ordered[(size_t)i]);
-    for (int j = term_count - term_show; j < term_count; ++j)
-        vis.push_back(ordered[(size_t)(dev_count + j)]);
-
-    const int block_left = rc.right - (int)vis.size() * kIconBoxW;
-    std::vector<std::pair<cerfcore::HostWidget*, RECT>> nl;
-    nl.reserve(vis.size());
-    for (size_t k = 0; k < vis.size(); ++k) {
-        RECT box = { block_left + (int)k * kIconBoxW, rc.top,
-                     block_left + (int)(k + 1) * kIconBoxW, rc.bottom };
-        nl.push_back({ vis[k], box });
-    }
-
-    bool changed = nl.size() != layout_.size();
-    for (size_t i = 0; !changed && i < nl.size(); ++i)
-        if (nl[i].first != layout_[i].first ||
-            !EqualRect(&nl[i].second, &layout_[i].second))
-            changed = true;
-
-    layout_.swap(nl);
-    if (changed) RebuildTooltips();
-    return changed;
 }
 
 void HostStatusBar::RebuildTooltips() {
@@ -208,20 +70,20 @@ void HostStatusBar::RebuildTooltips() {
         SendMessageW(tip_hwnd_, TTM_DELTOOLW, 0, (LPARAM)&ti);
     }
 
+    const auto& entries = emu_.Get<cerffrontend::StatusBar>().Entries();
     tip_texts_.clear();
-    tip_texts_.reserve(layout_.size());
-    for (auto& e : layout_) tip_texts_.push_back(cerfcore::Utf8ToWide(e.first->Tooltip().c_str()));
-    tip_count_ = layout_.size();
+    tip_texts_.reserve(entries.size());
+    for (const auto& e : entries)
+        tip_texts_.push_back(cerfcore::Utf8ToWide(e.widget->Tooltip().c_str()));
+    tip_count_ = entries.size();
 
-    /* cbSize is the backward-compatible TTTOOLINFOW_V1_SIZE - accepted by every
-       comctl32 (v5 and the v6 the manifest now pulls in); avoids the larger
-       modern sizeof(TTTOOLINFOW) that older comctl32 rejects from TTM_ADDTOOL. */
-    for (size_t i = 0; i < layout_.size(); ++i) {
+    for (size_t i = 0; i < entries.size(); ++i) {
         TTTOOLINFOW ti = { TTTOOLINFOW_V1_SIZE };
         ti.uFlags   = 0;
         ti.hwnd     = hwnd_;
         ti.uId      = (UINT_PTR)(i + 1);
-        ti.rect     = layout_[i].second;
+        ti.rect     = RECT{ entries[i].box.left, entries[i].box.top,
+                            entries[i].box.right, entries[i].box.bottom };
         ti.lpszText = (LPWSTR)tip_texts_[i].c_str();
         SendMessageW(tip_hwnd_, TTM_ADDTOOLW, 0, (LPARAM)&ti);
     }
@@ -237,45 +99,32 @@ void HostStatusBar::UpdateTipText(size_t idx, std::wstring text) {
     SendMessageW(tip_hwnd_, TTM_UPDATETIPTEXTW, 0, (LPARAM)&ti);
 }
 
+bool HostStatusBar::ToScreen(const cerffrontend::Rect& box, RECT& out) const {
+    out = RECT{ box.left, box.top, box.right, box.bottom };
+    MapWindowPoints(hwnd_, nullptr, reinterpret_cast<POINT*>(&out), 2);
+    return true;
+}
+
 bool HostStatusBar::WidgetScreenRect(const cerfcore::HostWidget* w, RECT& out) const {
-    for (auto& e : layout_) {
-        if (e.first == w) {
-            out = e.second;   /* client coords */
-            MapWindowPoints(hwnd_, nullptr, reinterpret_cast<POINT*>(&out), 2);
-            return true;
-        }
-    }
-    return false;
+    cerffrontend::Rect box;
+    return emu_.Get<cerffrontend::StatusBar>().WidgetBox(w, box) && ToScreen(box, out);
 }
 
 bool HostStatusBar::CaptureWidgetScreenRect(RECT& out) const {
-    for (auto& e : layout_)
-        if (e.first->Group() == cerfcore::WidgetGroup::InputCapture)
-            return WidgetScreenRect(e.first, out);
-    return false;
-}
-
-cerfcore::HostWidget* HostStatusBar::WidgetAt(int x) const {
-    for (auto& e : layout_)
-        if (x >= e.second.left && x < e.second.right) return e.first;
-    return nullptr;
+    cerffrontend::Rect box;
+    return emu_.Get<cerffrontend::StatusBar>().CaptureWidgetBox(box) && ToScreen(box, out);
 }
 
 void HostStatusBar::SecondaryAction(cerfcore::HostWidget* w, int x, int y, UINT button_flag) {
-    auto& binder = emu_.Get<WidgetMenuBinder>();
-    auto items = emu_.Get<cerffrontend::WidgetMenuBuilder>().Build(w->Controls());
-    if (w->ControlsAreOneAction() && items.size() == 1 && items[0].enabled &&
-        items[0].on_click && items[0].submenu.empty()) {
-        items[0].on_click();
-        return;
-    }
-    HMENU m = binder.BuildContextMenu(items);
+    std::vector<cerffrontend::MenuItem> items;
+    if (!emu_.Get<cerffrontend::StatusBar>().ContextMenu(w, items)) return;
+    HMENU m = binder_.BuildContextMenu(items);
     POINT pt = { x, y };
     ClientToScreen(hwnd_, &pt);
     const int id = (int)TrackPopupMenu(m, TPM_RETURNCMD | TPM_LEFTALIGN | button_flag,
                                        pt.x, pt.y, 0, hwnd_, nullptr);
     DestroyMenu(m);
-    if (id) binder.Dispatch(id);
+    if (id) binder_.Dispatch(id);
 }
 
 LRESULT CALLBACK HostStatusBar::WndProcStatic(HWND hwnd, UINT msg,
@@ -293,7 +142,6 @@ LRESULT CALLBACK HostStatusBar::WndProcStatic(HWND hwnd, UINT msg,
 }
 
 LRESULT HostStatusBar::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-    /* Relay mouse events so the tooltip control can show per-icon tips. */
     if (tip_hwnd_ && (msg == WM_MOUSEMOVE || msg == WM_LBUTTONDOWN ||
                       msg == WM_LBUTTONUP || msg == WM_RBUTTONDOWN ||
                       msg == WM_RBUTTONUP)) {
@@ -305,6 +153,7 @@ LRESULT HostStatusBar::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         SendMessageW(tip_hwnd_, TTM_RELAYEVENT, (WPARAM)GetMessagePos(), (LPARAM)&mm);
     }
 
+    auto& bar = emu_.Get<cerffrontend::StatusBar>();
     switch (msg) {
         case WM_PAINT: {
             PAINTSTRUCT ps;
@@ -312,24 +161,13 @@ LRESULT HostStatusBar::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             RECT rc;
             GetClientRect(hwnd, &rc);
 
-            /* Double-buffer: the bar repaints at the activity-glow rate while a
-               widget has RX/TX, and erasing + redrawing every icon straight to
-               the window flickers. Compose into a memory DC and blit once. */
             HDC     mem    = CreateCompatibleDC(dc);
             HBITMAP bmp    = CreateCompatibleBitmap(dc, rc.right, rc.bottom);
             HGDIOBJ oldbmp = SelectObject(mem, bmp);
 
-            const bool dark = emu_.Get<HostDarkMode>().IsDark();
-            const COLORREF bar_bg = dark ? kClrBg : kClrBgLight;
-            FillRect(mem, &rc, dark ? bg_brush_ : bg_brush_light_);
-
-            /* 1px top separator from the canvas. */
-            HGDIOBJ old_pen = SelectObject(mem, dark ? sep_pen_ : sep_pen_light_);
-            MoveToEx(mem, rc.left, rc.top, nullptr);
-            LineTo(mem, rc.right, rc.top);
-            SelectObject(mem, old_pen);
-
-            for (auto& e : layout_) DrawComposited(mem, e.first, e.second, bar_bg);
+            Win32Painter painter(emu_, mem);
+            bar.Paint(painter, cerffrontend::Rect{ rc.left, rc.top, rc.right, rc.bottom },
+                      emu_.Get<HostDarkMode>().IsDark());
 
             BitBlt(dc, 0, 0, rc.right, rc.bottom, mem, 0, 0, SRCCOPY);
 
@@ -343,37 +181,36 @@ LRESULT HostStatusBar::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         case WM_ERASEBKGND:
             return 1;
 
-        case WM_SIZE:
-            Relayout(emu_.Get<cerfcore::HostWidgetRegistry>().Ordered());
+        case WM_SIZE: {
+            RECT rc;
+            GetClientRect(hwnd, &rc);
+            if (bar.Relayout(rc.right, rc.bottom)) RebuildTooltips();
             return 0;
+        }
 
         case WM_TIMER:
             if (wp == kTickTimerId) {
-                auto ordered = emu_.Get<cerfcore::HostWidgetRegistry>().Ordered();
-                bool repaint = false;
-                for (cerfcore::HostWidget* w : ordered) repaint |= SampleActivity(w);
-                repaint |= Relayout(ordered);
-                for (size_t i = 0; i < layout_.size(); ++i) {
-                    if (layout_[i].first->PollDirty()) {
-                        repaint = true;
-                        UpdateTipText(i, cerfcore::Utf8ToWide(layout_[i].first->Tooltip().c_str()));
-                    }
-                }
-                if (repaint) InvalidateRect(hwnd, nullptr, FALSE);
+                RECT rc;
+                GetClientRect(hwnd, &rc);
+                const cerffrontend::StatusBar::TickResult r = bar.Tick(rc.right, rc.bottom);
+                if (r.layout_changed) RebuildTooltips();
+                for (size_t idx : r.tooltips_changed)
+                    UpdateTipText(idx, cerfcore::Utf8ToWide(bar.TooltipAt(idx).c_str()));
+                if (r.repaint) InvalidateRect(hwnd, nullptr, FALSE);
             }
             return 0;
 
         case WM_LBUTTONDOWN: {
             const int x = (int)(short)LOWORD(lp);
-            cerfcore::HostWidget* w = WidgetAt(x);
-            if (w && !w->TryPrimaryAction())
+            cerfcore::HostWidget* w = bar.WidgetAt(x);
+            if (w && !bar.PrimaryClick(w))
                 SecondaryAction(w, x, (int)(short)HIWORD(lp), TPM_LEFTBUTTON);
             return 0;
         }
 
         case WM_RBUTTONUP: {
             const int x = (int)(short)LOWORD(lp);
-            if (cerfcore::HostWidget* w = WidgetAt(x))
+            if (cerfcore::HostWidget* w = bar.WidgetAt(x))
                 SecondaryAction(w, x, (int)(short)HIWORD(lp), TPM_RIGHTBUTTON);
             return 0;
         }

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import ctypes
+import sys
 from typing import List, Sequence
 
 from app_settings import remove_key, write_key
 from bundle_repositories import config_path, load_config
+from linux_key_tables import key_names, vk_from_x_keycode
 
 HOST_KEY_KEY = "host_key"
 
@@ -60,6 +62,8 @@ _KEYSYM_VK = {
 
 
 def vk_label(vk: int) -> str:
+    if sys.platform != "win32":
+        return key_names().get(vk, "VK 0x%02X" % vk)
     try:
         user32 = ctypes.windll.user32
         scan_code = user32.MapVirtualKeyW(vk, _MAPVK_VK_TO_VSC)
@@ -83,6 +87,9 @@ def combo_label(vks: Sequence[int]) -> str:
 
 
 def vk_from_tk_event(event) -> int:
+    if sys.platform != "win32":
+        code = getattr(event, "keycode", 0)
+        return vk_from_x_keycode(code) if isinstance(code, int) else 0
     vk = _KEYSYM_VK.get(getattr(event, "keysym", ""))
     if vk:
         return vk

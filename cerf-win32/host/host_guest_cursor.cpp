@@ -5,6 +5,7 @@
 #include <cerfcore/core/cerf_emulator.h>
 #include <cerfcore/lcd/lcd_pixel_expand.h>
 #include <cerfcore/peripherals/cerf_virt/cerf_virt_cursor.h>
+#include <cerffrontend/guest_cursor_pixels.h>
 
 #include <vector>
 
@@ -28,23 +29,33 @@ void DisableCursorScaling() {
 }
 
 HCURSOR BuildCursor(const cerfcore::GuestCursorShape& s) {
-    const int cx = (int)s.cx, cy = (int)s.cy, stride = (int)s.stride;
+    const int cx = (int)s.cx, cy = (int)s.cy;
     if (cx <= 0 || cy <= 0) return nullptr;
     const int win_stride = ((cx + 15) / 16) * 2;
 
-    std::vector<uint8_t> andP((size_t)win_stride * cy, 0xFF);  /* transparent */
+    std::vector<uint8_t> andP((size_t)win_stride * cy, 0xFF);
     std::vector<uint8_t> xorP((size_t)win_stride * cy, 0x00);
 
+    const std::vector<cerffrontend::CursorPixel> pixels = cerffrontend::GuestCursorPixels::Decode(s);
     for (int row = 0; row < cy; ++row) {
-        const uint8_t* and_row = s.bits.data() + (size_t)row * stride;
-        const uint8_t* xor_row = s.bits.data() + (size_t)(cy + row) * stride;
         for (int col = 0; col < cx; ++col) {
             const uint8_t mask =
                 (uint8_t)(1u << cerfcore::lcd_pixel::MsbFirstShift((uint32_t)col, 1u));
-            const int byte = col >> 3;
-            const int didx = row * win_stride + byte;
-            if (!(and_row[byte] & mask)) andP[didx] &= (uint8_t)~mask;  /* opaque */
-            if (xor_row[byte] & mask)    xorP[didx] |= mask;
+            const int didx = row * win_stride + (col >> 3);
+            switch (pixels[(size_t)row * cx + col]) {
+                case cerffrontend::CursorPixel::kTransparent:
+                    break;
+                case cerffrontend::CursorPixel::kBlack:
+                    andP[didx] &= (uint8_t)~mask;
+                    break;
+                case cerffrontend::CursorPixel::kWhite:
+                    andP[didx] &= (uint8_t)~mask;
+                    xorP[didx] |= mask;
+                    break;
+                case cerffrontend::CursorPixel::kInvert:
+                    xorP[didx] |= mask;
+                    break;
+            }
         }
     }
 

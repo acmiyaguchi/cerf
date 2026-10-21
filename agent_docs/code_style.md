@@ -37,7 +37,7 @@ code page.
 
 ## The `CERF_DEV_MODE` gate
 
-`build.ps1` sets `CERF_DEV_MODE` to `1` for a dev build and to `0` for a
+`build.py` sets `CERF_DEV_MODE` to `1` for a dev build and to `0` for a
 production build. The preprocessor then deletes the gated code from the shipped
 binary.
 

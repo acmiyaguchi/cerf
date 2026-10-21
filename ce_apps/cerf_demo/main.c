@@ -1,8 +1,3 @@
-/* CerfDemo - shell for the bundled demo ROM: fade-in bokeh desktop + a
-   topmost Win2000-style About dialog (banner, version, expandable system
-   stats, cmd link). Pure Win32/GDI, links coredll.
-   Build: tools/build_ce_app.ps1 -> CerfDemo.exe. */
-
 #include "cerf_demo.h"
 #include "band_data.h"
 

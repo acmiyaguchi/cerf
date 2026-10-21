@@ -13,6 +13,7 @@ public:
     using cerfcore::Service::Service;
 
     std::vector<MenuItem> Build(const std::vector<cerfcore::WidgetControl>& controls);
+    std::vector<MenuItem> BuildAllWidgets();
 
 private:
     void Append(std::vector<MenuItem>& out, const std::vector<cerfcore::WidgetControl>& controls);

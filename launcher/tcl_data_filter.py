@@ -1,5 +1,6 @@
 UNUSED_TCL_DATA = ("tcl/tzdata/", "tcl/msgs/", "tk/msgs/", "tk/images/",
-                   "tk/demos/")
+                   "tk/demos/", "_tcl_data/tzdata/", "_tcl_data/msgs/", "_tk_data/msgs/",
+                   "_tk_data/images/", "_tk_data/demos/")
 
 
 def drop_unused_tcl_data(datas):

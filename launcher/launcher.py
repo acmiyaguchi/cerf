@@ -10,6 +10,9 @@ from typing import List
 _THIS_DIR = Path(os.path.abspath(__file__)).parent
 if str(_THIS_DIR) not in sys.path:
     sys.path.insert(0, str(_THIS_DIR))
+_TOOLS_DIR = _THIS_DIR.parent / "tools"
+if _TOOLS_DIR.is_dir() and str(_TOOLS_DIR) not in sys.path:
+    sys.path.append(str(_TOOLS_DIR))
 
 from app_paths import resolve_cerf_exe, resolve_devices_dir
 from cli_console import attach_parent_console
@@ -20,19 +23,28 @@ from text_context_menu import TextContextMenu
 from transactional_crash import (TRANSACTIONAL_CRASH_COMMAND,
                                  run_transactional_crash)
 from ui_theme import enable_dpi_awareness
-from uninstall_cli import run_uninstall
 from upgrade_cli import (INSTALL_STAGE, POST_UPGRADE_STAGE, parse_stage,
                          run_install_stage, run_post_upgrade)
-from upgrade_process import UNINSTALL_FLAG
+from upgrade_process import FRESH_INSTALL_FLAG, UNINSTALL_FLAG
+
+WINDOWS_ONLY_FLAGS = (FRESH_INSTALL_FLAG, UNINSTALL_FLAG)
 
 
 def main(argv: List[str]) -> int:
+    if sys.platform != "win32":
+        for flag in WINDOWS_ONLY_FLAGS:
+            if flag in argv:
+                print("ERROR: {} is available on Windows only.".format(flag),
+                      file=sys.stderr)
+                return 2
+
     stage, wait_pid = parse_stage(argv)
     if stage == INSTALL_STAGE:
         enable_dpi_awareness()
         return run_install_stage(wait_pid, argv)
 
     if UNINSTALL_FLAG in argv:
+        from uninstall_cli import run_uninstall
         enable_dpi_awareness()
         return run_uninstall(argv)
 

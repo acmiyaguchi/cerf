@@ -2,11 +2,12 @@
 
 #include "modal_dialog.h"
 
-enum class CalibWarningChoice { Dismissed, SwitchToStock };
+#include <cerffrontend/calibration_warning_prompt.h>
 
 class GuestCalibrationWarningDialog : public ModalDialog {
 public:
     using ModalDialog::ModalDialog;
+    using CalibWarningChoice = cerffrontend::CalibWarningChoice;
 
     bool ShouldRegister() override;
 
@@ -19,8 +20,7 @@ private:
     void OnCommand(int id, int notify) override;
 
     int  LayoutBody(HDC dc, int width, bool draw);
-    void DrawIconPair(HDC dc, const RECT& box, const char* a, const char* b);
 
     int                body_h_ = 0;
-    CalibWarningChoice choice_ = CalibWarningChoice::Dismissed;
+    CalibWarningChoice choice_ = CalibWarningChoice::kDismissed;
 };

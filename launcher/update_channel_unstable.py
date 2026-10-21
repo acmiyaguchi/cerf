@@ -5,11 +5,13 @@ from __future__ import annotations
 import json
 import urllib.request
 
+import host_branch
 from available_update import AvailableUpdate
 from bundles import BundleError, DEFAULT_TIMEOUT, USER_AGENT
 
 CI_BASE_URL = "https://cerf-bundles.dz3n.net/cerf_ci"
 CI_LATEST_NAME = "latest.json"
+CI_BRANCHES_KEY = "host_branches"
 CI_RUNS_URL = "https://github.com/gweslab/cerf/actions"
 
 
@@ -33,7 +35,17 @@ def _object_name(payload: dict) -> str:
     return name
 
 
-def fetch_latest_ci_build(timeout: int = DEFAULT_TIMEOUT) -> AvailableUpdate:
+def _branch_entry(payload: dict, branch: host_branch.HostBranch) -> dict:
+    branches = payload.get(CI_BRANCHES_KEY)
+    if isinstance(branches, dict) and isinstance(branches.get(branch.name), dict):
+        return branches[branch.name]
+    if branch.name == host_branch.WIN32_X86:
+        return payload
+    raise BundleError(f"{CI_LATEST_NAME} has no {branch.name} build")
+
+
+def fetch_latest_ci_build(branch: host_branch.HostBranch,
+                          timeout: int = DEFAULT_TIMEOUT) -> AvailableUpdate:
     request = urllib.request.Request(latest_url(),
                                      headers={"User-Agent": USER_AGENT})
     try:
@@ -47,6 +59,7 @@ def fetch_latest_ci_build(timeout: int = DEFAULT_TIMEOUT) -> AvailableUpdate:
         raise BundleError(f"{CI_LATEST_NAME} is malformed: {exc}") from exc
     if not isinstance(payload, dict):
         raise BundleError(f"{CI_LATEST_NAME} is not an object")
+    payload = _branch_entry(payload, branch)
 
     tag = "{}.{}.{}.{}".format(_require_int(payload, "ver_major"),
                                _require_int(payload, "ver_minor"),

@@ -5,28 +5,11 @@
 #include <mmsystem.h>
 
 #include <cerfcore/core/log.h>
-#include <cerfcore/lcd/lcd_pixel_expand.h>
+#include <cerffrontend/present_effects.h>
 
 namespace {
 constexpr wchar_t kCanvasClass[] = L"CerfPresenterCanvas";
 constexpr UINT    kPresentMsg    = WM_APP + 1;
-
-constexpr uint32_t kPausedColorQ10 = 416;
-constexpr uint32_t kPausedLumaQ10  = 250;
-
-void DesaturateAndDim(uint32_t* px, int count) {
-    for (int i = 0; i < count; ++i) {
-        const uint32_t p = px[i];
-        const uint32_t r = (p >> 16) & 0xFFu;
-        const uint32_t g = (p >> 8)  & 0xFFu;
-        const uint32_t b =  p        & 0xFFu;
-        const uint32_t y = cerfcore::lcd_pixel::Luma8(p) * kPausedLumaQ10;
-        px[i] = (p & 0xFF000000u) |
-                (((r * kPausedColorQ10 + y) >> 10) << 16) |
-                (((g * kPausedColorQ10 + y) >> 10) << 8) |
-                 ((b * kPausedColorQ10 + y) >> 10);
-    }
-}
 }  /* namespace */
 
 PresenterCanvas::~PresenterCanvas() {
@@ -37,7 +20,8 @@ PresenterCanvas::~PresenterCanvas() {
 void PresenterCanvas::CreateOn(HWND parent, const RECT& rect,
                                uint32_t surf_w, uint32_t surf_h,
                                UINT present_interval_ms) {
-    present_interval_ms_ = present_interval_ms ? present_interval_ms : 16;
+    present_interval_ms_ =
+        present_interval_ms ? present_interval_ms : cerffrontend::kDefaultPresentIntervalMs;
     WNDCLASSEXW wc = {};
     wc.cbSize        = sizeof(wc);
     wc.style         = CS_HREDRAW | CS_VREDRAW;
@@ -129,7 +113,7 @@ void PresenterCanvas::TickAndPresent() {
     if (!alt) presenter_.ComposeInto(present_dc_, present_bits_);
 
     if (host_ && host_->ShouldDesaturatePresent())
-        DesaturateAndDim(present_bits_, canvas_w_ * canvas_h_);
+        cerffrontend::PresentEffects::DesaturateAndDim(present_bits_, canvas_w_ * canvas_h_);
     if (host_) host_->RenderOverlay(present_dc_, canvas_w_, canvas_h_);
 }
 

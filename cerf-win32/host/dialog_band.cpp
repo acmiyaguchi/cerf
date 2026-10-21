@@ -4,14 +4,15 @@
 #include <gdiplus.h>
 
 #include <cerfcore/core/cerf_emulator.h>
+#include <cerffrontend/shutdown_dialog_layout.h>
 #include "host_gdiplus.h"
 
 REGISTER_SERVICE(DialogBand);
 
 namespace {
 
-constexpr int kBandDipW = 400;
-constexpr int kBandDipH = 112;
+constexpr int kBandDipW = cerffrontend::ShutdownDialogLayout::kBandW;
+constexpr int kBandDipH = cerffrontend::ShutdownDialogLayout::kBandH;
 
 struct BandTier {
     int            max_pct;

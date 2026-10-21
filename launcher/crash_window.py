@@ -11,6 +11,7 @@ from typing import Optional
 from app_paths import install_root
 from branded_dialog import load_dialog_icon
 from feedback_window import FeedbackWindow
+from freedesktop_services import show_item
 from rich_text import RichText, bold, link, plain
 from screen_geometry import fit_geometry
 import ui_theme as theme
@@ -43,10 +44,11 @@ def _size_label(path: Optional[Path]) -> str:
 
 
 def _locate(path: Path) -> None:
-    if sys.platform != "win32":
-        return
     try:
-        subprocess.Popen('explorer /select,"{}"'.format(path))
+        if sys.platform == "win32":
+            subprocess.Popen('explorer /select,"{}"'.format(path))
+        else:
+            show_item(path)
     except OSError:
         pass
 

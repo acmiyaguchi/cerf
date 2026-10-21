@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import os
 import shutil
+import sys
 import threading
 import tkinter as tk
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from app_paths import install_root, resolve_icon
+from app_paths import FRONTEND_NAME, install_root
+from window_icon import apply_window_icon
 from branding import PRODUCT_NAME
-from install_finalize import finalize
 from install_options import InstallOptions, parse_options
 from text_context_menu import TextContextMenu
 from ui_dialogs import show_dialog, show_error
@@ -43,12 +44,7 @@ def _hidden_root() -> tk.Tk:
     root.withdraw()
     theme.apply_theme(root)
     TextContextMenu(root)
-    icon = resolve_icon()
-    if icon is not None:
-        try:
-            root.iconbitmap(default=str(icon))
-        except tk.TclError:
-            pass
+    apply_window_icon(root)
     return root
 
 
@@ -61,10 +57,12 @@ def _install(window: UpgradeWindow, wait_pid: Optional[int],
                             % wait_pid)
             wait_for_pid_exit(wait_pid)
         if not wait_for_cerf_exit(window.ask_retry, install_dir):
-            raise UpgradeError("cancelled while cerf.exe was running")
+            raise UpgradeError("cancelled while {} was running".format(FRONTEND_NAME))
         install_upgrade(upgrade_dir, install_dir, window.post_log,
                         window.ask_retry)
-        finalize(install_dir, options, window.post_log, window.ask_retry)
+        if sys.platform == "win32":
+            from install_finalize import finalize
+            finalize(install_dir, options, window.post_log, window.ask_retry)
         window.post_log("Starting the installed launcher")
         spawn_stage(launcher_exe_in(install_dir),
                     stage_argument(os.getpid(), POST_UPGRADE_FLAG,

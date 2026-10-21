@@ -12,6 +12,7 @@ from typing import Dict, Optional
 import sv_ttk
 
 import sv_elements
+from freedesktop_services import COLOR_SCHEME_PREFER_DARK, portal_color_scheme
 from sv_sprite_stretch import source_sun_valley
 from device_state import (
     STATE_AVAILABLE,
@@ -25,7 +26,7 @@ def system_uses_dark() -> bool:
     """HKCU Personalize AppsUseLightTheme: 1 = light, 0 = dark; absent or
     unreadable -> light."""
     if sys.platform != "win32":
-        return False
+        return portal_color_scheme() == COLOR_SCHEME_PREFER_DARK
     try:
         import winreg
         with winreg.OpenKey(

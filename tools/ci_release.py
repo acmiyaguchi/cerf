@@ -14,6 +14,7 @@ from typing import Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import changelog
+import host_branch
 
 REPO = "gweslab/cerf"
 GITHUB_API = "https://api.github.com"
@@ -22,7 +23,8 @@ DISCORD_API = "https://discord.com/api/v10"
 DISCORD_MESSAGE_LIMIT = 2000
 DISCORD_SUPPRESS_EMBEDS = 1 << 2
 
-ARTIFACT_NAME = re.compile(r"^CERF-(\d+)\.(\d+)\.(\d+)-([0-9a-f]+)-Release-Win32$")
+ARTIFACT_NAME = re.compile(r"^CERF-(\d+)\.(\d+)\.(\d+)-([0-9a-f]+)-Release-([A-Za-z0-9-]+)$")
+WIN32_PLATFORM = host_branch.by_name(host_branch.WIN32_X86).platform_dir
 CHANGELOG_PATH = Path("docs/changelog.yml")
 ENV_PATH = Path(".env")
 USER_AGENT = "CERF deploy"
@@ -44,6 +46,7 @@ class Artifact:
     run_number: int
     version: str
     series: str
+    platform: str
 
     @property
     def tag(self) -> str:
@@ -129,21 +132,22 @@ def github(token: str, path: str, method: str = "GET",
     return json.loads(raw.decode("utf-8")) if raw else {}
 
 
-def _artifact(item: dict) -> Optional[Artifact]:
+def _artifact(item: dict, platform: str) -> Optional[Artifact]:
     if item.get("expired"):
         return None
     match = ARTIFACT_NAME.match(item.get("name", ""))
-    if not match:
+    if not match or match.group(5) != platform:
         return None
     run = item.get("workflow_run") or {}
-    major, minor, patch, name_sha = match.groups()
+    major, minor, patch, name_sha, _platform = match.groups()
     return Artifact(
         id=item["id"], name=item["name"], size=item["size_in_bytes"],
         created_at=item["created_at"],
         branch=run.get("head_branch") or "?",
         sha=run.get("head_sha") or name_sha,
         run_id=run.get("id") or 0, run_number=0,
-        version=f"{major}.{minor}.{patch}", series=f"{major}.{minor}")
+        version=f"{major}.{minor}.{patch}", series=f"{major}.{minor}",
+        platform=platform)
 
 
 def _with_run_number(token: str, artifact: Artifact) -> Artifact:
@@ -157,32 +161,33 @@ def _with_run_number(token: str, artifact: Artifact) -> Artifact:
     return replace(artifact, run_number=number)
 
 
-def latest_artifact(token: str, sha: Optional[str] = None) -> Artifact:
+def latest_artifact(token: str, sha: Optional[str] = None,
+                    platform: str = WIN32_PLATFORM) -> Artifact:
     payload = github(token, f"/repos/{REPO}/actions/artifacts?per_page=100")
     for item in payload.get("artifacts", []):
-        artifact = _artifact(item)
+        artifact = _artifact(item, platform)
         if artifact is None:
             continue
         if sha and not artifact.sha.startswith(sha) and not sha.startswith(artifact.sha):
             continue
         return _with_run_number(token, artifact)
     where = f" built from {sha[:7]}" if sha else ""
-    raise CiError(f"no unexpired Release-Win32 artifact{where} found")
+    raise CiError(f"no unexpired Release-{platform} artifact{where} found")
 
 
-def run_artifact(token: str, run_id: int, attempts: int = 12,
-                 delay: int = 10) -> Artifact:
+def run_artifact(token: str, run_id: int, platform: str = WIN32_PLATFORM,
+                 attempts: int = 12, delay: int = 10) -> Artifact:
     for attempt in range(attempts):
         payload = github(
             token, f"/repos/{REPO}/actions/runs/{run_id}/artifacts?per_page=100")
         for item in payload.get("artifacts", []):
-            artifact = _artifact(item)
+            artifact = _artifact(item, platform)
             if artifact is not None:
                 return _with_run_number(token, artifact)
         if attempt + 1 < attempts:
             print(f"  artifact of run {run_id} not listed yet, retrying in {delay}s")
             time.sleep(delay)
-    raise CiError(f"run {run_id} published no Release-Win32 artifact")
+    raise CiError(f"run {run_id} published no Release-{platform} artifact")
 
 
 def changelog_markdown(tag: str, fallback: Optional[str] = None) -> str:

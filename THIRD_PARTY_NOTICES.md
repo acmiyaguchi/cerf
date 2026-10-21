@@ -16,9 +16,12 @@ are too long to inline are in `licenses/`.
 | [GNU libiconv](https://www.gnu.org/software/libiconv/) | 1.18 | LGPL-2.1-or-later | (c) Free Software Foundation |
 | [GNU gettext (libintl)](https://www.gnu.org/software/gettext/) | 0.22.5 | LGPL-2.1-or-later | (c) Free Software Foundation |
 | [Sun Valley ttk theme (sv-ttk)](https://github.com/rdbende/Sun-Valley-ttk-theme) | 2.5.5 | MIT | (c) rdbende |
+| [alsa-lib](https://www.alsa-project.org/) | 1.2.15.3 | LGPL-2.1-or-later | (c) 1998 Jaroslav Kysela; (c) 2000 Abramo Bagnara |
+| [Qt](https://www.qt.io/) | 6.10.2 | LGPL-3.0-only | (c) The Qt Company Ltd. |
 
 GLib, PCRE2, libiconv and libintl are pulled in transitively by libslirp and form its
-static link closure.
+static link closure. The Linux build links alsa-lib and Qt dynamically, from the libraries
+of the host system.
 
 ---
 
@@ -84,6 +87,14 @@ library. This is satisfied as follows:
 - **Relinkable form of the work.** CE Runtime Foundation's complete source is public,
   so a recipient can rebuild the work against a modified library from source.
 
+The same LGPL-2.1 text covers alsa-lib.
+
+### LGPL-3.0-only (Qt)
+
+The full license texts are supplied in [`licenses/LGPL-3.0.txt`](licenses/LGPL-3.0.txt)
+and [`licenses/GPL-3.0.txt`](licenses/GPL-3.0.txt). LGPL-3.0 incorporates the terms of
+GPL-3.0.
+
 ## Embedded fonts
 
 **[IBM Plex](https://github.com/IBM/plex)** - SIL Open Font License 1.1, (c) 2017 IBM Corp.
@@ -120,10 +131,13 @@ The file [`licenses/OFL-1.1.txt`](licenses/OFL-1.1.txt) contains the full licens
 - **[Rockbox](https://www.rockbox.org/)**
 - **[Das U-Boot](https://github.com/u-boot/u-boot)**
 - **[handhelds.org bootldr](https://ftp.gwdg.de/pub/linux/handhelds/feeds/bootldr/)**
+- **[pySerial](https://github.com/pyserial/pyserial)**
+- **[Wine](https://www.winehq.org/)**
 - **[CMake](https://cmake.org/)**
 - **[LuaJIT](https://luajit.org/)**
 - **[dynarmic](https://github.com/azahar-emu/dynarmic)**
 - **[FEX](https://github.com/FEX-Emu/FEX)**
+- **[discord-rpc](https://github.com/discord/discord-rpc)**
 
 ## Trademarks
 

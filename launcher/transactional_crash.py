@@ -4,7 +4,7 @@ import tkinter as tk
 from pathlib import Path
 from typing import List, Optional
 
-from app_paths import resolve_icon
+from window_icon import apply_window_icon
 from crash_window import CrashWindow
 from text_context_menu import TextContextMenu
 import ui_theme as theme
@@ -22,12 +22,7 @@ def run_transactional_crash(argv: List[str]) -> int:
     theme.apply_theme(root)
     TextContextMenu(root)
     root.withdraw()
-    icon = resolve_icon()
-    if icon is not None:
-        try:
-            root.iconbitmap(default=str(icon))
-        except tk.TclError:
-            pass
+    apply_window_icon(root)
 
     CrashWindow(root, log_path)
     root.deiconify()

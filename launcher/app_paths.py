@@ -10,6 +10,8 @@ from typing import List, Optional, Tuple
 
 
 LAUNCHER_DIR_NAME = "launcher"
+FRONTEND_NAME = "cerf.exe" if sys.platform == "win32" else "cerf-qt"
+LAUNCHER_NAME = "launcher.exe" if sys.platform == "win32" else "launcher"
 
 _HERE = Path(os.path.abspath(__file__)).parent
 
@@ -31,7 +33,7 @@ def resolve_devices_dir() -> Path:
 
 
 def resolve_cerf_exe() -> Optional[Path]:
-    candidate = install_root() / "cerf.exe"
+    candidate = install_root() / FRONTEND_NAME
     if candidate.is_file():
         return candidate
     return None
@@ -79,18 +81,28 @@ def resolve_asset(name: str) -> Optional[Path]:
     return None
 
 
-def _version_header_text() -> str:
+VERSION_HEADER = ("version.h", ("libCerfFrontend", "include", "cerffrontend"))
+EVDEV_VK_HEADER = ("qt_evdev_vk.h", ("cerf-qt",))
+HOST_KEY_NAMES_HEADER = ("host_key_names.h", ("cerf-qt",))
+
+
+def resolve_source_header(header: Tuple[str, Tuple[str, ...]]) -> Optional[Path]:
+    name, repo_dir = header
     meipass = getattr(sys, "_MEIPASS", None)
     candidates: List[Path] = []
     if meipass:
-        candidates.append(Path(meipass) / "version.h")
-    candidates.append(exe_dir() / "version.h")
-    candidates.append(exe_dir() / ".." / "libCerfFrontend" / "include" / "cerffrontend"
-                      / "version.h")
+        candidates.append(Path(meipass) / name)
+    candidates.append(exe_dir() / name)
+    candidates.append(exe_dir().joinpath("..", *repo_dir, name))
     for path in candidates:
         if path.is_file():
-            return path.read_text(encoding="utf-8", errors="ignore")
-    return ""
+            return path
+    return None
+
+
+def _version_header_text() -> str:
+    path = resolve_source_header(VERSION_HEADER)
+    return path.read_text(encoding="utf-8", errors="ignore") if path else ""
 
 
 def _int_define(text: str, name: str) -> Optional[int]:

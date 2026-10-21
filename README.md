@@ -32,7 +32,7 @@ Please read [these](.github/CONTRIBUTING.md) if you are planning on contributing
 
 ## Building
 
-On Windows the project requires modern Visual Studio with the C++ desktop development workload.
+On Windows the project requires modern Visual Studio with the C++ desktop development workload. On Linux it builds with GCC, CMake and the Qt 6 development packages.
 
 > [!NOTE]
 > **The first build on a new machine takes more than one hour.** vcpkg compiles the dependencies from source before CERF links. This occurs one time on each machine. Later builds use the cached `vcpkg_installed/` tree and are complete in a few minutes. Do not stop the first build.
@@ -43,13 +43,13 @@ On Windows the project requires modern Visual Studio with the C++ desktop develo
 Configure the clone (one time on each machine):
 
 ```
-setup.cmd
+python tools/dev_setup.py
 ```
 
 or dry run:
 
 ```
-setup.cmd -Check
+python tools/dev_setup.py --check
 ```
 
 It will
@@ -60,7 +60,7 @@ It will
 **Build the entire proejct with a helper script**:
 
 ```
-powershell -ExecutionPolicy Bypass -File build.ps1
+python build.py
 ```
 
 The script will:
@@ -74,14 +74,14 @@ The script will:
 
 `ce_apps/` holds various Windows CE applications CERF is bundled with including the Guest Additions driver.
 
-You don't need those if you are not working with Guest Additions. You may copy Guest Additions binaries from an artifact or skip them entirely.
+You don't need those if you are not working with Guest Additions. You may copy Guest Additions binaries from an artifact or skip them entirely. On Linux the build runs these tools through Wine.
 
 To build `ce_apps/`, install eMbedded Visual C++ 4.0 (a free Microsoft download from the
 Microsoft archive). CERF includes a script that will unpack the installation (you dont want and probably can't install ancient tools)
 and will place the build tools / SDK into appropriate directories.
 See **[docs/ce_apps_setup.md](docs/ce_apps_setup.md)**.
 
-`setup.cmd -Check` reports whether the CE toolchain is present.
+`python tools/dev_setup.py --check` reports whether the CE toolchain is present.
 
 ### Website
 
@@ -122,13 +122,330 @@ The environment gives you the **`/start-board-implementation`** skill. Run the s
 Run the environment:
 
 ```
-run_claude.cmd
+python run_claude.py
 ```
 
-## More
+## Supported Devices
 
-- [Supported Devices](https://cerf.cx/devices)
-- [Changelog](https://cerf.cx/changelog)
+<table>
+  <thead>
+    <tr>
+      <th>SoC</th>
+      <th>Family</th>
+      <th>Board</th>
+      <th>Features</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>ARM ARM720T</b><br/><sub>ARM720T</sub></td>
+      <td><b>Microsoft Hardware Reference Platform</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Microsoft Hardware Reference Platform</b> <code>odo</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>Freescale i.MX31L</b><br/><sub>ARM1136</sub></td>
+      <td><b>Toshiba Gigabeat S</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Microsoft Zune 30</b> <code>zune_30</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>Freescale i.MX51</b><br/><sub>Cortex-A8</sub></td>
+      <td><b>Ford SYNC Gen 2</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Ford MyFord Touch</b> <code>ford_sync_2</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/></td>
+    </tr>
+    <tr>
+      <td rowspan="4" align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>Intel IOP13xx</b><br/><sub>XScale</sub></td>
+      <td rowspan="4"><b>Siemens SIMATIC MP 377</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Siemens SIMATIC MP 377 12" Key</b> <code>*</code> <code>siemens_mp377_12_key</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Siemens SIMATIC MP 377 12" Touch</b> <code>siemens_mp377</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Siemens SIMATIC MP 377 15" Touch</b> <code>siemens_mp377_15_touch</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Siemens SIMATIC MP 377 19" Touch</b> <code>siemens_mp377_19_touch</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>Intel SA-1100</b><br/><sub>StrongARM</sub></td>
+      <td><b>HP Jornada 820</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>HP Jornada 820</b> <code>jornada_820</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/cursor.svg" width="32" height="32" title="Mouse" alt="Mouse"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/></td>
+    </tr>
+    <tr>
+      <td rowspan="6" align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>Intel SA-1110</b><br/><sub>StrongARM</sub></td>
+      <td rowspan="3"><b>Compaq iPAQ H3000</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>iPAQ H31xx</b> <code>ipaq_h31xx</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/microphone.svg" width="32" height="32" title="Microphone" alt="Microphone"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>iPAQ H3660/H3670</b> <code>ipaq_h3660_h3670</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/microphone.svg" width="32" height="32" title="Microphone" alt="Microphone"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>iPAQ H36xx</b> <code>ipaq_h36xx</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/microphone.svg" width="32" height="32" title="Microphone" alt="Microphone"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td><b>HP Jornada 700 series</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>HP Jornada 720</b> <code>jornada_720</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/></td>
+    </tr>
+    <tr>
+      <td><b>Pangolin</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>SmartBook G138</b> <code>smartbook_g138</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td><b>Siemens SIMpad</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Siemens SIMpad SL4</b> <code>simpad_sl4</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/></td>
+    </tr>
+    <tr>
+      <td rowspan="2" align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>Intel XScale PXA255</b><br/><sub>XScale</sub></td>
+      <td><b>Askey PC3xx</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>PSC/Datalogic Falcon 4220</b> <code>falcon_4220</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/></td>
+    </tr>
+    <tr>
+      <td><b>NEC MobilePro 900 Series</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>NEC MobilePro 900(c)</b> <code>nec_mobilepro_900</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td rowspan="3" align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>Intel XScale PXA270</b><br/><sub>XScale</sub></td>
+      <td rowspan="3"><b>Symbol Hamptons</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Symbol MK500 (A035QN02 panel)</b> <code>symbol_mk500_a035qn02</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Symbol MK500 (T35QM7117 panel)</b> <code>symbol_mk500</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Symbol MK590</b> <code>*</code> <code>symbol_mk590</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td rowspan="5" align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>Samsung S3C2410</b><br/><sub>ARM920T</sub></td>
+      <td rowspan="4"><b>Samsung SMDK2410</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Device Emulator (QVGA)</b> <code>devemu</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Device Emulator (VGA)</b> <code>devemu_vga</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Device Emulator (WQVGA)</b> <code>devemu_wqvga</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Device Emulator (WVGA)</b> <code>devemu_wvga</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/></td>
+    </tr>
+    <tr>
+      <td><b>Siemens SIMATIC TP 177B 4"</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Siemens SIMATIC TP 177B 4" color PN/DP</b> <code>siemens_p177</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/></td>
+    </tr>
+    <tr>
+      <td rowspan="2" align="center"><img src="launcher/assets/icons/badge_arm.png" align="middle" title="ARM" alt="ARM"/><br/><b>TI OMAP 3530</b><br/><sub>Cortex-A8</sub></td>
+      <td rowspan="2"><b>TI OMAP35x EVM</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>TI OMAP35x EVM (Gen1 main board)</b> <code>omap_3530_evm</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>TI OMAP35x EVM (Gen2 main board)</b> <code>*</code> <code>omap_3530_evm_gen2</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="launcher/assets/icons/badge_mips.png" align="middle" title="MIPS" alt="MIPS"/><br/><b>NEC VR4102</b><br/><sub>MIPS III</sub></td>
+      <td><b>NEC MobilePro 700</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>NEC MobilePro 700</b> <code>nec_mobilepro_700</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="launcher/assets/icons/badge_mips.png" align="middle" title="MIPS" alt="MIPS"/><br/><b>NEC VR4111</b><br/><sub>MIPS III</sub></td>
+      <td><b>Casio Tomcat</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Casio Cassiopeia E-55</b> <code>casio_cassiopeia_e55</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td rowspan="3" align="center"><img src="launcher/assets/icons/badge_mips.png" align="middle" title="MIPS" alt="MIPS"/><br/><b>NEC VR4121</b><br/><sub>MIPS III</sub></td>
+      <td rowspan="3"><b>Casio PocketPostPet</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Casio Message-Cam</b> <code>casio_message_cam</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Casio PocketPostPet</b> <code>casio_pocketpostpet</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Casio Toricomail</b> <code>casio_toricomail</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/></td>
+    </tr>
+    <tr>
+      <td rowspan="2" align="center"><img src="launcher/assets/icons/badge_mips.png" align="middle" title="MIPS" alt="MIPS"/><br/><b>NEC VR4122</b><br/><sub>MIPS III</sub></td>
+      <td rowspan="2"><b>Casio JX670</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Casio Cassiopeia E-700</b> <code>casio_cassiopeia_e700</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Casio Cassiopeia EM-500</b> <code>casio_cassiopeia_em500</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="launcher/assets/icons/badge_mips.png" align="middle" title="MIPS" alt="MIPS"/><br/><b>NEC VR5500</b><br/><sub>MIPS IV</sub></td>
+      <td><b>NEC Solution Gear 2-Vr5500</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>NEC Rockhopper SG2_VR5500</b> <code>nec_rockhopper</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/cursor.svg" width="32" height="32" title="Mouse" alt="Mouse"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/></td>
+    </tr>
+    <tr>
+      <td rowspan="6" align="center"><img src="launcher/assets/icons/badge_mips.png" align="middle" title="MIPS" alt="MIPS"/><br/><b>Philips PR31500</b><br/><sub>MIPS I</sub></td>
+      <td rowspan="6"><b>Philips Velo 1</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Philips Velo 1</b> <code>philips_velo_1</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Philips Velo 1 (1 MB DRAM Miniature Card)</b> <code>philips_velo_1_dram_1mb</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Philips Velo 1 (16 MB DRAM Miniature Card)</b> <code>philips_velo_1_dram_16mb</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Philips Velo 1 (2 MB DRAM Miniature Card)</b> <code>philips_velo_1_dram_2mb</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Philips Velo 1 (4 MB DRAM Miniature Card)</b> <code>philips_velo_1_dram_4mb</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Philips Velo 1 (8 MB DRAM Miniature Card)</b> <code>philips_velo_1_dram_8mb</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td rowspan="2" align="center"><img src="launcher/assets/icons/badge_mips.png" align="middle" title="MIPS" alt="MIPS"/><br/><b>Philips PR31700</b><br/><sub>MIPS I</sub></td>
+      <td><b>Philips Nino</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Philips Nino 300</b> <code>philips_nino_300</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/suspend.svg" width="32" height="32" title="Suspend / Resume" alt="Suspend / Resume"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+    <tr>
+      <td><b>Sharp Mobilon HC</b></td>
+      <td><img src="cerf-win32/assets/icons_sources/board.svg" width="16" height="16" title="PDA" alt="PDA"/> <b>Sharp Mobilon HC-4100</b> <code>sharp_mobilon_hc4100</code></td>
+      <td><img src="cerf-win32/assets/icons_sources/stylus.svg" width="32" height="32" title="Touch" alt="Touch"/> <img src="cerf-win32/assets/icons_sources/keyboard.svg" width="32" height="32" title="Keyboard" alt="Keyboard"/> <img src="cerf-win32/assets/icons_sources/ga_autoresize.svg" width="32" height="32" title="Guest Additions" alt="Guest Additions"/> <img src="cerf-win32/assets/icons_sources/speaker_active.svg" width="32" height="32" title="Sound" alt="Sound"/> <img src="cerf-win32/assets/icons_sources/pcmcia_enabled.svg" width="32" height="32" title="PCMCIA" alt="PCMCIA"/> <img src="cerf-win32/assets/icons_sources/internet.svg" width="32" height="32" title="Network" alt="Network"/> <img src="cerf-win32/assets/icons_sources/battery.svg" width="32" height="32" title="Battery" alt="Battery"/> <img src="cerf-win32/assets/icons_sources/serial_com.svg" width="32" height="32" title="Serial Port" alt="Serial Port"/></td>
+    </tr>
+  </tbody>
+</table>
+
+``*`` Supported, but CERF does not model this board's differences.
+
+## Changelog
+
+<table>
+  <thead>
+    <tr>
+      <th>Version</th>
+      <th>Release Date</th>
+      <th>Changes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>v8.0</td>
+      <td>TBA</td>
+      <td>
+        <p><b>💿 Emulator</b><br/>
+          🆕 Added x64 hosts support<br/>
+          🆕 Added Linux support</p>
+      </td>
+    </tr>
+    <tr>
+      <td>v7.0</td>
+      <td>14 Oct 2026</td>
+      <td>
+        <p><b>📱 Devices</b><br/>
+          🆕 Casio Cassiopeia E-55 support<br/>
+          🆕 Symbol Mk500 support (by @Katamaran21)<br/>
+          🆕 Siemens MP377 support (by @RaulMerelli)<br/>
+          🆕 Casio Toricomail: bezel touch buttons<br/>
+          🆕 Casio Cassiopeia E-700 support<br/>
+          🆕 Philips Velo 1: Various DRAM Miniature Card profiles<br/>
+          🆕 iPAQ H3660/H3670 support<br/>
+          ✅ Device Emulator: keyboard no longer drops or repeats keys while typing<br/>
+          ✅ Device Emulator: Windows Mobile 2003 SE no longer freezes<br/>
+          ✅ Casio Toricomail: fixed rendering crashes<br/>
+          ✅ Ford Sync 2: Massive rendering improvements, navigation maps and more (by @cavenderbi)<br/>
+          ✅ iPAQ H3100: fixed audio playback<br/>
+          ✅ iPAQ H3600: standard RAM size<br/>
+          ✅ Siemens SIMpad SL4: 64 MB RAM</p>
+        <p><b>💿 Emulator</b><br/>
+          🆕 BREAKING: Device database has been updated, check your launcher and fix your entries before running on old values<br/>
+          🆕 Configurable display colour depth for Guest Additions and Device Emulator<br/>
+          🆕 Bundled CompactFlash cards can be auto-inserted at launch<br/>
+          🆕 Thumb32 support. Windows Embedded Compact 2013 is now supported<br/>
+          🆕 Right Click simulation mode for the stock stylus (synths LAlt+Tap)<br/>
+          🆕 Shutdown dialog has received reboot options<br/>
+          🆕 Host key is now reassignable<br/>
+          🆕 Improved UI and added notification cards<br/>
+          🆕 Catch up throttle multiplier knob (see in launcher)<br/>
+          🆕 CPU rate multiplier knob (see in launcher)<br/>
+          ✅ ARM JIT and JIT core full rewrite. ARM JIT/peripherals massive performance optimizations<br/>
+          ✅ Audio systems were reworked - less sound stuttering<br/>
+          ✅ Media instructions for Zune 30 - music is now playable<br/>
+          ✅ System clock improvements<br/>
+          ✅ Keyboard input no longer stops working after switching to another window and back<br/>
+          ❌ Memory visualizer</p>
+        <p><b>🚀 Launcher</b><br/>
+          🆕 Feedback window listing GitHub issues<br/>
+          🆕 Copyright issues contact window<br/>
+          🆕 Configurable update channel<br/>
+          🆕 UI revamp and optimizations<br/>
+          🆕 Configurable board types, ROM and storage sources<br/>
+          🆕 CPU Configuration<br/>
+          ✅ Launcher does not wait depend on internet connection and it&#x27;s speed to let you use it<br/>
+          ✅ Toolbar buttons are now properly trimmed when not enough width</p>
+        <p><b>💾 CE Apps</b><br/>
+          🆕 romdump: SH3 support<br/>
+          🆕 romdump: universal reset vector presets for MIPS and SH3</p>
+        <p><b>✨ Guest Additions</b><br/>
+          🆕 Virtual Ethernet adapter<br/>
+          🆕 Persistant customization/settings from CERF UI<br/>
+          🆕 Windows Embedded Compact 2013 support<br/>
+          🆕 Font size override support<br/>
+          🆕 Stylus simulation mode for the mouse pointer<br/>
+          🆕 Shared folders on Windows CE 2.0<br/>
+          🆕 Driver automatically disables system-wide signature checks on Windows Mobile<br/>
+          🆕 Hack to the WinCE shell for Ford SYNC 2<br/>
+          🆕 ClearType support (by @RaulMerelli) and configuration<br/>
+          ✅ Pre-OS graphics (stock framebuffer) is now visible too and usable (switch to GA inputs is deferred now)<br/>
+          ✅ Crash when drawing off-screen (GiNi)<br/>
+          ✅ Default colour depth is now 24bpp instead of 32bpp - fixes Device Emulator Windows Mobile 6.5 shell rendering<br/>
+          ✅ Colour corruption in 16bpp mode - alpha-blended elements rendered green/cyan<br/>
+          ✅ Gradients on WM 2003 - the taskbar and application backgrounds render again<br/>
+          ✅ Mouse and keyboard no longer stop working for the whole session when input arrives early during boot<br/>
+          ✅ Crash/artifacts when scrolling under complex rendering<br/>
+          ✅ Apps run from a shared folder no longer crash<br/>
+          ✅ Shared folders no longer crash Explorer on Windows CE .NET<br/>
+          ✅ Fixed memory errors on Windows CE 6 branch<br/>
+          ✅ Fixed shared storage caps</p>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="3"><b>Previous versions</b> - see the <a href="https://cerf.cx/changelog/">full changelog</a>.</td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 

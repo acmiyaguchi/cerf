@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, Optional
 
+import host_branch
 from bundles import BundleError
 from update_channel_stable import fetch_latest_release
 from update_channel_unstable import fetch_latest_ci_build
@@ -15,9 +16,10 @@ ProgressFn = Callable[[str, int, Optional[int]], None]
 
 def stage_release(install_dir: Path, log: LogFn, progress: ProgressFn,
                   unstable: bool) -> str:
+    branch = host_branch.by_name(host_branch.WIN32_X86)
     try:
-        release = fetch_latest_ci_build() if unstable \
-            else fetch_latest_release()
+        release = fetch_latest_ci_build(branch) if unstable \
+            else fetch_latest_release(branch)
     except BundleError as exc:
         raise UpgradeError("cannot reach the CERF {} feed: {}".format(
             "unstable build" if unstable else "release", exc))

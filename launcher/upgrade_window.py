@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Callable, Optional
 
-from app_paths import resolve_icon
+from window_icon import apply_window_icon
 from branded_dialog import SETUP_ICON_STEM, BrandedDialog, scaled
 from ui_dialogs import show_dialog
 import ui_theme as theme
@@ -27,12 +27,7 @@ class UpgradeWindow(tk.Toplevel):
         self._parented = bool(parent.winfo_viewable())
         if self._parented:
             self.transient(parent)
-        icon = resolve_icon()
-        if icon is not None:
-            try:
-                self.iconbitmap(str(icon))
-            except tk.TclError:
-                pass
+        apply_window_icon(self, default=False)
 
         self._chrome = BrandedDialog(self, heading, heading,
                                      icon_stem=SETUP_ICON_STEM)

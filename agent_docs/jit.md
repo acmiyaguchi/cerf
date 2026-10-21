@@ -22,7 +22,7 @@ board runs exactly one of them, chosen by `BoardContext::GetCpuArch()`.
 | `libCerfEngine/src/cerfir/` | CerfIR, the guest-neutral block IR |
 | `libCerfEngine/src/cerfir/cerfir_guest_model.h` | the guest data that a lowering reads |
 | `libCerfEngine/src/cerfir/cerfir_host_lowering.h` | the file that selects the host lowering |
-| `libCerfEngine/src/cerfir/x86/` | the x86-32 lowering of CerfIR |
+| `libCerfEngine/src/cerfir/x86/` | the x86-32 and x86-64 lowering of CerfIR |
 | `libCerfEngine/src/arm/cerfir/`, `libCerfEngine/src/mips/cerfir/` | the ARM and MIPS frontends of CerfIR |
 | `libCerfCore/src/cpu/arm/`, `libCerfCore/src/cpu/mips/`, `libCerfCore/src/cpu/<core>/` | the page-walk, coprocessor, TLB and exception models that CERF gives the engine, for each ISA and for each core |
 
@@ -61,10 +61,15 @@ the fix is not in the JIT.
 
 ## Errors
 
-`Engine::Start` returns a setup error to its caller. Only an MSVC x86 build
-executes guest code. In every other build, `Start` refuses. A consumer that
-names engine classes links only on an x86-32 or x86-64 build, because only
-that build compiles the whole engine.
+`Engine::Start` returns a setup error to its caller. Two builds execute
+guest code: an MSVC x86-32 build, and a Linux x86-64 build that uses the
+System V calling convention. In every other build, `Start` refuses. A
+consumer that names engine classes links only on an x86-32 or x86-64
+build, because only that build compiles the whole engine.
+
+The lowering has no Windows x64 calling convention. On a Win64 build it
+refuses every call to a host function, so a block that makes such a call
+does not lower there.
 
 `Engine::Halt` stops a run on a guest condition that the engine does not
 model. It unwinds to the wrapper around block execution or block
@@ -164,7 +169,8 @@ raises a guest Undefined-Instruction exception.
 ## Pinned-register dispatcher
 
 Every translated block runs with the guest CPU-state pointer pinned in
-`ESI`. ARM additionally pins the MMU-state pointer in `EBX`. Lowered
+`ESI` on x86-32 and in `RBX` on x86-64. ARM additionally pins the
+MMU-state pointer in `EBX` on x86-32 and in `RBP` on x86-64. Lowered
 code addresses state fields off the pinned register and never
 recomputes the base.
 
@@ -207,6 +213,14 @@ None of these is visible from any single file.
   target grows past that range, the back-patch truncates and the CPU
   jumps into garbage. The fixup helper fatals at emit time instead.
   The fix is the `rel32` form of that jump.
+- **On x86-64, a host pointer is 64 bits wide, and a guest value is
+  32 bits wide.** The lowering keeps every guest value in a 32-bit
+  register. A test or a move of a host pointer must use the 64-bit
+  operand size. A 32-bit test of a pointer fails for a pointer whose
+  low 32 bits are zero.
+- **On x86-64, blocks run with RSP aligned to 16 bytes.** Every call
+  from emitted code to a host function must keep that alignment. Code
+  that a block enters by `CALL` starts 8 bytes away from that alignment.
 - **A flush never reclaims a permanent arena allocation.** The
   soft-TLB miss routines are permanent, because emitted blocks call
   them at a fixed address. If a flush reclaims those bytes, every such
@@ -311,8 +325,9 @@ The parts that differ from ARM:
   Status.CU0. After every write to Status, control returns to the
   dispatcher before another block runs. As a result, the mode of a block
   stays valid while the block runs.
-- **Wide operations go through helpers**, because they cannot emit
-  inline on x86-32. These are the doubleword loads and stores, the
+- **Wide operations go through helpers**, because the lowering keeps
+  every guest value in a 32-bit register on both host widths. These are
+  the doubleword loads and stores, the
   unaligned merges, the 128-bit products, doubleword division, and the
   variable doubleword shifts.
 - **Loads and stores call the memory helpers.** The MIPS memory model

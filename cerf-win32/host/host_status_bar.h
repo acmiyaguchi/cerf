@@ -1,14 +1,14 @@
 #pragma once
 
 #include <cerfcore/core/service.h>
+#include <cerffrontend/status_bar.h>
+#include "win32_menu_binder.h"
 
 #define NOMINMAX
 #include <windows.h>
 #include <commctrl.h>
 
 #include <string>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 namespace cerfcore { class HostWidget; }
@@ -16,12 +16,10 @@ namespace cerfcore { class HostWidget; }
 class HostStatusBar : public cerfcore::Service {
 public:
     using cerfcore::Service::Service;
-    ~HostStatusBar() override;
 
     void OnReady() override;
 
-    static constexpr int kHeight = 24;
-    int  Height() const { return kHeight; }
+    int Height() const { return cerffrontend::StatusBar::kHeight; }
 
     void CreateOn(HWND parent, const RECT& rect);
     void Reposition(const RECT& rect);
@@ -35,32 +33,14 @@ private:
     static LRESULT CALLBACK WndProcStatic(HWND, UINT, WPARAM, LPARAM);
     LRESULT WndProc(HWND, UINT, WPARAM, LPARAM);
 
-    bool Relayout(const std::vector<cerfcore::HostWidget*>& ordered);
     void RebuildTooltips();
-    void UpdateTipText(size_t idx, std::wstring text);       /* flicker-free live refresh */
-    cerfcore::HostWidget* WidgetAt(int x) const;
+    void UpdateTipText(size_t idx, std::wstring text);
     void SecondaryAction(cerfcore::HostWidget* w, int x, int y, UINT button_flag);
+    bool ToScreen(const cerffrontend::Rect& box, RECT& out) const;
 
-    struct Glow {
-        int  rx         = 0;
-        int  tx         = 0;
-        bool was_active = false;
-    };
-    bool SampleActivity(cerfcore::HostWidget* w);
-    void DrawComposited(HDC dc, cerfcore::HostWidget* w, const RECT& box, COLORREF bar_bg);
-
-    HWND    hwnd_            = nullptr;
-    HWND    tip_hwnd_        = nullptr;
-    HBRUSH  bg_brush_        = nullptr;   /* dark theme */
-    HPEN    sep_pen_         = nullptr;
-    HBRUSH  bg_brush_light_  = nullptr;   /* light theme */
-    HPEN    sep_pen_light_   = nullptr;
-
-    /* UI-thread only. Right-to-left layout: terminal-range widgets pin to
-       the right edge and always show; device widgets fill the space to their
-       left, leftmost dropping off into the Actions menu on overflow. */
-    std::vector<std::pair<cerfcore::HostWidget*, RECT>> layout_;
-    std::vector<std::wstring>                 tip_texts_;   /* backs TTTOOLINFO ptrs */
-    size_t                                    tip_count_ = 0;
-    std::unordered_map<const cerfcore::HostWidget*, Glow> glow_;
+    HWND                      hwnd_      = nullptr;
+    HWND                      tip_hwnd_  = nullptr;
+    std::vector<std::wstring> tip_texts_;
+    size_t                    tip_count_ = 0;
+    Win32MenuBinder           binder_;
 };

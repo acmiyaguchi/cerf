@@ -1,7 +1,10 @@
 #pragma once
 
 #include <cerfcore/state/shutdown_choice.h>
+#include <cerffrontend/shutdown_dialog_layout.h>
 #include "modal_dialog.h"
+
+#include <string>
 
 class ShutdownDialog : public ModalDialog {
 public:
@@ -20,15 +23,14 @@ private:
     void OnCommand(int id, int notify) override;
     bool OnMessage(UINT msg, WPARAM wp, LPARAM lp) override;
 
-    int  SelectedAction() const;
+    int          SelectedAction() const;
+    std::wstring ResetText(int action) const;
     void SyncActionBlock();
     void LayoutSaveRow();
     void CommitOk();
     void StopTimer();
-    int  BarFillWidth() const;
-    int  RemainingSeconds() const;
-    RECT BarRect() const;
-    RECT CountdownRect() const;
+
+    cerffrontend::ShutdownDialogLayout Geometry() const;
 
     HWND combo_        = nullptr;
     HWND chk_save_     = nullptr;
@@ -36,6 +38,8 @@ private:
     HWND save_tail_    = nullptr;
     HWND chk_remember_ = nullptr;
     HWND desc_         = nullptr;
+
+    std::wstring save_tail_text_;
 
     cerfcore::ShutdownTrigger trigger_ = cerfcore::ShutdownTrigger::WindowClose;
     cerfcore::ShutdownChoice  choice_  = cerfcore::ShutdownChoice::Cancel;

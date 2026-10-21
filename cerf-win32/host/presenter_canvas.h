@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "canvas_presenter.h"
+#include <cerffrontend/present_timing.h>
 
 namespace cerfcore { class FrameSource; }
 
@@ -40,7 +41,7 @@ public:
    scrollbar shrinks the client and latches the bar permanently on. */
 class PresenterCanvas {
 public:
-    using ViewportMode = CanvasPresenter::ViewportMode;
+    using ViewportMode = cerffrontend::ViewportMode;
 
     /* source may be null (HostCanvas binds the board FrameRenderer late via
        SetSource); host may be null (a plain FrameSource-only window). */
@@ -57,7 +58,7 @@ public:
        surface sized to surf_w x surf_h. */
     void CreateOn(HWND parent, const RECT& rect,
                   uint32_t surf_w, uint32_t surf_h,
-                  UINT present_interval_ms = 16);
+                  UINT present_interval_ms = cerffrontend::kDefaultPresentIntervalMs);
     void Reposition(const RECT& rect);
 
     HWND Hwnd() const { return hwnd_; }
@@ -112,7 +113,7 @@ private:
 
     UINT      timer_mm_ = 0;
     std::atomic<bool> present_pending_{ false };
-    UINT      present_interval_ms_ = 16;
+    UINT      present_interval_ms_ = cerffrontend::kDefaultPresentIntervalMs;
 
     CanvasPresenter presenter_;
 };

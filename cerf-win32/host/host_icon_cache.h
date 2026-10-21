@@ -17,6 +17,7 @@ public:
     ~HostIconCache() override;
 
     void DrawCentered(HDC dc, const RECT& box, const std::string& res_name);
+    void DrawSized(HDC dc, const RECT& box, const std::string& res_name, int px);
 
 private:
     HICON Resolve(const std::string& res_name, int px);

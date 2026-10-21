@@ -32,7 +32,7 @@ Please read [these](.github/CONTRIBUTING.md) if you are planning on contributing
 
 ## Building
 
-On Windows the project requires modern Visual Studio with the C++ desktop development workload.
+On Windows the project requires modern Visual Studio with the C++ desktop development workload. On Linux it builds with GCC, CMake and the Qt 6 development packages.
 
 > [!NOTE]
 > **The first build on a new machine takes more than one hour.** vcpkg compiles the dependencies from source before CERF links. This occurs one time on each machine. Later builds use the cached `vcpkg_installed/` tree and are complete in a few minutes. Do not stop the first build.
@@ -43,13 +43,13 @@ On Windows the project requires modern Visual Studio with the C++ desktop develo
 Configure the clone (one time on each machine):
 
 ```
-setup.cmd
+python tools/dev_setup.py
 ```
 
 or dry run:
 
 ```
-setup.cmd -Check
+python tools/dev_setup.py --check
 ```
 
 It will
@@ -60,7 +60,7 @@ It will
 **Build the entire proejct with a helper script**:
 
 ```
-powershell -ExecutionPolicy Bypass -File build.ps1
+python build.py
 ```
 
 The script will:
@@ -74,14 +74,14 @@ The script will:
 
 `ce_apps/` holds various Windows CE applications CERF is bundled with including the Guest Additions driver.
 
-You don't need those if you are not working with Guest Additions. You may copy Guest Additions binaries from an artifact or skip them entirely.
+You don't need those if you are not working with Guest Additions. You may copy Guest Additions binaries from an artifact or skip them entirely. On Linux the build runs these tools through Wine.
 
 To build `ce_apps/`, install eMbedded Visual C++ 4.0 (a free Microsoft download from the
 Microsoft archive). CERF includes a script that will unpack the installation (you dont want and probably can't install ancient tools)
 and will place the build tools / SDK into appropriate directories.
 See **[docs/ce_apps_setup.md](docs/ce_apps_setup.md)**.
 
-`setup.cmd -Check` reports whether the CE toolchain is present.
+`python tools/dev_setup.py --check` reports whether the CE toolchain is present.
 
 ### Website
 
@@ -122,13 +122,16 @@ The environment gives you the **`/start-board-implementation`** skill. Run the s
 Run the environment:
 
 ```
-run_claude.cmd
+python run_claude.py
 ```
 
-## More
+## Supported Devices
 
-- [Supported Devices](https://cerf.cx/devices)
-- [Changelog](https://cerf.cx/changelog)
+{supported_devices}
+
+## Changelog
+
+{changelog}
 
 ---
 

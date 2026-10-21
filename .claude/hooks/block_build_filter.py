@@ -3,7 +3,7 @@ import json
 import re
 import sys
 
-BUILD_RE = re.compile(r"\bbuild\.ps1\b", re.IGNORECASE)
+BUILD_RE = re.compile(r"\bbuild\.py\b", re.IGNORECASE)
 
 SUBST_RE = re.compile(r"\$\(|`")
 
@@ -33,8 +33,8 @@ def main() -> int:
 
     bad = (subst or tail_hit).group(0).replace("\n", "\\n")
     reason = (
-        f"BLOCKED: `{bad}` after build.ps1 masks the build exit code. Run "
-        f"build.ps1 last, with nothing after it but an output redirect. Read "
+        f"BLOCKED: `{bad}` after build.py masks the build exit code. Run "
+        f"build.py last, with nothing after it but an output redirect. Read "
         f"the log in a separate call."
     )
 
@@ -44,7 +44,7 @@ def main() -> int:
             "permissionDecision": "deny",
             "permissionDecisionReason": reason,
         },
-        "systemMessage": "[CLAUDE.md hook] BLOCKED: command after build.ps1",
+        "systemMessage": "[CLAUDE.md hook] BLOCKED: command after build.py",
     }
     json.dump(out, sys.stdout)
     return 0

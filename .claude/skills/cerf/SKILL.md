@@ -45,14 +45,14 @@ and nothing else.
 ## Step 3 - offer the environment doctor
 
 After the index, write one short line that offers the doctor. For example: "I
-can run the environment doctor (`setup.ps1 -Check`) for a health report on this
+can run the environment doctor (`python tools/dev_setup.py --check`) for a health report on this
 clone."
 
 Then stop. Do not run the doctor. Do not ask more questions.
 
 Note: git does not clone `.git/hooks/`. `core.hooksPath` lives in the local
 `.git/config`, which git also does not clone. A fresh clone runs no git hooks
-until `setup.cmd` writes this configuration.
+until `python tools/dev_setup.py` writes this configuration.
 
 ## Step 4 - run the doctor
 
@@ -61,14 +61,14 @@ Run this step only when the user agrees.
 From the repo root, run this command:
 
 ```
-powershell -NoProfile -ExecutionPolicy Bypass -File setup.ps1 -Check
+python tools/dev_setup.py --check
 ```
 
 The doctor changes nothing. It prints one line for each check, with a tab
 between the fields: `STATUS<TAB>key<TAB>detail`. STATUS is `OK`, `WARN`, or
 `FAIL`. The exit code is 1 when one check or more failed.
 
-`setup.ps1` owns the list of checks. Read the output of `setup.ps1`. Do not test
+`tools/dev_setup.py` owns the list of checks. Read its output. Do not test
 any of these conditions directly in this skill.
 
 A FAIL has these consequences:
@@ -80,7 +80,7 @@ A FAIL has these consequences:
 | `submodules` | A declared submodule is empty, so the build fails. |
 | `python` | `py -3` does not run, so every `.claude/hooks/*.py` hook is a silent no-op. |
 | `claude-hooks` | `.claude/settings.json` is absent or does not parse, or a hook script that it names is absent or does not compile. |
-| `vcpkg` | Nobody ran `vcpkg integrate install`, so `build.ps1` refuses to build. |
+| `vcpkg` | Nobody ran `vcpkg integrate install`, so `build.py` refuses to build. |
 
 `stale-local-hooks` is a WARN. `core.hooksPath` shadows the leftover files in
 `.git/hooks/`, so those files cannot run. But they give wrong information to the
@@ -98,15 +98,15 @@ If one check or more failed, give the diagnosis first:
    consequence from the table above. Read `.githooks/pre-commit` for the rules
    that this hook enforces.
 2. Print the failing lines.
-3. Give the fix. `setup.cmd` corrects `git-hooks` and `submodules`. `python` and
+3. Give the fix. `python tools/dev_setup.py` corrects `git-hooks` and `submodules`. `python` and
    `vcpkg` are outside the repo. For `python`, install the Python launcher. For
    `vcpkg`, run `vcpkg integrate install` from
-   `<VS install>\VC\vcpkg\vcpkg.exe`. `setup.cmd` reports these two conditions,
-   but it cannot correct them.
-4. If `setup.cmd` corrects the failures, offer to run `setup.cmd`. Ask one time
+   `<VS install>\VC\vcpkg\vcpkg.exe`. `tools/dev_setup.py` reports these two
+   conditions, but it cannot correct them.
+4. If `tools/dev_setup.py` corrects the failures, offer to run it. Ask one time
    in plain chat. If the user agrees, run it.
 
-CAUTION: Do not run `setup.cmd` without agreement from the user. It writes the
+CAUTION: Do not run `python tools/dev_setup.py` without agreement from the user. It writes the
 git configuration and it can initialize submodules.
 
 ## Scope and rules

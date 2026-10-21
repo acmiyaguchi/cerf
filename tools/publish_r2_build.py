@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-"""Publish a CI build to the R2 beta channel: run from the repo root as
-`python tools/publish_r2_build.py --zip=<path>`.
-
-Uploads the zip under R2_PREFIX keeping its name, rewrites latest.json to point
-at it, then deletes every other zip under that prefix. Version fields are read
-from the stamped version.h of libCerfFrontend.
-
-Reads R2_ACCOUNT_ID, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and
-R2_PREFIX from the environment."""
 from __future__ import annotations
 
 import hashlib
@@ -16,14 +7,16 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Set
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import host_branch
 from ci_release import CiError, changelog_markdown
 
 VERSION_PATH = Path("libCerfFrontend/include/cerffrontend/version.h")
 LATEST_NAME = "latest.json"
 LATEST_SCHEMA = 1
+BRANCHES_KEY = "host_branches"
 
 
 def _int_define(text: str, name: str) -> int:
@@ -77,7 +70,7 @@ def make_client():
     )
 
 
-def stale_zips(client, bucket: str, prefix: str, keep: str) -> List[str]:
+def stale_zips(client, bucket: str, prefix: str, keep: Set[str]) -> List[str]:
     stale: List[str] = []
     token = None
     while True:
@@ -87,7 +80,7 @@ def stale_zips(client, bucket: str, prefix: str, keep: str) -> List[str]:
         page = client.list_objects_v2(**kwargs)
         for item in page.get("Contents", []):
             key = item["Key"]
-            if key == keep or not key.lower().endswith(".zip"):
+            if key in keep or not key.lower().endswith(".zip"):
                 continue
             if "/" in key[len(prefix) + 1:]:
                 continue
@@ -97,13 +90,53 @@ def stale_zips(client, bucket: str, prefix: str, keep: str) -> List[str]:
         token = page.get("NextContinuationToken")
 
 
+def read_latest(client, bucket: str, key: str) -> dict:
+    try:
+        raw = client.get_object(Bucket=bucket, Key=key)["Body"].read()
+    except client.exceptions.NoSuchKey:
+        return {}
+    try:
+        parsed = json.loads(raw.decode("utf-8"))
+    except ValueError as exc:
+        raise CiError(f"{key} is malformed: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise CiError(f"{key} is not an object")
+    return parsed
+
+
+def merge_latest(previous: dict, branch: str, entry: dict) -> dict:
+    branches = previous.get(BRANCHES_KEY)
+    branches = dict(branches) if isinstance(branches, dict) else {}
+    branches[branch] = entry
+    root = entry if branch == host_branch.WIN32_X86 else \
+        {k: v for k, v in previous.items() if k != BRANCHES_KEY}
+    latest = dict(root)
+    latest["version"] = LATEST_SCHEMA
+    latest[BRANCHES_KEY] = branches
+    return latest
+
+
+def referenced_objects(latest: dict, prefix: str) -> Set[str]:
+    entries = [latest] + list(latest[BRANCHES_KEY].values())
+    return {f"{prefix}/{e['object_name']}" for e in entries
+            if isinstance(e, dict) and isinstance(e.get("object_name"), str)}
+
+
+def argument(argv: List[str], name: str) -> str:
+    value = next((a.partition("=")[2] for a in argv if a.startswith(name + "=")), None)
+    if not value:
+        raise CiError("usage: publish_r2_build.py --zip=<path> --host-branch=<name>")
+    return value
+
+
 def main(argv: List[str]) -> int:
-    zip_arg = next((a.partition("=")[2] for a in argv if a.startswith("--zip=")), None)
-    if not zip_arg:
-        raise CiError("usage: publish_r2_build.py --zip=<path>")
-    archive = Path(zip_arg)
+    archive = Path(argument(argv, "--zip"))
     if not archive.is_file():
         raise CiError(f"{archive} not found")
+    try:
+        branch = host_branch.by_name(argument(argv, "--host-branch")).name
+    except host_branch.UnsupportedHost as exc:
+        raise CiError(str(exc)) from exc
 
     bucket = env("R2_BUCKET")
     prefix = env("R2_PREFIX").strip("/")
@@ -111,14 +144,14 @@ def main(argv: List[str]) -> int:
         raise CiError("R2_PREFIX must name a directory, not the bucket root")
 
     payload = archive.read_bytes()
-    latest = {"version": LATEST_SCHEMA}
-    latest.update(version_fields())
-    latest["object_name"] = archive.name
-    latest["object_size"] = len(payload)
-    latest["object_sha256"] = hashlib.sha256(payload).hexdigest()
+    entry = {"version": LATEST_SCHEMA}
+    entry.update(version_fields())
+    entry["object_name"] = archive.name
+    entry["object_size"] = len(payload)
+    entry["object_sha256"] = hashlib.sha256(payload).hexdigest()
 
-    tag = f"{latest['ver_major']}.{latest['ver_minor']}"
-    latest["changelog"] = changelog_markdown(
+    tag = f"{entry['ver_major']}.{entry['ver_minor']}"
+    entry["changelog"] = changelog_markdown(
         tag, f"Nothing recorded in the {tag} changelog yet.")
 
     client = make_client()
@@ -129,18 +162,19 @@ def main(argv: List[str]) -> int:
     client.put_object(Bucket=bucket, Key=object_key, Body=payload,
                       ContentType="application/zip")
 
-    print(f"Rewriting {latest_key} ...")
+    latest = merge_latest(read_latest(client, bucket, latest_key), branch, entry)
+    print(f"Rewriting {latest_key} for {branch} ...")
     client.put_object(
         Bucket=bucket, Key=latest_key,
         Body=json.dumps(latest, indent=2).encode("utf-8"),
         ContentType="application/json", CacheControl="no-cache")
 
-    stale = stale_zips(client, bucket, prefix, object_key)
+    stale = stale_zips(client, bucket, prefix, referenced_objects(latest, prefix))
     for key in stale:
         print(f"  removing stale {key}")
         client.delete_object(Bucket=bucket, Key=key)
 
-    print(f"Published build {latest['ver_build']} as {archive.name} "
+    print(f"Published {branch} build {entry['ver_build']} as {archive.name} "
           f"({len(stale)} stale object(s) removed)")
     return 0
 

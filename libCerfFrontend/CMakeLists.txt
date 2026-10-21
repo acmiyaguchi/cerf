@@ -6,6 +6,11 @@ if(NOT TARGET cerfcore::cerfcore)
 endif()
 
 file(GLOB cerffrontend_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+if(WIN32)
+    list(FILTER cerffrontend_sources EXCLUDE REGEX "_posix\\.cpp$")
+else()
+    list(FILTER cerffrontend_sources EXCLUDE REGEX "_win32\\.cpp$")
+endif()
 
 add_library(cerffrontend STATIC ${cerffrontend_sources})
 add_library(cerffrontend::cerffrontend ALIAS cerffrontend)

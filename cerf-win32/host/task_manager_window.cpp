@@ -1,32 +1,34 @@
 #define NOMINMAX
-#include "task_manager_window.h"
+#include <cerfcore/host/task_manager_view.h>
+#include "task_manager_list_view.h"
 
+#include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
 
 #include <cerfcore/core/cerf_emulator.h>
 #include <cerfcore/core/device_config.h>
-#include <cerfcore/peripherals/cerf_virt/cerf_virt_task_manager.h>
 #include <cerfcore/peripherals/cerf_virt/cerf_virt_task_manager_regs.h>
 #include "host_dark_mode.h"
 #include "host_window.h"
 #include <cerfcore/platform/wide_text_win32.h>
+#include <cerffrontend/theme_colors.h>
 
-#include <cstdio>
-
-REGISTER_SERVICE_AS(TaskManagerWindow, cerfcore::TaskManagerView);
+#include <cstdint>
+#include <string>
 
 namespace {
+
+using Model = cerffrontend::TaskManagerModel;
 
 constexpr wchar_t kWndClass[] = L"CerfTaskManagerWnd";
 
 constexpr UINT kRefreshTimerId = 1;
-constexpr UINT kRefreshMs      = 500;
 
-constexpr int kMargin     = 8;
-constexpr int kBottomBarH = 76;
-constexpr int kRowH       = 26;
-constexpr int kBtnW       = 90;
+constexpr int kMargin     = Model::kMargin;
+constexpr int kBottomBarH = Model::kBottomBarH;
+constexpr int kRowH       = Model::kRowH;
+constexpr int kBtnW       = Model::kBtnW;
 
 enum : int {
     IDC_TABS    = 2000,
@@ -42,28 +44,62 @@ enum : int {
 constexpr int kTabWindows   = 0;
 constexpr int kTabProcesses = 1;
 
-constexpr COLORREF kClrOk   = RGB(0, 140, 0);
-constexpr COLORREF kClrFail = RGB(190, 0, 0);
-constexpr COLORREF kClrInfo = RGB(96, 96, 96);
+constexpr COLORREF Colorref(cerffrontend::Rgb c) { return RGB(c.r, c.g, c.b); }
 
-/* Dark-mode tab fills (match the HostDarkMode dialog/hot palette). */
-constexpr COLORREF kTabStripBg = RGB(32, 32, 32);
-constexpr COLORREF kTabSelBg   = RGB(60, 60, 60);
-constexpr COLORREF kTabText    = RGB(230, 230, 230);
+constexpr COLORREF kTabStripBg = Colorref(cerffrontend::theme::kDarkBar);
+constexpr COLORREF kTabSelBg   = Colorref(cerffrontend::theme::kDarkHot);
+constexpr COLORREF kTabText    = Colorref(cerffrontend::theme::kDarkText);
 
-const wchar_t* ActionName(uint32_t code) {
-    switch (code) {
-        case cerfcore::CerfVirt::kTmCmdKill:        return L"kill";
-        case cerfcore::CerfVirt::kTmCmdSwitchTo:    return L"switch to";
-        case cerfcore::CerfVirt::kTmCmdSwitchToWin: return L"switch to";
-        case cerfcore::CerfVirt::kTmCmdRun:         return L"run";
-        case cerfcore::CerfVirt::kTmCmdList:        return L"list";
-        case cerfcore::CerfVirt::kTmCmdListWindows: return L"list";
-        default:                          return L"command";
+COLORREF StatusColor(Model::StatusKind kind) {
+    switch (kind) {
+        case Model::StatusKind::kOk:   return Colorref(Model::kOkColor);
+        case Model::StatusKind::kFail: return Colorref(Model::kFailColor);
+        case Model::StatusKind::kInfo: return Colorref(Model::kInfoColor);
     }
+    return Colorref(Model::kInfoColor);
 }
 
-}  /* namespace */
+class TaskManagerWindow : public cerfcore::TaskManagerView {
+public:
+    using cerfcore::TaskManagerView::TaskManagerView;
+
+    bool ShouldRegister() override;
+    void OnReady() override;
+
+    void Show() override;
+
+private:
+    static LRESULT CALLBACK WndProcStatic(HWND, UINT, WPARAM, LPARAM);
+    static LRESULT CALLBACK RunEditProcStatic(HWND, UINT, WPARAM, LPARAM);
+    static LRESULT CALLBACK TabProcStatic(HWND, UINT, WPARAM, LPARAM);
+    LRESULT WndProc(HWND, UINT, WPARAM, LPARAM);
+    void    DrawTab(const DRAWITEMSTRUCT* di);
+
+    void BuildControls();
+    void LayoutControls();
+    void OnTick();
+    void OnTabChanged();
+    void DoSwitchTo();
+    void DoKill();
+    void DoRun();
+    void ShowRowMenu(int item, POINT screen_pt);
+    void SyncStatus();
+
+    HWND                hwnd_       = nullptr;
+    HWND                tabs_       = nullptr;
+    TaskManagerListView list_;
+    HWND                run_label_  = nullptr;
+    HWND                run_edit_   = nullptr;
+    HWND                btn_run_    = nullptr;
+    HWND                btn_switch_ = nullptr;
+    HWND                btn_kill_   = nullptr;
+    HWND                status_     = nullptr;
+    WNDPROC             run_edit_base_proc_ = nullptr;
+    WNDPROC             tabs_base_proc_     = nullptr;
+
+    uint64_t status_serial_ = 0;
+    COLORREF status_clr_    = RGB(0, 0, 0);
+};
 
 bool TaskManagerWindow::ShouldRegister() {
     return emu_.Get<cerfcore::DeviceConfig>().guest_additions;
@@ -90,7 +126,7 @@ void TaskManagerWindow::Show() {
 
     HWND owner = emu_.Get<HostWindow>().Hwnd();
     const DWORD style = WS_OVERLAPPEDWINDOW;
-    RECT wr = { 0, 0, 560, 420 };
+    RECT wr = { 0, 0, Model::kClientW, Model::kClientH };
     AdjustWindowRectEx(&wr, style, FALSE, 0);
     hwnd_ = CreateWindowExW(0, kWndClass, L"Guest Task Manager", style,
                             CW_USEDEFAULT, CW_USEDEFAULT,
@@ -106,11 +142,12 @@ void TaskManagerWindow::Show() {
     if (dm.IsDark()) list_.ApplyDarkColors(dm.BgColor(), dm.TextColor());
 
     ShowWindow(hwnd_, SW_SHOW);
-    SetTimer(hwnd_, kRefreshTimerId, kRefreshMs, nullptr);
+    SetTimer(hwnd_, kRefreshTimerId, Model::kRefreshMs, nullptr);
 
-    awaiting_first_ = true;
-    RequestActiveList();
-    SetStatus(L"Waiting for guest…", kClrInfo);
+    auto& model = emu_.Get<Model>();
+    model.Open();
+    list_.SetColumns(model.Columns());
+    SyncStatus();
 }
 
 void TaskManagerWindow::BuildControls() {
@@ -149,7 +186,7 @@ void TaskManagerWindow::BuildControls() {
             tabs_, GWLP_WNDPROC, (LONG_PTR)&TaskManagerWindow::TabProcStatic);
     }
 
-    list_ = TaskManagerListView{};   /* default mode = Windows, matches tab 0 */
+    list_ = TaskManagerListView{};
     list_.Create(hwnd_, IDC_LIST, gui);
 
     btn_switch_ = mk(L"BUTTON", L"Switch to", BS_PUSHBUTTON | WS_TABSTOP, IDC_SWITCH);
@@ -184,139 +221,61 @@ void TaskManagerWindow::LayoutControls() {
     MoveWindow(btn_kill_, kMargin + kBtnW + 6, row1, kBtnW, kRowH, TRUE);
 
     const int row2    = row1 + kRowH + 8;
-    const int label_w = 34;
-    const int edit_w  = w - 2 * kMargin - label_w - kBtnW - 12 - 170;
+    const int label_w = Model::kLabelW;
+    const int raw_w   = w - 2 * kMargin - label_w - kBtnW - 12 - Model::kEditReserve;
+    const int edit_w  = raw_w > Model::kEditMinW ? raw_w : Model::kEditMinW;
     MoveWindow(run_label_, kMargin, row2 + 4, label_w, kRowH - 6, TRUE);
-    MoveWindow(run_edit_, kMargin + label_w, row2,
-               edit_w > 80 ? edit_w : 80, kRowH - 2, TRUE);
-    MoveWindow(btn_run_, kMargin + label_w + (edit_w > 80 ? edit_w : 80) + 6,
-               row2, kBtnW, kRowH, TRUE);
-    MoveWindow(status_, kMargin + label_w + (edit_w > 80 ? edit_w : 80) +
-               kBtnW + 12, row2 + 4, 164, kRowH - 6, TRUE);
+    MoveWindow(run_edit_, kMargin + label_w, row2, edit_w, kRowH - 2, TRUE);
+    MoveWindow(btn_run_, kMargin + label_w + edit_w + 6, row2, kBtnW, kRowH, TRUE);
+    MoveWindow(status_, kMargin + label_w + edit_w + kBtnW + 12, row2 + 4, Model::kStatusW,
+               kRowH - 6, TRUE);
 }
 
-void TaskManagerWindow::RequestActiveList() {
-    auto& svc = emu_.Get<cerfcore::CerfVirtTaskManager>();
-    if (list_.GetMode() == TaskManagerListView::Mode::Windows)
-        svc.RequestWindowList();
-    else
-        svc.RequestProcessList();
+void TaskManagerWindow::SyncStatus() {
+    auto& model = emu_.Get<Model>();
+    if (model.StatusSerial() == status_serial_) return;
+    status_serial_ = model.StatusSerial();
+    status_clr_    = StatusColor(model.Status());
+    SetWindowTextW(status_, cerfcore::Utf8ToWide(model.StatusText().c_str()).c_str());
+    InvalidateRect(status_, nullptr, TRUE);
 }
 
 void TaskManagerWindow::OnTabChanged() {
-    const int sel = TabCtrl_GetCurSel(tabs_);
-    list_.SetMode(sel == kTabProcesses ? TaskManagerListView::Mode::Processes
-                                       : TaskManagerListView::Mode::Windows);
-    awaiting_first_ = true;
-    RequestActiveList();
-    SetStatus(L"Waiting for guest…", kClrInfo);
+    auto& model = emu_.Get<Model>();
+    model.SetMode(TabCtrl_GetCurSel(tabs_) == kTabProcesses ? Model::Mode::kProcesses
+                                                            : Model::Mode::kWindows);
+    list_.SetColumns(model.Columns());
+    SyncStatus();
 }
 
 void TaskManagerWindow::OnTick() {
-    auto& svc = emu_.Get<cerfcore::CerfVirtTaskManager>();
-    RequestActiveList();
-
-    if (auto r = svc.TakeActionResult()) {
-        wchar_t buf[96];
-        if (r->code == cerfcore::CerfVirt::kTmCmdRun) {
-            if (r->ticket == run_ticket_) {
-                if (r->ok) {
-                    SetStatus(L"success", kClrOk);
-                } else {
-                    _snwprintf_s(buf, _TRUNCATE, L"failed (error %u)",
-                                 r->guest_err);
-                    SetStatus(buf, kClrFail);
-                }
-            }
-        } else if (r->code == cerfcore::CerfVirt::kTmCmdList ||
-                   r->code == cerfcore::CerfVirt::kTmCmdListWindows) {
-            if (!r->ok) {
-                _snwprintf_s(buf, _TRUNCATE, L"list failed (error %u)",
-                             r->guest_err);
-                SetStatus(buf, kClrFail);
-            }
-        } else if (r->ok) {
-            _snwprintf_s(buf, _TRUNCATE, L"%s: done", ActionName(r->code));
-            SetStatus(buf, kClrOk);
-        } else {
-            _snwprintf_s(buf, _TRUNCATE, L"%s failed (error %u)",
-                         ActionName(r->code), r->guest_err);
-            SetStatus(buf, kClrFail);
-        }
+    auto& model = emu_.Get<Model>();
+    if (model.Tick()) {
+        list_.Fill(model.Rows());
+        SetWindowTextW(hwnd_, cerfcore::Utf8ToWide(model.Title().c_str()).c_str());
     }
-
-    auto snap = svc.GetSnapshot();
-    if (list_.Update(snap)) {
-        if (awaiting_first_) {
-            SetStatus(L"", kClrInfo);   /* replaces "Waiting for guest…" */
-            awaiting_first_ = false;
-        }
-        UpdateTitle(snap);
-    }
-}
-
-void TaskManagerWindow::UpdateTitle(const cerfcore::CerfVirtTaskManager::Snapshot& snap) {
-    wchar_t title[96];
-    if (list_.GetMode() == TaskManagerListView::Mode::Windows) {
-        /* One row per process; the count is processes shown, not raw windows. */
-        _snwprintf_s(title, _TRUNCATE, L"Guest Task Manager - %u programs",
-                     (unsigned)list_.DisplayedCount());
-    } else {
-        if (snap.guest_total > snap.procs.size())
-            _snwprintf_s(title, _TRUNCATE,
-                         L"Guest Task Manager - %u of %u processes",
-                         (unsigned)snap.procs.size(), snap.guest_total);
-        else
-            _snwprintf_s(title, _TRUNCATE, L"Guest Task Manager - %u processes",
-                         (unsigned)snap.procs.size());
-    }
-    SetWindowTextW(hwnd_, title);
+    SyncStatus();
 }
 
 void TaskManagerWindow::DoSwitchTo() {
-    auto& svc = emu_.Get<cerfcore::CerfVirtTaskManager>();
-    if (list_.GetMode() == TaskManagerListView::Mode::Windows) {
-        uint32_t hwnd, pid;
-        if (!list_.SelectedWindow(&hwnd, &pid)) {
-            SetStatus(L"no window selected", kClrFail);
-            return;
-        }
-        svc.RequestSwitchToWindow(hwnd);
-    } else {
-        uint32_t pid;
-        if (!list_.SelectedProc(&pid)) {
-            SetStatus(L"no process selected", kClrFail);
-            return;
-        }
-        svc.RequestSwitchTo(pid);
-    }
-    SetStatus(L"switching…", kClrInfo);
+    uint32_t   key      = 0;
+    const bool selected = list_.SelectedKey(&key);
+    emu_.Get<Model>().SwitchTo(selected, key);
+    SyncStatus();
 }
 
 void TaskManagerWindow::DoKill() {
-    uint32_t pid;
-    if (list_.GetMode() == TaskManagerListView::Mode::Windows) {
-        uint32_t hwnd;
-        if (!list_.SelectedWindow(&hwnd, &pid)) {
-            SetStatus(L"no window selected", kClrFail);
-            return;
-        }
-    } else if (!list_.SelectedProc(&pid)) {
-        SetStatus(L"no process selected", kClrFail);
-        return;
-    }
-    emu_.Get<cerfcore::CerfVirtTaskManager>().RequestKill(pid);
-    SetStatus(L"killing…", kClrInfo);
+    uint32_t   key      = 0;
+    const bool selected = list_.SelectedKey(&key);
+    emu_.Get<Model>().Kill(selected, key);
+    SyncStatus();
 }
 
 void TaskManagerWindow::DoRun() {
     wchar_t buf[cerfcore::CerfVirt::kTmRunMaxWchars + 1] = { 0 };
     GetWindowTextW(run_edit_, buf, (int)(cerfcore::CerfVirt::kTmRunMaxWchars + 1));
-    const std::wstring cmd = buf;
-    if (cmd.empty()) { SetStatus(L"enter a command", kClrFail); return; }
-    run_ticket_ = emu_.Get<cerfcore::CerfVirtTaskManager>().RequestRun(cerfcore::WideToUtf16(cmd));
-    if (run_ticket_ == 0) { SetStatus(L"failed", kClrFail); return; }
-    SetStatus(L"running…", kClrInfo);
+    emu_.Get<Model>().Run(cerfcore::WideToUtf16(buf));
+    SyncStatus();
 }
 
 void TaskManagerWindow::ShowRowMenu(int item, POINT screen_pt) {
@@ -345,12 +304,6 @@ void TaskManagerWindow::DrawTab(const DRAWITEMSTRUCT* di) {
     SetBkMode(di->hDC, TRANSPARENT);
     RECT rc = di->rcItem;
     DrawTextW(di->hDC, txt, -1, &rc, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-}
-
-void TaskManagerWindow::SetStatus(const std::wstring& text, COLORREF clr) {
-    status_clr_ = clr;
-    SetWindowTextW(status_, text.c_str());
-    InvalidateRect(status_, nullptr, TRUE);
 }
 
 LRESULT CALLBACK TaskManagerWindow::RunEditProcStatic(HWND hwnd, UINT msg,
@@ -404,7 +357,7 @@ LRESULT TaskManagerWindow::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_GETMINMAXINFO: {
             auto* mmi = reinterpret_cast<MINMAXINFO*>(lp);
-            mmi->ptMinTrackSize = { 480, 320 };
+            mmi->ptMinTrackSize = { Model::kMinTrackW, Model::kMinTrackH };
             return 0;
         }
 
@@ -491,3 +444,7 @@ LRESULT TaskManagerWindow::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
+
+}
+
+REGISTER_SERVICE_AS(TaskManagerWindow, cerfcore::TaskManagerView);

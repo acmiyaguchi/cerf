@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import ctypes
 import os
-import subprocess
+import sys
 import time
-from ctypes import wintypes
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from app_paths import LAUNCHER_DIR_NAME
+from app_paths import FRONTEND_NAME, LAUNCHER_DIR_NAME, LAUNCHER_NAME
+from child_process import spawn_detached
 
-CERF_EXE_NAME = "cerf.exe"
-DEFAULT_LAUNCHER_NAME = "launcher.exe"
+ROOT_LAUNCHER_NAME = "launcher.exe" if sys.platform == "win32" else "launcher.sh"
 UPGRADE_DIR_NAME = "upgrade"
 UPGRADE_ZIP_NAME = "upgrade.zip"
 GLOBAL_CONFIG_NAME = "cerf.json"
@@ -27,48 +25,8 @@ START_MENU_FLAG = "--create-start-menu-entry"
 NO_LAUNCH_FLAG = "--do-not-launch-after-install"
 WAIT_FOR_PID_PREFIX = "--wait-for-pid="
 
-_TH32CS_SNAPPROCESS = 0x00000002
-_PROCESS_QUERY_LIMITED_INFORMATION = 0x00001000
-_SYNCHRONIZE = 0x00100000
-_WAIT_TIMEOUT = 0x00000102
-_ERROR_ACCESS_DENIED = 5
-_INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
-
-
 class UpgradeError(RuntimeError):
     pass
-
-
-class _ProcessEntry32W(ctypes.Structure):
-    _fields_ = [
-        ("dwSize", wintypes.DWORD),
-        ("cntUsage", wintypes.DWORD),
-        ("th32ProcessID", wintypes.DWORD),
-        ("th32DefaultHeapID", ctypes.POINTER(ctypes.c_ulong)),
-        ("th32ModuleID", wintypes.DWORD),
-        ("cntThreads", wintypes.DWORD),
-        ("th32ParentProcessID", wintypes.DWORD),
-        ("pcPriClassBase", ctypes.c_long),
-        ("dwFlags", wintypes.DWORD),
-        ("szExeFile", wintypes.WCHAR * 260),
-    ]
-
-
-def _image_path(pid: int) -> Optional[str]:
-    kernel32 = ctypes.windll.kernel32
-    handle = kernel32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False,
-                                  wintypes.DWORD(pid))
-    if not handle:
-        return None
-    try:
-        size = wintypes.DWORD(32768)
-        buffer = ctypes.create_unicode_buffer(size.value)
-        if not kernel32.QueryFullProcessImageNameW(handle, 0, buffer,
-                                                   ctypes.byref(size)):
-            return None
-        return buffer.value
-    finally:
-        kernel32.CloseHandle(handle)
 
 
 def _same_directory(a: str, b: Path) -> bool:
@@ -76,28 +34,106 @@ def _same_directory(a: str, b: Path) -> bool:
             == os.path.normcase(os.path.abspath(str(b))))
 
 
-def running_cerf_pids(install_dir: Path) -> List[int]:
-    kernel32 = ctypes.windll.kernel32
-    snapshot = kernel32.CreateToolhelp32Snapshot(_TH32CS_SNAPPROCESS, 0)
-    if snapshot == _INVALID_HANDLE_VALUE:
-        raise UpgradeError("cannot enumerate running processes")
-    entry = _ProcessEntry32W()
-    entry.dwSize = ctypes.sizeof(_ProcessEntry32W)
-    pids: List[int] = []
-    try:
-        if not kernel32.Process32FirstW(snapshot, ctypes.byref(entry)):
-            return pids
-        while True:
-            if entry.szExeFile.lower() == CERF_EXE_NAME:
-                pid = int(entry.th32ProcessID)
-                image = _image_path(pid)
-                if image is None or _same_directory(os.path.dirname(image),
-                                                    install_dir):
-                    pids.append(pid)
-            if not kernel32.Process32NextW(snapshot, ctypes.byref(entry)):
+if sys.platform == "win32":
+    import ctypes
+    from ctypes import wintypes
+
+    _TH32CS_SNAPPROCESS = 0x00000002
+    _PROCESS_QUERY_LIMITED_INFORMATION = 0x00001000
+    _SYNCHRONIZE = 0x00100000
+    _WAIT_TIMEOUT = 0x00000102
+    _ERROR_ACCESS_DENIED = 5
+    _INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
+
+    class _ProcessEntry32W(ctypes.Structure):
+        _fields_ = [
+            ("dwSize", wintypes.DWORD),
+            ("cntUsage", wintypes.DWORD),
+            ("th32ProcessID", wintypes.DWORD),
+            ("th32DefaultHeapID", ctypes.POINTER(ctypes.c_ulong)),
+            ("th32ModuleID", wintypes.DWORD),
+            ("cntThreads", wintypes.DWORD),
+            ("th32ParentProcessID", wintypes.DWORD),
+            ("pcPriClassBase", ctypes.c_long),
+            ("dwFlags", wintypes.DWORD),
+            ("szExeFile", wintypes.WCHAR * 260),
+        ]
+
+    def _image_path(pid: int) -> Optional[str]:
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False,
+                                      wintypes.DWORD(pid))
+        if not handle:
+            return None
+        try:
+            size = wintypes.DWORD(32768)
+            buffer = ctypes.create_unicode_buffer(size.value)
+            if not kernel32.QueryFullProcessImageNameW(handle, 0, buffer,
+                                                       ctypes.byref(size)):
+                return None
+            return buffer.value
+        finally:
+            kernel32.CloseHandle(handle)
+
+    def running_cerf_pids(install_dir: Path) -> List[int]:
+        kernel32 = ctypes.windll.kernel32
+        snapshot = kernel32.CreateToolhelp32Snapshot(_TH32CS_SNAPPROCESS, 0)
+        if snapshot == _INVALID_HANDLE_VALUE:
+            raise UpgradeError("cannot enumerate running processes")
+        entry = _ProcessEntry32W()
+        entry.dwSize = ctypes.sizeof(_ProcessEntry32W)
+        pids: List[int] = []
+        try:
+            if not kernel32.Process32FirstW(snapshot, ctypes.byref(entry)):
                 return pids
-    finally:
-        kernel32.CloseHandle(snapshot)
+            while True:
+                if entry.szExeFile.lower() == FRONTEND_NAME:
+                    pid = int(entry.th32ProcessID)
+                    image = _image_path(pid)
+                    if image is None or _same_directory(os.path.dirname(image),
+                                                        install_dir):
+                        pids.append(pid)
+                if not kernel32.Process32NextW(snapshot, ctypes.byref(entry)):
+                    return pids
+        finally:
+            kernel32.CloseHandle(snapshot)
+
+    def _pid_alive(pid: int) -> bool:
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(_SYNCHRONIZE, False, wintypes.DWORD(pid))
+        if not handle:
+            return kernel32.GetLastError() == _ERROR_ACCESS_DENIED
+        try:
+            return kernel32.WaitForSingleObject(handle, 0) == _WAIT_TIMEOUT
+        finally:
+            kernel32.CloseHandle(handle)
+else:
+    def running_cerf_pids(install_dir: Path) -> List[int]:
+        pids: List[int] = []
+        for entry in Path("/proc").iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                comm = (entry / "comm").read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+            if comm != FRONTEND_NAME:
+                continue
+            try:
+                image = os.readlink(str(entry / "exe"))
+            except OSError:
+                image = None
+            if image is None or _same_directory(os.path.dirname(image), install_dir):
+                pids.append(int(entry.name))
+        return pids
+
+    def _pid_alive(pid: int) -> bool:
+        try:
+            stat = Path("/proc/{}/stat".format(pid)).read_text(encoding="utf-8")
+        except OSError:
+            return False
+        state = stat[stat.rfind(")") + 2:].split(" ", 1)[0]
+        return state not in ("Z", "X")
 
 
 def wait_for_cerf_exit(ask_retry: Callable[[str, str], bool],
@@ -113,17 +149,6 @@ def wait_for_cerf_exit(ask_retry: Callable[[str, str], bool],
             return False
 
 
-def _pid_alive(pid: int) -> bool:
-    kernel32 = ctypes.windll.kernel32
-    handle = kernel32.OpenProcess(_SYNCHRONIZE, False, wintypes.DWORD(pid))
-    if not handle:
-        return kernel32.GetLastError() == _ERROR_ACCESS_DENIED
-    try:
-        return kernel32.WaitForSingleObject(handle, 0) == _WAIT_TIMEOUT
-    finally:
-        kernel32.CloseHandle(handle)
-
-
 def wait_for_pid_exit(pid: int, timeout: float = PID_WAIT_TIMEOUT) -> None:
     deadline = time.monotonic() + timeout
     while _pid_alive(pid):
@@ -135,15 +160,13 @@ def wait_for_pid_exit(pid: int, timeout: float = PID_WAIT_TIMEOUT) -> None:
 
 
 def launcher_exe_in(directory: Path) -> Path:
-    candidate = directory / LAUNCHER_DIR_NAME / DEFAULT_LAUNCHER_NAME
-    return candidate if candidate.is_file() else directory / DEFAULT_LAUNCHER_NAME
+    candidate = directory / LAUNCHER_DIR_NAME / LAUNCHER_NAME
+    return candidate if candidate.is_file() else directory / ROOT_LAUNCHER_NAME
 
 
 def spawn_stage(exe: Path, args: List[str], cwd: Path) -> None:
-    argv = [str(exe)] + args
     try:
-        subprocess.Popen(argv, cwd=str(cwd),
-                         creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
+        spawn_detached([str(exe)] + args, cwd)
     except OSError as exc:
         raise UpgradeError(f"cannot start {exe}: {exc}") from exc
 

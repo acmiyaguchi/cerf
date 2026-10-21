@@ -1,6 +1,7 @@
 #include <cerfcore/host/shutdown_host.h>
 
 #include <cerfcore/core/cerf_emulator.h>
+#include <cerffrontend/shutdown_prompt.h>
 #include "shutdown_dialog.h"
 #include "host_window.h"
 
@@ -21,7 +22,9 @@ public:
     void DismissAsCancel() override { emu_.Get<ShutdownDialog>().DismissAsCancel(); }
 
     void BeginTeardown() override { emu_.Get<HostWindow>().BeginShutdownTeardown(); }
-    void CancelTeardown() override { emu_.Get<HostWindow>().CancelShutdown(); }
+    void CancelTeardown() override {
+        emu_.Get<cerffrontend::ShutdownPrompt>().CancelCloseRequest();
+    }
 };
 
 }

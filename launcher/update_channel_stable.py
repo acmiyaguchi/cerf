@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 import urllib.request
 
+import host_branch
 from available_update import AvailableUpdate
 from bundles import BundleError, DEFAULT_TIMEOUT, USER_AGENT
 
 
 LATEST_RELEASE_API_URL = \
     "https://api.github.com/repos/gweslab/cerf/releases/latest"
-ASSET_NAME_MARKER = "Release-Win32"
 ASSET_NAME_SUFFIX = ".zip"
 
 
@@ -32,7 +32,7 @@ def _fetch_json(url: str, timeout: int) -> dict:
     return parsed
 
 
-def _pick_asset(payload: dict) -> dict:
+def _pick_asset(payload: dict, marker: str) -> dict:
     assets = payload.get("assets")
     if not isinstance(assets, list):
         raise BundleError("GitHub release carries no asset list")
@@ -43,18 +43,19 @@ def _pick_asset(payload: dict) -> dict:
         url = asset.get("browser_download_url")
         if not isinstance(name, str) or not isinstance(url, str):
             continue
-        if ASSET_NAME_MARKER in name and name.endswith(ASSET_NAME_SUFFIX):
+        if name.endswith("-" + marker + ASSET_NAME_SUFFIX):
             return asset
     raise BundleError(
-        f"GitHub release has no {ASSET_NAME_MARKER}{ASSET_NAME_SUFFIX} asset")
+        f"GitHub release has no {marker}{ASSET_NAME_SUFFIX} asset")
 
 
-def fetch_latest_release(timeout: int = DEFAULT_TIMEOUT) -> AvailableUpdate:
+def fetch_latest_release(branch: host_branch.HostBranch,
+                         timeout: int = DEFAULT_TIMEOUT) -> AvailableUpdate:
     payload = _fetch_json(LATEST_RELEASE_API_URL, timeout)
     tag = payload.get("tag_name")
     if not isinstance(tag, str) or not tag.strip():
         raise BundleError("GitHub release has no tag_name")
-    asset = _pick_asset(payload)
+    asset = _pick_asset(payload, host_branch.release_marker(branch))
     size = asset.get("size")
     title = payload.get("name")
     body = payload.get("body")
