@@ -200,21 +200,14 @@ class _Card:
     def column_height(self, indices: List[int]) -> float:
         return sum(self.element_height(i, n == 0) for n, i in enumerate(indices))
 
-    def heading_index(self, index: int) -> int:
-        while not self.elements[index].is_heading:
-            index -= 1
-        return index
-
     def columns(self) -> Tuple[List[int], List[int]]:
         count = len(self.elements)
         best: Optional[Tuple[float, List[int], List[int]]] = None
         for split in range(1, count + 1):
-            if self.elements[split - 1].is_heading:
+            if split < count and not self.elements[split].is_heading:
                 continue
             left = list(range(split))
             right = list(range(split, count))
-            if right and not self.elements[split].is_heading:
-                right.insert(0, self.heading_index(split))
             height = max(self.column_height(left), self.column_height(right))
             if best is None or height < best[0]:
                 best = (height, left, right)
