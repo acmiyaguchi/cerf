@@ -66,6 +66,10 @@ by its magic bytes and unwraps it. Recognized containers today:
   codename) `.bin` firmware package: a fixed header followed by the bootable OS
   XIP, byte-identical to what an extracted `.nb0` carries. `ArnoldLocateOsXip`
   resolves it.
+- **Sharp SDU** - the Sharp Brain `.SDU` dictionary update package: a 0x8000-byte
+  header with a sum16 checksum and the file size, then an item table. Item 3
+  holds the boot stream followed by the OS XIP. `SharpSduLocateOsXip` validates
+  the header and resolves the XIP after the boot stream.
 
 CERF unwraps all of these to a **flat XIP span** that the rest of the pipeline
 treats identically.
@@ -89,8 +93,9 @@ treats identically.
 For each declared / auto-detected ROM file:
 
 1. **Read the whole file** into `rom.raw`.
-2. **Detect the container** by leading magic, in order: B000FF → NOSAJ →
-   ARNOLD → else flat NB0. The chosen branch sets `rom.flat` (a span over the
+2. **Detect the container** in order: B000FF → NOSAJ → ARNOLD → iPAQ
+   .nbf → Sharp SDU (header checksum) → `_wmstore` → Symbol whole flash → else
+   flat NB0. The chosen branch sets `rom.flat` (a span over the
    bootable XIP) and `rom.flat_base_va` (the VA that file-offset 0 of the flat
    maps to).
 3. **Find the ROMHDR.** Scan the flat for every `ECEC` ROM signature
@@ -103,8 +108,8 @@ For each declared / auto-detected ROM file:
    `numfiles` FILESentry records. It resolves names via `load_offset`.
 5. **IMGFS** (WM6+ only): `FindImgfsBase` locates the IMGFS superblock. The
    walker (`ce_imgfs_walker`) enumerates flash-filesystem modules. CERF skips
-   this step for container formats that are pure XIP (NOSAJ, ARNOLD) and for
-   B000FF.
+   this step for container formats that are pure XIP (NOSAJ, ARNOLD, iPAQ .nbf,
+   Sharp SDU) and for B000FF.
 
 The outputs that every downstream consumer relies on are `rom.flat`,
 `rom.flat_base_va`, `rom.entry_va`, and `rom.xips[*].toc`. A new container format
