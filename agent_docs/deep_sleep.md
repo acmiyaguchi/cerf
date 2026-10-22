@@ -116,6 +116,10 @@ applies to every board.
 2. **On a reset-on-wake SoC, latch the wake cause.** The peripheral that owns the
    reset-cause register implements `DeepSleepWaker::LatchSleepWakeCause()` (set the
    sleep/SMR cause bit) and registers via `GuestDeepSleep::RegisterWaker`.
+   When the board's boot code can decide cold boot on a wake, the waker overrides
+   `DeepSleepWaker::WakeResumes()` (default true). When it returns false, `DeliverWake()`
+   requests a hard reset (cold boot) in place of a resume. The PW-SH4 returns false unless
+   `RESET.PWD` started the sleep and its RAM save block validates.
 3. **On a reset-on-wake SoC, reset reset-line silicon on wake** with
    `GuestCpuReset::RegisterResetListener` for each register or device that the
    board's reset line clears.
@@ -126,6 +130,13 @@ applies to every board.
    `ArmCpu::SetPendingResumeVector(pc)`. When the resume entry expects the MMU
    still live, the provider also calls `ArmCp15Registers::SetPendingResumeMmu(control, ttbr0, dacr)`.
    If you arm nothing, the reset stays at the cold entry.
+   A board whose resume replay needs the state that the reset delivery sets up (CPU mode,
+   banked registers, MMU) can instead arm the replay from a
+   `GuestCpuReset::RegisterResetReleaseListener` callback. That callback runs inside
+   `ArmCpu::RaiseResetException`, after the reset state is applied and before the pending-PC
+   check. The waker latches a flag in `LatchSleepWakeCause()`, and the release listener consumes
+   it, replays the resume, and calls `ArmCpu::SetPendingResumeVector` and `SetPendingResumeCpsr`.
+   The PW-SH4 (`SharpBrainPwSh4BootResume`) takes this shape.
 5. **On a clock-stop SoC**, there is no reset, no cause to latch and no resume
    vector. The peripheral that owns the power register implements
    `DeepSleepClockStop::OnPowerUp()` and registers via
