@@ -101,7 +101,7 @@ def build(type: str, target: str, sources: Sequence[str] = ("main.c",), entry: s
           arch: str = "arm", mips_isa: str = "mips4", subsystem_version: str = "3.00",
           wce_version: str = "300", rc: str = "", coredll_def: str = "",
           coredll_def_local: Sequence[str] = (), crt_libs: Sequence[str] = (),
-          out_subdir: str = "") -> None:
+          out_subdir: str = "", defines: Sequence[str] = ()) -> None:
     if not BIN.is_dir():
         raise CeBuildError(
             "CE toolchain not found at {}\n\nBuilding ce_apps/ needs eMbedded Visual C++ 4.0. "
@@ -158,7 +158,7 @@ def build(type: str, target: str, sources: Sequence[str] = ("main.c",), entry: s
 
     mode_marker = objs_dir / ".build_mode"
     coredll_key = hashlib.sha256(def_path.read_bytes()).hexdigest().upper() if def_path else ""
-    build_key = "{}-{}-{}-{}-{}-{}".format(mode, arch, mips_isa, wce_version, sdk_sub, coredll_key)
+    build_key = "{}-{}-{}-{}-{}-{}-{}".format(mode, arch, mips_isa, wce_version, sdk_sub, coredll_key, ";".join(defines))
     cached = mode_marker.read_text(encoding="ascii").strip() if mode_marker.is_file() else ""
     if cached != build_key:
         for stale in list(objs_dir.glob("*.obj")) + list(objs_dir.glob("*.res")):
@@ -183,7 +183,10 @@ def build(type: str, target: str, sources: Sequence[str] = ("main.c",), entry: s
             print("[CE] cl  {}".format(src), flush=True)
             argv = [cl, "/nologo", "/c", "/W3", "/WX", "/O2"] + arch_flags + cpu_macros + [
                 "/DUNICODE", "/D_UNICODE", "/DUNDER_CE", "/D_WIN32_WCE=" + wce_version,
-                "/DCERF_DEV_MODE=" + dev_mode_flag, "/Fo{}".format(_arg(obj))]
+                "/DCERF_DEV_MODE=" + dev_mode_flag]
+            for df in defines:
+                argv.append("/D" + df)
+            argv.append("/Fo{}".format(_arg(obj)))
             for inc in inc_dirs:
                 argv += ["/I", _arg(inc)]
             for fi in forced_include:
