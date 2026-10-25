@@ -1,12 +1,12 @@
 [submodule "references/extract-wince-rom"]
 	path = references/extract-wince-rom
-	url = git@github.com:gweslab/extract-wince-rom.git
+	url = https://github.com/gweslab/extract-wince-rom.git
 [submodule "libservicelocator"]
 	path = libservicelocator
 	url = https://github.com/dz333n/libservicelocator.git
 [submodule "libCerfEngine"]
 	path = libCerfEngine
-	url = https://github.com/gweslab/libCerfEngine.git
+	url = ../libCerfEngine.git
 [submodule "libCerfCore"]
 	path = libCerfCore
-	url = https://github.com/gweslab/libCerfCore.git
+	url = ../libCerfCore.git
