@@ -40,6 +40,7 @@ void CliUsage::Print(const char* prog) {
     printf("                           needs --guest-additions)\n");
     printf("  --ga-share-folder=PATH   Mount the host directory PATH into the guest at boot\n");
     printf("                           (relative to the cerf.exe directory; needs --guest-additions)\n");
+    printf("  --usb-serial-host=PATH   Bridge an enumerated USB CDC-ACM function to the host serial PATH\n");
     printf("  --recovery               Boot the device's recovery ROM (rom.recovery) instead of primary\n");
     printf("  --boot=resume|cold|warm  Saved-state boot action when state.img exists\n");
     printf("                           (resume=full restore, warm=RAM+flash only, cold=ignore)\n");

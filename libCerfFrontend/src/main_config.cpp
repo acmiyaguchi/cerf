@@ -44,6 +44,8 @@ ArgParseResult ParseCerfArgs(int argc, char* argv[], cerfcore::CerfConfig& cfg) 
                            sizeof(cerfcore::kArgScreenRefreshRate) - 1) == 0 ||
                    strncmp(argv[i], cerfcore::kArgGaShareFolder,
                            sizeof(cerfcore::kArgGaShareFolder) - 1) == 0 ||
+                   strncmp(argv[i], cerfcore::kArgUsbSerialHost,
+                           sizeof(cerfcore::kArgUsbSerialHost) - 1) == 0 ||
                    strncmp(argv[i], cerfcore::kArgBoot, sizeof(cerfcore::kArgBoot) - 1) == 0 ||
                    strncmp(argv[i], cerfcore::kArgTab, sizeof(cerfcore::kArgTab) - 1) == 0 ||
                    strncmp(argv[i], cerfcore::kArgGaColorScheme,
